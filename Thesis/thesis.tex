@@ -1,0 +1,134 @@
+﻿%% This file is modified by Veli Mäkinen from HY_fysiikka_LuKtemplate.tex authored by Roope Halonen ja Tomi Vainio.
+%% Some text is also inherited from engl_malli.tex by Kutvonen, Erkiö, Mäkelä, Verkamo, Kurhila, and Nykänen.
+
+
+% STEP 1: Choose oneside or twoside
+\documentclass[english,twoside,openright]{HYgraduMLDS}
+%finnish,swedish
+
+\usepackage{lmodern} % Font package
+\usepackage{textcomp} % Package for special symbols
+\usepackage[pdftex]{color, graphicx} % For pdf output and jpg/png graphics
+\usepackage[pdftex, plainpages=false]{hyperref} % For hyperlinks and pdf metadata
+\usepackage{fancyhdr} % For nicer page headers
+\usepackage{tikz} % For making vector graphics (hard to learn but powerful)
+%\usepackage{wrapfig} % For nice text-wrapping figures (use at own discretion)
+\usepackage{amsmath, amssymb} % For better math
+%\usepackage[square]{natbib} % For bibliography
+\usepackage[footnotesize,bf]{caption} % For more control over figure captions
+\usepackage{blindtext}
+\usepackage{titlesec}
+\usepackage[titletoc]{appendix}
+
+\onehalfspacing %line spacing
+%\singlespacing
+%\doublespacing
+
+%\fussy 
+\sloppy % sloppy and fussy commands can be used to avoid overlong text lines
+
+% STEP 2:
+% Set up all the information for the title page and the abstract form.
+% Replace parameters with your information.
+\title{Differentially Private Markov Chain Monte Carlo}
+\author{Ossi Räisä}
+\date{\today}
+\prof{Professor Antti Honkela}
+\censors{Professor Antti Honkela}{Dr. Antti Koskela}{}
+\keywords{Differential Privacy, Markov Chain Monte Carlo}
+\depositeplace{}
+\additionalinformation{}
+
+
+\classification{\protect{\ \\
+% \  General and reference $\rightarrow$ Document types  $\rightarrow$ Surveys and overviews\  \\
+% \  Applied computing  $\rightarrow$ Document management and text processing  $\rightarrow$ Document management $\rightarrow$ Text editing\\
+}}
+
+% if you want to quote someone special. You can comment this line and there will be nothing on the document.
+%\quoting{Bachelor's degrees make pretty good placemats if you get them laminated.}{Jeph Jacques} 
+
+
+% OPTIONAL STEP: Set up properties and metadata for the pdf file that pdfLaTeX makes.
+% But you don't really need to do this unless you want to.
+\hypersetup{
+    bookmarks=true,         % show bookmarks bar first?
+    unicode=true,           % to show non-Latin characters in Acrobatâs bookmarks
+    pdftoolbar=true,        % show Acrobatâs toolbar?
+    pdfmenubar=true,        % show Acrobatâs menu?
+    pdffitwindow=false,     % window fit to page when opened
+    pdfstartview={FitH},    % fits the width of the page to the window
+    pdftitle={},            % title
+    pdfauthor={},           % author
+    pdfsubject={},          % subject of the document
+    pdfcreator={},          % creator of the document
+    pdfproducer={pdfLaTeX}, % producer of the document
+    pdfkeywords={something} {something else}, % list of keywords for
+    pdfnewwindow=true,      % links in new window
+    colorlinks=true,        % false: boxed links; true: colored links
+    linkcolor=black,        % color of internal links
+    citecolor=black,        % color of links to bibliography
+    filecolor=magenta,      % color of file links
+    urlcolor=cyan           % color of external links
+}
+
+\begin{document}
+
+% Generate title page.
+\maketitle
+
+% STEP 3:
+% Write your abstract (of course you really do this last).
+% You can make several abstract pages (if you want it in different languages),
+% but you should also then redefine some of the above parameters in the proper
+% language as well, in between the abstract definitions.
+
+\begin{abstract}
+ 
+\end{abstract}
+
+% Place ToC
+\mytableofcontents
+
+\mynomenclature
+
+% -----------------------------------------------------------------------------------
+% STEP 4: Write the thesis.
+% Your actual text starts here. You shouldn't mess with the code above the line except
+% to change the parameters. Removing the abstract and ToC commands will mess up stuff.
+\chapter{Introduction}
+
+\chapter{Background}
+
+\section{Differential Privacy}
+
+Hello world~\cite{DwR14}
+
+\chapter{Conclusions}
+% STEP 5:
+% Uncomment the following lines and set your .bib file and desired bibliography style
+% to make a bibliography with BibTeX.
+% Alternatively you can use the thebibliography environment if you want to add all
+% references by hand.
+
+\cleardoublepage %fixes the position of bibliography in bookmarks
+\phantomsection
+
+\addcontentsline{toc}{chapter}{\bibname} % This lines adds the bibliography to the ToC
+\bibliographystyle{abbrv} % numbering alphabetic order
+\bibliography{../references.bib}
+
+% \begin{appendices}
+% \myappendixtitle
+%
+% \chapter{Code example\label{appendix:code}}
+% Program code can be added as appendix:
+% \begin{verbatim}
+% #!/bin/bash          
+% text="Hello World!"
+% echo $text
+% \end{verbatim}
+%
+% \end{appendices}
+
+\end{document}
