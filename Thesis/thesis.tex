@@ -14,6 +14,7 @@
 \usepackage{tikz} % For making vector graphics (hard to learn but powerful)
 %\usepackage{wrapfig} % For nice text-wrapping figures (use at own discretion)
 \usepackage{amsmath, amssymb} % For better math
+\usepackage{amsthm}
 %\usepackage[square]{natbib} % For bibliography
 \usepackage[footnotesize,bf]{caption} % For more control over figure captions
 \usepackage{blindtext}
@@ -72,6 +73,25 @@
     urlcolor=cyan           % color of external links
 }
 
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\cl}[1]{\overline{#1}}
+\newcommand{\kl}{D_{\mathrm{KL}}}
+\newcommand{\dmid}{\mid\mid}
+\newcommand{\var}{\mathrm{Var}}
+\newcommand{\calm}{{\mathcal{M}}}
+\newcommand{\calx}{{\mathcal{X}}}
+\newcommand{\calu}{{\mathcal{U}}}
+\newcommand{\caln}{{\mathcal{N}}}
+\newcommand{\call}{{\mathcal{L}}}
+\newcommand{\caly}{{\mathcal{Y}}}
+
 \begin{document}
 
 % Generate title page.
@@ -102,7 +122,107 @@
 
 \section{Differential Privacy}
 
-Hello world~\cite{DwR14}
+Differential privacy~\cite{DwR14} is a property of an algorithm that quantifies the 
+amount of information about private data an adversary can gain from the 
+publication of the algorithm's output.
+The most commonly used definition uses two real numbers, 
+\(\epsilon\) and \(\delta\) the quantify the information gain, or, from the 
+perspective of the data subjects, the privacy loss of the algorithm.
+
+The most common definition is called \((\epsilon, \delta)\)-DP, approximate DP 
+or ADP~\cite{DwR14}.
+The case where \(\delta = 0\) is commonly called \(\epsilon\)-DP or 
+pure DP.
+
+\begin{definition}\label{ADP-definition}
+    An algorithm \(\calm\colon \calx \to \calu\) is \((\epsilon, \delta)\)-ADP if 
+    for all neighbouring inputs \(x\in \calx\) and \(x'\in \calx\) and 
+    all measurable sets \(S \subset \calu\)
+    \[
+        P(\calm(x)\in S) \leq e^\epsilon P(\calm(x')\in S) + \delta
+    \]
+\end{definition}
+
+The neighbourhood relation in the definition is domain specific. With tabular 
+data the most common definitions are the add/remove neighbourhood and 
+substitute neighbourhood.
+\begin{definition}
+    Two tabular datasets are said to be add/remove neighbours if they are equal 
+    after adding or removing at most one row to or from one of them. The datasets 
+    are said to be in substitute neighbours if they are equal after 
+    changing at most one row in one of them.
+\end{definition}
+The neighbourhood relation is denoted by \(\sim\). The definitions and 
+theorems of this chapter are valid for all neighbourhood relations.
+
+There many other definitions of differential privacy that are mostly used 
+to compute \((\epsilon, \delta)\)-bounds for ADP. This thesis uses two of them: 
+Rényi-DP (RDP)~\cite{Mironov17} and 
+zero-concentrated differential privacy (zCDP)~\cite{BuS16}. Both are based 
+on Rényi divergence~\cite{Mironov17}, which is a particular way of 
+measuring the difference between random variables.
+
+\begin{definition}
+    For random variables with density or probability mass functions 
+    \(P\) and \(Q\) the Rényi divergence of order 
+    \(1 < \alpha < \infty\) is
+    \[
+        D_\alpha(P\dmid Q) = \frac{1}{\alpha - 1}\ln E_{x\sim Q}
+        \left(\frac{P(x)}{Q(y)}\right)
+    \]
+    Orders \(\alpha = 1\) and \(\alpha = \infty\) are defined 
+    by continuity:
+    \[
+        D_1(P\dmid Q) = \lim_{\alpha \to 1-} D_\alpha(P\dmid Q)
+    \]
+    \[
+        D_\infty(P \dmid Q) = \lim_{\alpha\to \infty}D_\alpha(P\dmid Q)
+    \]
+\end{definition}
+
+Both Rényi-DP and zCDP can be expressed as bounds on the 
+Rényi divergence between the outputs of an algorithm with 
+neighbouring inputs:
+
+\begin{definition}
+    An algorithm \(\calm\) is \((\alpha, \epsilon)\)-Rényi DP 
+    if for all \(x \sim x'\)
+    \[
+        D_\alpha(\calm(x)\dmid \calm(x')) \leq \epsilon
+    \]
+    \(\calm\) is \(\rho\)-zCDP if for all \(\alpha > 1\)
+    and all \(x \sim x'\)
+    \[
+        D_\alpha(\calm(x)\dmid \calm(x')) \leq \rho \alpha
+    \]
+
+\end{definition}
+
+There are many different DP algorithms that are commonly used, which are also
+called mechanisms~\cite{DwR14}. This thesis only requires the most commonly 
+used one: the Gaussian mechanism.
+\begin{definition}
+    The Gaussian mechanism with parameter \(\sigma^2\) 
+    is an algorithm that, with input \(x\), 
+    outputs a sample from \(\caln(x, \sigma^2)\), where \(\caln\) denotes 
+    the normal distribution.
+\end{definition}
+
+The most common use case for the Gaussian mechanism is first computing a 
+function \(f\colon \calx \to \R\) for private data and feeding the result into 
+the Gaussian mechanism to achieve DP. This leads into the definition of 
+sensitivity of a function
+\begin{definition}
+    The \(l_p\)-sensitivity \(\Delta_p\), with neighbourhood relation \(\sim\),
+    of a function \(f\colon \calx \to \R^n\)
+    is 
+    \[
+        \Delta_p f = \sup_{x\sim x'}||f(x) - f(x')||_p
+    \]
+\end{definition}
+\section{Bayesian Inference and MCMC}
+
+\chapter{Differentially Private MCMC}
 
 \chapter{Conclusions}
 % STEP 5:
