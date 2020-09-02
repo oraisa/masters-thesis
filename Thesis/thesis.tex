@@ -91,6 +91,7 @@
 \newcommand{\caln}{{\mathcal{N}}}
 \newcommand{\call}{{\mathcal{L}}}
 \newcommand{\caly}{{\mathcal{Y}}}
+\DeclareMathOperator{\erfc}{erfc}
 
 \begin{document}
 
@@ -153,7 +154,7 @@ substitute neighbourhood.
     changing at most one row in one of them.
 \end{definition}
 The neighbourhood relation is denoted by \(\sim\). The definitions and 
-theorems of this chapter are valid for all neighbourhood relations.
+theorems of this section are valid for all neighbourhood relations.
 
 There many other definitions of differential privacy that are mostly used 
 to compute \((\epsilon, \delta)\)-bounds for ADP. This thesis uses two of them: 
@@ -168,7 +169,7 @@ measuring the difference between random variables.
     \(1 < \alpha < \infty\) is
     \[
         D_\alpha(P\dmid Q) = \frac{1}{\alpha - 1}\ln E_{x\sim Q}
-        \left(\frac{P(x)}{Q(y)}\right)
+        \left(\frac{P(x)^\alpha}{Q(y)^\alpha}\right)
     \]
     Orders \(\alpha = 1\) and \(\alpha = \infty\) are defined 
     by continuity:
@@ -198,9 +199,58 @@ neighbouring inputs:
 
 \end{definition}
 
+A very useful property of all of these definitions is composition~\cite{DwR14}: 
+if algorithms \(\calm\) and \(\calm'\) are DP, the algorithm first computing 
+\(\calm\) and then \(\calm'\), outputting both results, 
+is also DP, although with worse bounds.
+More precisely
+
+\begin{definition}
+    Let \(\calm\colon \calx \to \calu\) and 
+    \(\calm'\colon \calx\times \calu \to \calu'\) be algorithms.
+    Their composition is the algorithm outputting 
+    \((\calm(x), \calm'(x, \calm(x)))\) for input \(x\).
+\end{definition}
+
+\begin{theorem}\label{composition-theorem}
+    Let \(\calm\colon \calx \to \calu\) and 
+    \(\calm\colon \calx\times \calu \to \calu'\) be algorithms. Then 
+    \begin{enumerate}
+        \item 
+            If \(\calm\) is \((\epsilon, \delta)\)-ADP and 
+            \(\calm'\) is \((\epsilon', \delta')\)-ADP, then 
+            their composition is 
+            \((\epsilon + \epsilon', \delta + \delta')\)-ADP~\cite{DwR14}
+        \item 
+            If \(\calm\) is \((\alpha, \epsilon)\)-RDP and 
+            \(\calm'\) is \((\alpha, \epsilon')\)-RDP, then 
+            their composition is \((\alpha, \epsilon + \epsilon')\)-RDP~\cite{Mironov17}
+        \item 
+            If \(\calm\) is \(\rho\)-zCDP and 
+            \(\calm'\) is \(\rho'\)-zCDP, then 
+            their composition is \((\rho + \rho')\)-zCDP~\cite{BuS16}
+    \end{enumerate}
+\end{theorem}
+
+All of the composition results can be extended to any number of compositions 
+by induction. Note that any step of the composition can depend on the results 
+of the previous steps, not only on the private data.
+
+As any algorithm that does not use private data in any way is 
+\((0, 0)\)-ADP, 0-zCDP and \((\alpha, 0)\)-RDP with all \(\alpha\), 
+theorem~\ref{composition-theorem} has the following corollary, called 
+post-processing immunity:
+
+\begin{theorem}
+    Let \(\calm\colon \calx\to \calu\) be an ADP, RDP or zCDP algorithm with 
+    some privacy parameters. Let \(f\colon \calu\to \calu'\) be any algorithm 
+    not using the private data. Then the composition of \(\calm\) and \(f\)
+    is ADP, RDP or zCDP with the same privacy parameters.
+\end{theorem}
+
 There are many different DP algorithms that are commonly used, which are also
-called mechanisms~\cite{DwR14}. This thesis only requires the most commonly 
-used one: the Gaussian mechanism.
+called mechanisms~\cite{DwR14}. This thesis only requires one of the most commonly 
+used ones: the Gaussian mechanism~\cite{DwR14}.
 \begin{definition}
     The Gaussian mechanism with parameter \(\sigma^2\) 
     is an algorithm that, with input \(x\), 
@@ -208,9 +258,37 @@ used one: the Gaussian mechanism.
     the normal distribution.
 \end{definition}
 
-The most common use case for the Gaussian mechanism is first computing a 
-function \(f\colon \calx \to \R\) for private data and feeding the result into 
-the Gaussian mechanism to achieve DP. This leads into the definition of 
+The RDP and zCDP bounds for the Gaussian 
+mechanism are quite simple. The ADP bound is more complicated:
+
+\begin{theorem}\label{gauss-DP-bounds}
+    If for all inputs \(x\) and \(x'\), \(||x - x'||_2 \leq \Delta\),
+    the Gaussian mechanism is 
+    \begin{enumerate}
+        \item 
+            \((\alpha, \frac{\alpha \Delta^2}{2\sigma^2})\)-RDP~\cite{Mironov17}
+        \item 
+            \(\frac{\Delta^2}{2\sigma^2}\)-zCDP~\cite{BuS16}
+        \item 
+            \(n\) compositions of the Gaussian mechanism are 
+            \((\epsilon, \delta(\epsilon))\)-ADP~\cite{Sommer2019} with 
+            \[
+                \delta(\epsilon) 
+                = \frac{1}{2}\left(
+                    \erfc\left(\frac{\sigma(\epsilon - n\mu)}{\sqrt{2n}\Delta}\right)
+                    - e^\epsilon \erfc\left(\frac{\sigma(\epsilon + n\mu)}{\sqrt{2n}\Delta}\right)
+                \right)
+            \]
+            where \(\mu = \frac{\Delta^2}{2\sigma^2}\) and \(\erfc\) is 
+            the complementary error function.
+    \end{enumerate}
+\end{theorem}
+
+The most common use case for the Gaussian mechanism is computing a 
+function \(f\colon \calx \to \R\) of private data and feeding the result into 
+the Gaussian mechanism to privately release the function value. 
+The condition that the inputs 
+of the Gaussian mechanism cannot vary too much leads into the concept of 
 sensitivity of a function
 \begin{definition}
     The \(l_p\)-sensitivity \(\Delta_p\), with neighbourhood relation \(\sim\),
@@ -220,9 +298,17 @@ sensitivity of a function
         \Delta_p f = \sup_{x\sim x'}||f(x) - f(x')||_p
     \]
 \end{definition}
+
+Theorem \ref{gauss-DP-bounds} implies that the value of any function with 
+finite \(l_2\)-sensitivity can be privately released using the Gaussian mechanism 
+with appropriate noise variance \(\sigma^2\). Of course, the usefulness of the 
+released value depends on the magnitude of \(\sigma^2\) compared to the actual 
+value.
 \section{Bayesian Inference and MCMC}
 
 \chapter{Differentially Private MCMC}
+
+\chapter{Variations of the Penalty Algorithm}
 
 \chapter{Conclusions}
 % STEP 5:
