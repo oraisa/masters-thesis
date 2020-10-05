@@ -20,6 +20,7 @@
 \usepackage{blindtext}
 \usepackage{titlesec}
 \usepackage[titletoc]{appendix}
+\usepackage[ruled, vlined]{algorithm2e}
 
 \onehalfspacing %line spacing
 %\singlespacing
@@ -127,12 +128,12 @@ Differential privacy~\cite{DwR14} is a property of an algorithm that quantifies 
 amount of information about private data an adversary can gain from the 
 publication of the algorithm's output.
 The most commonly used definition uses two real numbers, 
-\(\epsilon\) and \(\delta\) the quantify the information gain, or, from the 
-perspective of the data subjects, the privacy loss of the algorithm.
+\(\epsilon\) and \(\delta\), to quantify the information gain, or, from the 
+perspective of a data subject, the privacy loss of the algorithm.
 
 The most common definition is called \((\epsilon, \delta)\)-DP, approximate DP 
 or ADP~\cite{DwR14}.
-The case where \(\delta = 0\) is commonly called \(\epsilon\)-DP or 
+The case where \(\delta = 0\) is called \(\epsilon\)-DP or 
 pure DP.
 
 \begin{definition}\label{ADP-definition}
@@ -304,11 +305,113 @@ finite \(l_2\)-sensitivity can be privately released using the Gaussian mechanis
 with appropriate noise variance \(\sigma^2\). Of course, the usefulness of the 
 released value depends on the magnitude of \(\sigma^2\) compared to the actual 
 value.
-\section{Bayesian Inference and MCMC}
+
+\section{Bayesian Inference and Markov Chain Monte Carlo}
+
+In Bayesian inference, the parameters of a statistical model are inferred from 
+observed data using Bayes' theorem. The result is not just a point estimate 
+of the parameters, but a probability distribution describing the likelihood 
+of different values of the parameters.
+
+Bayes' theorem relates the \emph{posterior} belief of the parameters 
+\(p(\theta \mid D)\) to the \emph{prior} belief \(p(\theta)\) through the 
+observed data \(D\) and the likelihood of the data \(p(D\mid \theta)\) as follows:
+\[
+    p(\theta \mid D) = \frac{p(D \mid \theta)p(\theta)}
+    {\int p(D\mid \theta)p(\theta)d\theta}
+\]
+It is theoretically possible to compute \(p(\theta \mid D)\) given any 
+likelihood, prior and data, but the integral in the denominator is in many 
+cases difficult to compute. In such cases the posterior cannot be feasibly 
+computed. However, many of the commonly used summary statistics of the posterior, 
+such as the mean, variance and credible intervals, can be approximated from 
+a sample of the posterior. \emph{Markov chain Monte Carlo} (MCMC) is a 
+widely used algorithm to obtain such samples.
+
+Markov chain Monte Carlo algorithms sequentially sample values of \(\theta\)
+with the goal of eventually having the chain of sampled values converge to 
+a given distribution. While this can be done in many ways, this thesis 
+focuses on a particular MCMC algorithm: \emph{Metropolis-Hastings} (MH).
+
+The Metropolis-Hastings algorithm samples from a distribution \(\pi\) of 
+\(\theta_i\) by first picking a proposal \(\theta^*\) from a proposal 
+distribution \(q(\theta_{i-1})\) at iteration \(i\).
+A density ratio is calculated
+\[
+    r = \frac{\pi(\theta^*)}{\pi(\theta_{i-1})}
+    \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}
+\]
+and the proposal is accepted with probability \(\min\{1, r\}\). 
+If the proposal is accepted, 
+\(\theta_i = \theta^*\), otherwise \(\theta_i = \theta_{i-1}\).
+
+It can be shown that, with a suitable proposal distribution, the chain of 
+\(\theta_i\) values converges to \(\pi\). The Gaussian distribution centered 
+at the current value is a commonly used proposal.
+
+When MCMC is used in Bayesian inference, the distribution to approximate is 
+\[
+    \pi(\theta) = p(\theta \mid D) = \frac{p(D \mid \theta)p(\theta)}
+    {\int p(D\mid \theta)p(\theta)d\theta}
+\]
+The difficult integral \(\int p(D\mid \theta)p(\theta)d\theta\) in the denominator 
+cancels out when computing \(r\), so only the likelihood and prior are needed. 
+For numerical stability, \(r\) is usually computed in 
+log space, which makes the acceptance probability \(\min\{1, e^\lambda\}\)
+where 
+\[
+    \lambda = \ln \frac{p(\theta^* \mid D)}{p(\theta_{i-1}\mid D)}
+    + \ln \frac{p(\theta^*)}{p(\theta_{i-1})}
+    + \ln \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}
+\]
+
+The dataset \(D\) is typically a table with \(n\) independent rows.
+The likelihood is given as 
+\[
+    p(\theta\mid D_j)
+\]
+for row \(D_j\). The independence means that 
+\[
+    p(\theta\mid D) = \prod_{j=1}^k p(\theta\mid D_j)
+\]
+which means that the log likelihood ratio term of \(\lambda\) is 
+\[
+    \ln \frac{p(\theta^*\mid D)}{p(\theta_{i-1}\mid D)}
+    = \sum_{j=1}^n \ln\frac{p(\theta^*\mid D_j)}{p(\theta_{i-1}\mid D_j)}
+\]
+Algorithm~\ref{MH_algo} puts all of this together to summarise the MH 
+algorithm used for Bayesian inference.
+
+\begin{algorithm}[H]\label{MH_algo}
+    \SetAlgoLined
+    \For{\(1 \leq i \leq k\)}{
+        sample \(\theta^* \sim q(\theta_{i-1})\)\\
+        \(\lambda = 
+        \sum_{j=1}^n \ln\frac{p(\theta^*\mid D_j)}{p(\theta_{i-1}\mid D_j)}
+        + \ln \frac{p(\theta^*)}{p(\theta_{i-1})}
+        + \ln \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}\)
+        \\
+        \(\theta_i = \begin{cases}
+            \theta^* & \text{ with probability } \min\{1, e^\lambda\} \\
+            \theta_{i-1} & \text{ otherwise}
+        \end{cases}
+        \)\\
+    }
+    \Return \((\theta_1, \dotsc, \theta_k)\)
+    \caption{
+        Metropolis-Hastings: number of iterations \(k\), proposal 
+        distribution \(q\) and initial value \(\theta_0\) and 
+        dataset \(D\) as input
+    }
+\end{algorithm}
 
 \chapter{Differentially Private MCMC}
 
 \chapter{Variations of the Penalty Algorithm}
+
+\chapter{The Gauss-Bernoulli Algorithm}
+
+\chapter{Experiments}
 
 \chapter{Conclusions}
 % STEP 5:
