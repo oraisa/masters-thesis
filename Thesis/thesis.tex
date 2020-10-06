@@ -54,7 +54,7 @@
 % OPTIONAL STEP: Set up properties and metadata for the pdf file that pdfLaTeX makes.
 % But you don't really need to do this unless you want to.
 \hypersetup{
-    bookmarks=true,         % show bookmarks bar first?
+    % bookmarks=true,         % show bookmarks bar first?
     unicode=true,           % to show non-Latin characters in Acrobatâs bookmarks
     pdftoolbar=true,        % show Acrobatâs toolbar?
     pdfmenubar=true,        % show Acrobatâs menu?
@@ -122,7 +122,7 @@
 
 \chapter{Background}
 
-\section{Differential Privacy}
+\section{Differential Privacy}\label{DP_background}
 
 Differential privacy~\cite{DwR14} is a property of an algorithm that quantifies the 
 amount of information about private data an adversary can gain from the 
@@ -306,10 +306,10 @@ with appropriate noise variance \(\sigma^2\). Of course, the usefulness of the
 released value depends on the magnitude of \(\sigma^2\) compared to the actual 
 value.
 
-\section{Bayesian Inference and Markov Chain Monte Carlo}
+\section{Bayesian Inference and Markov Chain Monte Carlo}\label{MCMC_background}
 
 In Bayesian inference, the parameters of a statistical model are inferred from 
-observed data using Bayes' theorem. The result is not just a point estimate 
+observed data using Bayes' theorem~\cite{BDA}. The result is not just a point estimate 
 of the parameters, but a probability distribution describing the likelihood 
 of different values of the parameters.
 
@@ -322,20 +322,20 @@ observed data \(D\) and the likelihood of the data \(p(D\mid \theta)\) as follow
 \]
 It is theoretically possible to compute \(p(\theta \mid D)\) given any 
 likelihood, prior and data, but the integral in the denominator is in many 
-cases difficult to compute. In such cases the posterior cannot be feasibly 
+cases difficult to compute~\cite{BDA}. In such cases the posterior cannot be feasibly 
 computed. However, many of the commonly used summary statistics of the posterior, 
 such as the mean, variance and credible intervals, can be approximated from 
 a sample of the posterior. \emph{Markov chain Monte Carlo} (MCMC) is a 
-widely used algorithm to obtain such samples.
+widely used algorithm to obtain such samples~\cite{BDA}.
 
 Markov chain Monte Carlo algorithms sequentially sample values of \(\theta\)
 with the goal of eventually having the chain of sampled values converge to 
-a given distribution. While this can be done in many ways, this thesis 
+a given distribution~\cite{BDA}. While this can be done in many ways, this thesis 
 focuses on a particular MCMC algorithm: \emph{Metropolis-Hastings} (MH).
 
 The Metropolis-Hastings algorithm samples from a distribution \(\pi\) of 
 \(\theta_i\) by first picking a proposal \(\theta^*\) from a proposal 
-distribution \(q(\theta_{i-1})\) at iteration \(i\).
+distribution \(q(\theta_{i-1})\) at iteration \(i\)~\cite{BDA}.
 A density ratio is calculated
 \[
     r = \frac{\pi(\theta^*)}{\pi(\theta_{i-1})}
@@ -346,7 +346,7 @@ If the proposal is accepted,
 \(\theta_i = \theta^*\), otherwise \(\theta_i = \theta_{i-1}\).
 
 It can be shown that, with a suitable proposal distribution, the chain of 
-\(\theta_i\) values converges to \(\pi\). The Gaussian distribution centered 
+\(\theta_i\) values converges to \(\pi\)~\cite{BDA}. The Gaussian distribution centered 
 at the current value is a commonly used proposal.
 
 When MCMC is used in Bayesian inference, the distribution to approximate is 
@@ -407,7 +407,120 @@ algorithm used for Bayesian inference.
 
 \chapter{Differentially Private MCMC}
 
+As seen in Section~\ref{DP_background}, an algorithm can be made differentially 
+private by adding Gaussian noise the its output. The noise could also be added 
+to any intermediate value calculated by the algorithm, and post processing immunity 
+will guarantee that the same DP bounds that hold for releasing the intermediate 
+value also hold for releasing the final result of the algorithm.
+
+In 2019, Yildirim and Ermis~\cite{YildirimE19} realised that if Gaussian noise is added to 
+the exact value of \(\lambda\), the noise can be corrected for 
+yielding a differentially private MCMC algorithm which converges to 
+the correct distribution. In the same year, Heikkilä et.\ al.~\cite{HeikkilaJDH19}
+developed another DP MCMC algorithm, called DP Barker, which uses subsampling 
+to amplify privacy.
+
+\section{DP Penalty}
+
+In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
+Metropolis-Hastings called the penalty 
+algorithm, where only a noisy approximation of \(\lambda\) is known. They 
+developed the algorithm for simulations in physics where computing \(\lambda\)
+requires computing energies of complex systems, which can only be approximated.
+The penalty algorithm modifies the acceptance probability to account for the 
+noise added to \(\lambda\) and still converges to the correct distribution if 
+the noise is Gaussian with known variance.
+
+\section{DP Barker}
+
+The DP Barker algorithm of Heikkilä et.\ al.~\cite{HeikkilaJDH19} is based on 
+the Barker acceptance test~\cite{Barker65} instead of the Metropolis-Hastings test.
+Instead of using the MH acceptance probability, the Barker acceptance test samples 
+\(V_{log}\sim \mathrm{Logistic(0, 1)}\) and accepts if 
+\[
+    \lambda + V_{log} > 0
+\]
+
+If Gaussian noise with variance \(\sigma^2\) is added to 
+\(\lambda\), there exists a correction 
+distribution \(V_{corr}\) such that \(\caln(0, \sigma^2) + V_{corr}\) has the 
+same distribution as \(V_{log}\). Because the variance of \(V_{log}\) is 
+\(\frac{\pi^2}{3}\), the variance of \(V_{corr}\) must be 
+\(\frac{\pi^2}{3} - \sigma^2\) which means that there is an upper bound
+to the noise variance: \(\sigma^2 < \frac{\pi^2}{3}\). Testing whether 
+\(\lambda + \caln(0, \sigma^2) + V_{corr} > 0\) is equivalent to testing 
+whether \(\lambda + V_{log} > 0\), which means that it is possible to derive 
+a DP MCMC algorithm based on the Barker acceptance test if the correction 
+distribution can be sampled from.
+
+However, the analytical form of \(V_{corr}\) is not known~\cite{HeikkilaJDH19}.
+Heikkilä et.\ al.~\cite{HeikkilaJDH19} derive a method to accurately approximate 
+the distribution and draw samples from the approximation. This means that their 
+algorithm does only approximately converges to the correct distribution, but the 
+error in approximating \(V_{corr}\) can be made very small.
+
+If the sum in \(\lambda\) was only computed over a subset of the data, the 
+algorithm would take less computation to run, and would be less sensitive 
+to changes in the data. The latter property is called \emph{subsampling amplification}
+of differential privacy~\cite{WangBK19}. The using the \(\lambda\) computed 
+with subsampling instead of the full data \(\lambda\) introduces an additional 
+error that must be correct for to have the algorithm converge to the correct 
+distribution. 
+
+The \emph{central limit theorem} (CLT) states that the distribution of a sum 
+of random variables approaches a Gaussian distribution as more random variables 
+are summed, if some conditions on the independence and variance of the random 
+variables are met~\cite{HeikkilaJDH19}. With the CLT, it can be argued 
+that the error from 
+using the subsampled \(\lambda\) instead of the full data \(\lambda\) has an 
+approximately Gaussian distribution, if the subsample is large 
+enough~\cite{HeikkilaJDH19}. 
+
+The variance of the error from subsampling can 
+be estimated by the sample variance of the individual terms in the sum in 
+\(\lambda\)~\cite{HeikkilaJDH19}. This allows combining the errors from subsampling and the 
+Gaussian noise from the Gaussian mechanism to a single Gaussian noise value.
+The \(V_{corr}\) distribution can then be used to approximate the Barker acceptance 
+test as above. See algorithm~\ref{DP_barker_algo} for the DP Barker algorithm
+\footnote{
+    See \cite{HeikkilaJDH19} for the sampling procedure of \(V_{corr}\).
+}.
+
+\begin{algorithm}[H]\label{DP_barker_algo}
+    \SetAlgoLined
+    sample \(\theta^* \sim q(\theta_{i-1})\)\\
+    sample \(B \subset \{1, \dotsc, n\}\)\\
+    \For{\(1 \leq i \leq k\)}{
+        \For{\(j \in B\)}{
+            \(l_j = \ln \frac{p(\theta^*\mid D_j)}{p(\theta_{i-1}\mid D_j)}\)\\
+        }
+        \(\sigma^2_b = \mathrm{Var}\{l_j\mid j\in B\}\)\\
+        \(\lambda = 
+        \frac{nT}{|B|}\sum_{j\in B} l_j
+        + \ln \frac{p(\theta^*)}{p(\theta_{i-1})}
+        + \ln \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}\)
+        \\
+        sample \(s \sim \caln(0, \sigma^2 - \sigma^2_b)\)\\
+        sample \(c \sim V_{corr}^{\sigma^2}\)\\
+        \(\theta_i = \begin{cases}
+            \theta^* & \text{ if } \lambda + s + c > 0 \\
+            \theta_{i-1} & \text{ otherwise}
+        \end{cases}
+        \)\\
+    }
+    \Return \((\theta_1, \dotsc, \theta_k)\)
+    \caption{
+        DP Barker
+    }
+\end{algorithm}
+
+\section{Comparing DP Penalty and DP Barker}
+
 \chapter{Variations of the Penalty Algorithm}
+
+\section{The Penalty Algorithm with Subsampling}
+
+\section{DP Metropolis-Adjusted Langevin Algorithm}
 
 \chapter{The Gauss-Bernoulli Algorithm}
 
