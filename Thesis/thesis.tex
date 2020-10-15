@@ -426,7 +426,7 @@ been used to test MCMC algorithms in the literature~\cite{TPK14}.
     Let \(X\) have a bivariate Gaussian distribution with
     mean \(\mu\) and covariance matrix \(\Sigma\). Let
     \[
-        g(x) = (x_1, x_2 - a(x_1 - m)^2 - b)
+        g(x) = (x_1, x_2 - a(x_1 - m)^2 - b),
     \]
     with \(a, b, m \in \R\).
     The banana distribution with parameters \(\mu, \Sigma, a, b\) and \(m\)
@@ -434,8 +434,8 @@ been used to test MCMC algorithms in the literature~\cite{TPK14}.
     \(\ban(\mu, \Sigma, a, b, m)\).
 \end{definition}
 
-In the literature the banana distribution is simply defined as the target to 
-sample from, and is not considered a posterior in a Bayesian inference 
+In the literature, the banana distribution is simply used as the target to 
+sample from, and is not the posterior in a Bayesian inference 
 problem~\cite{TPK14}. To test differentially private MCMC algorithms, the 
 target distribution must be the posterior of some inference problem, as 
 otherwise there is no data to protect with differential privacy.
@@ -455,6 +455,9 @@ for testing DP MCMC algorithms.
     the posterior of \(\theta\) tempered with \(T\) is the banana distribution
     \(\ban(\mu, \Sigma, a, b, m)\)
     with
+    \[
+        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\}
+    \]
     \[
         \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},
         \frac{Tn\tau_2\bar{x}_2}{Tn\tau_2 + \tau_0}\right),
@@ -668,6 +671,21 @@ chosen to be large enough, the clipping will not affect the
 acceptance decision frequently. As a tradeoff, picking a large \(L\) will increase 
 the variance of the Gaussian noise and slow down convergence through it.
 
+Yildirim and Ermis~\cite{YildirimE19} propose two potential ways to improve the 
+performance of the penalty algorithm. The first improvement is only proposing 
+changes in one dimension in a multidimensional problem. This decreases 
+\(||\theta - \theta'||_2\), which means that it decreases the noise variance.
+
+The second improvement is called \emph{guided random walk} (GRW)~\cite{YildirimE19}.
+In GRW, proposals change only one dimension, as above. Additionally, a direction 
+is associated with each dimension, and proposals are only made the current 
+direction of the chosen dimension. After an accepted proposal, the direction is 
+kept the same, but after a reject it is switched. This means that the chain can
+move towards areas of higher probability faster because, after some initial 
+proposals are rejected, the directions for each dimension point towards the 
+area of high probability, so all proposals are towards it. Without GRW, most 
+proposals would move the chain away from the area of high probability, and 
+would likely be rejected.
 
 \section{DP Barker}
 
@@ -745,7 +763,7 @@ is accounted for with an amplification theorem for Rényi DP~\cite{WangBK19}.
     \[
         \epsilon(\alpha) = \frac{1}{\alpha - 1}\ln \left(
         1 + q^2\binom{\alpha}{2}\min\{4(e^{\epsilon'(2)} - 1), 2e^{\epsilon'(2)}\}
-        + 2 \sum_{j=3}^\alpha q^j\binom{\alpha}{j}e^{j-1\epsilon'(j)}\right)
+        + 2 \sum_{j=3}^\alpha q^j\binom{\alpha}{j}e^{(j-1)\epsilon'(j)}\right)
     \]
     and 
     \[
@@ -789,11 +807,11 @@ significantly less clipping than a nontempered likelihood.
     sample \(B \subset \{1, \dotsc, n\}\)\\
     \For{\(1 \leq i \leq k\)}{
         \For{\(j \in B\)}{
-            \(l_j = \ln \frac{p(\theta^*\mid D_j)}{p(\theta_{i-1}\mid D_j)}\)\\
+            \(r_j = \ln \frac{p(\theta^*\mid D_j)}{p(\theta_{i-1}\mid D_j)}\)\\
         }
-        \(\sigma^2_b = \mathrm{Var}\{l_j\mid j\in B\}\)\\
+        \(\sigma^2_b = \mathrm{Var}\{r_j\mid j\in B\}\)\\
         \(\lambda = 
-        \frac{n}{|B|}\sum_{j\in B} l_j
+        \frac{n}{|B|}\sum_{j\in B} r_j
         + \ln \frac{p(\theta^*)}{p(\theta_{i-1})}
         + \ln \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}\)
         \\
@@ -816,6 +834,161 @@ significantly less clipping than a nontempered likelihood.
 \chapter{Variations of the Penalty Algorithm}
 
 \section{The Penalty Algorithm with Subsampling}
+
+In the DP Barker algorithm, the log likelihood ratio is computed using only 
+a subsample of the dataset to amplify privacy. Subsampling can also be used 
+with the penalty algorithm in the same way, if the acceptance test is 
+corrected for the subsampling.
+
+As with DP Barker, the error from subsampling is approximately normally 
+distributed by the central limit theorem. The variance of the subsampling 
+error can be estimated from the sample variance of individual terms of the 
+sum in the log likelihood ratio. This means that the penalty method can be used 
+to correct for the subsampling error.
+
+The acceptance probability with subsampling is
+\[
+    \min\{1, e^{\lambda - \frac{1}{2}(\sigma^2 + \sigma_b^2)}\},
+\]
+where
+\[
+\lambda = \frac{nT}{|B|}\sum_{j\in B}
+\ln \frac{p(D_j\mid \theta')}{p(D_j \mid \theta)}
++ \ln \frac{p(\theta')q(\theta \mid \theta')}{p(\theta)q(\theta' \mid \theta)},
+\]
+and \(\sigma_b^2\) is the sample variance of the log likelihood ratios in 
+batch \(B\). Denote
+\[
+    r_j = \ln \frac{p(D_j\mid \theta')}{p(D_j\mid \theta)},
+\]
+\[
+R = \sum_{x\in B}r_j.
+\]
+Then \(\sigma^2_b\) can be estimated from the sample variance of \(r_j\):
+\begin{align*}
+    \sigma_b^2 
+    &= \var\left(\frac{nT}{|B|}\sum_{j\in B}r_j\right)
+    = \frac{nT^2}{|B|^2}\sum_{j\in B}\var(r_j)
+    = \frac{nT^2}{|B|}\var(r_j)
+  \\&\approx\frac{(nT)^2}{|B|^2}
+    \sum_{j\in B}\left(r_j - \frac{R}{|B|}\right)^2
+    = \frac{(nT)^2}{|B|^2}\left(\sum_{j\in B}r_j^2 - \frac{R^2}{|B|}\right).
+\end{align*}
+
+Because \(\sigma_b^2\) depends on the data, releasing \(\lambda\) privately is 
+not enough, \(\lambda - \frac{1}{2}\sigma_b^2\) must be released privately.
+This means that using subsampling requires adding additional noise to account 
+for the sensitivity of \(\frac{1}{2}\sigma_b^2\).
+
+The sensitivity of \(\lambda - \frac{1}{2}\sigma_b^2\) is 
+\[
+    \Delta \lambda + \frac{1}{2}\Delta \sigma_b^2.
+\]
+With the bound \(r_j \leq L||\theta - \theta'||_2\) used in DP penalty, the 
+bound sensitivity of \(\lambda\) is the same as without subsampling.
+The sensitivity of \(\sigma_b^2\) must be bounded separately.
+\begin{lemma}\label{variance_sensitivity_lemma}
+    The sensitivity of \(\frac{1}{2}\sigma_b^2\), 
+    with \(r_j \leq L||\theta - \theta'||_2\), has upper bound
+    \begin{align*}
+        \frac{1}{2}\Delta \sigma_b^2
+        &\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
+        L^2||\theta - \theta'||_2^2
+        + \frac{2(b - 1)}{b}\left(\frac{nT}{b}\right)^2 L^2||\theta - \theta'||^2_2.
+    \end{align*}
+\end{lemma}
+\begin{proof}
+    For datasets \(D \sim D'\), that only differ in one element, denote the 
+    common part they have by \(D^*\), and the differing element by \(d\in D\) 
+    and \(d'\in D'\)
+    \begin{align*}
+        \Delta \sigma^2_b &= \sup_{D\sim D'} |\sigma^2_b(D) - \sigma^2_b(D')|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{D\sim D'}\Big|
+        \sum_{d\in D}r^2(d) - \sum_{d\in D'}r^2(d)
+        + \frac{1}{b}R^2(D') - \frac{1}{b}R^2(D)\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{d, d', D^*}\Big|
+        r^2(d) - r^2(d')
+        + \frac{1}{b}(R(D^*) + r(d'))^2 - \frac{1}{b}(R(D^*) + r(d))^2\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{d, d', D^*}\Big|
+        r^2(d) - r^2(d')
+        + \frac{1}{b}(R^2(D^*) + 2R(D^*)r(d') + r^2(d'))
+        \\&- \frac{1}{b}(R^2(D^*) + 2R(D^*)r(d) + r^2(d))\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{d, d', X^*}\Big|
+        \left(1 - \frac{1}{b}\right)(r^2(d) - r^2(d'))
+        + \frac{2}{b}D(X^*)(r(d') - r(d))\Bigg|
+        \\&\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
+        \sup_{d, d'}\Big|(r^2(d) - r^2(d'))\Big|
+        + \frac{2}{b}\left(\frac{nT}{b}\right)^2 \sup_{d, d', D^*}\Big|
+        R(D^*)(r(d') - r(d))\Bigg|
+        \\&= \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
+        \sup_{d, d'}\Big|(r^2(d) - r^2(d'))\Big|
+        + \frac{2}{b}\left(\frac{nT}{b}\right)^2
+        \sup_{d, d'}|r(d') - r(d)|
+        \sup_{X^*}|R(D^*)|
+        \\&\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
+        \sup_{d, d'}\Big|(r^2(d) - r^2(d'))\Big|
+        + \frac{2}{b}\left(\frac{nT}{b}\right)^2
+        \sup_{d, d'}|r(d') - r(d)|
+        (b - 1)\sup_{d}|r(d)|.
+    \end{align*}
+    Plugging the bound \(\sup_d |r(d)| \leq L||\theta - \theta'||_2\) 
+    into the last expression proves the claim.
+\end{proof}
+
+\begin{theorem}
+    Let
+    \[
+        \Delta_\lambda = \frac{2nTL}{|B|}||\theta - \theta'||_2,
+    \]
+    \[
+        \Delta_\sigma = \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
+        L^2||\theta - \theta'||_2^2,
+        + \frac{2(b - 1)}{b}\left(\frac{nT}{b}\right)^2 L^2||\theta - \theta'||^2_2.
+    \]
+    \[
+        c(\theta, \theta') = \Delta_\lambda + \Delta_\sigma,
+    \]
+    \[
+        \sigma^2(\theta, \theta') = \tau c^2(\theta, \theta').
+    \]
+    Then running DP penalty with subsampling for \(k\) iterations 
+    is \((\alpha, k\epsilon(\alpha))\)-RDP, with
+    \[
+        \epsilon(\alpha) = \frac{1}{\alpha - 1}\ln \left(
+        1 + q^2\binom{\alpha}{2}\min\{4(e^{\epsilon'(2)} - 1), 2e^{\epsilon'(2)}\}
+        + 2 \sum_{j=3}^\alpha q^j\binom{\alpha}{j}e^{(j-1)\epsilon'(j)}\right),
+    \]
+    and 
+    \[
+        \epsilon'(\alpha) = \frac{\alpha}{2\tau},
+    \]
+    where \(n\) is the number of rows in \(D\), \(|B|\) is the size of the 
+    minibatch and \(q = \frac{|B|}{n}\).
+\end{theorem}
+\begin{proof}
+    By Lemma~\ref{variance_sensitivity_lemma}, 
+    \(\Delta_\sigma(\theta, \theta')\) an upper 
+    bound to the sensitivity of \(\frac{1}{2}\sigma_b^2\), therefore 
+    \(c(\theta, \theta')\) is an upper bound to the sensitivity of 
+    \(\lambda - \frac{1}{2}\sigma_b^2\).
+
+    This means that a Gaussian mechanism taking a subsample \(B\) of the data as 
+    input and uses \(\sigma(\theta, \theta')\) as the noise variance 
+    is \((\alpha, \epsilon'(\alpha))\)-RDP with 
+    \[
+        \epsilon'(\alpha) = \frac{\alpha}{2\tau}.
+    \]
+    By the subsampling amplification theorem~\cite[Theorem 9]{WangBK19} and 
+    the composition theorem of RDP (Theorem~\ref{composition-theorem}),
+    the combination of subsampling and Gaussian mechanism is 
+    \((\alpha, k\epsilon(\alpha))\)-RDP with 
+    \[
+        \epsilon(\alpha) = \frac{1}{\alpha - 1}\ln \left(
+        1 + q^2\binom{\alpha}{2}\min\{4(e^{\epsilon'(2)} - 1), 2e^{\epsilon'(2)}\}
+        + 2 \sum_{j=3}^\alpha q^j\binom{\alpha}{j}e^{(j-1)\epsilon'(j)}\right)
+    \]
+    when run for \(k\) iterations for integer \(\alpha \geq 2\).
+\end{proof}
 
 \section{DP Metropolis-Adjusted Langevin Algorithm}
 
