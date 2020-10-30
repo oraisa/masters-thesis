@@ -326,13 +326,13 @@ of the parameters, but a probability distribution describing the likelihood
 of different values of the parameters.
 
 Bayes' theorem relates the \emph{posterior} belief of the parameters 
-\(p(\theta \mid D)\) to the \emph{prior} belief \(p(\theta)\) through the 
-observed data \(D\) and the likelihood of the data \(p(D\mid \theta)\) as follows:
+\(p(\theta \mid X)\) to the \emph{prior} belief \(p(\theta)\) through the 
+observed data \(X\) and the likelihood of the data \(p(X\mid \theta)\) as follows:
 \[
-    p(\theta \mid D) = \frac{p(D \mid \theta)p(\theta)}
-    {\int p(D\mid \theta)p(\theta)d\theta}.
+    p(\theta \mid X) = \frac{p(X \mid \theta)p(\theta)}
+    {\int p(X\mid \theta)p(\theta)d\theta}.
 \]
-It is theoretically possible to compute \(p(\theta \mid D)\) given any 
+It is theoretically possible to compute \(p(\theta \mid X)\) given any 
 likelihood, prior and data, but the integral in the denominator is in many 
 cases difficult to compute~\cite{BDA}. In such cases the posterior cannot be feasibly 
 computed. However, many of the commonly used summary statistics of the posterior, 
@@ -345,17 +345,22 @@ with the goal of eventually having the chain of sampled values converge to
 a given distribution~\cite{BDA}. While this can be done in many ways, this thesis 
 focuses on a particular MCMC algorithm: \emph{Metropolis-Hastings} (MH).
 
-The Metropolis-Hastings algorithm samples from a distribution \(\pi\) of 
-\(\theta_i\) by first picking a proposal \(\theta^*\) from a proposal 
-distribution \(q(\theta_{i-1})\) at iteration \(i\)~\cite{BDA}.
-A density ratio is calculated
+At each iteration \(i\), the Metropolis-Hastings algorithm samples \(\theta_i\) 
+from a distribution \(\pi\) of the parameters
+by first picking a proposal \(\theta'\) from a proposal 
+distribution \(q(\theta_{i-1})\)~\cite{BDA}, where \(\theta_{i-1}\) is the 
+previously sampled value\footnote{
+    The value of \(\theta_0\) for the first iteration is given as input to the 
+    algorithm.
+}. We shorten \(\theta_{i-1}\) to \(\theta\) in the following. 
+The ratio of posterior and proposal densities is calculated
 \[
-    r = \frac{\pi(\theta^*)}{\pi(\theta_{i-1})}
-    \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})},
+    r(\theta, \theta') = \frac{\pi(\theta')}{\pi(\theta)}
+    \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)},
 \]
 and the proposal is accepted with probability \(\min\{1, r\}\). 
 If the proposal is accepted, 
-\(\theta_i = \theta^*\), otherwise \(\theta_i = \theta_{i-1}\).
+\(\theta_i = \theta\), otherwise \(\theta_i = \theta\).
 
 It can be shown that, with a suitable proposal distribution, the chain of 
 \(\theta_i\) values converges to \(\pi\)~\cite{BDA}. The Gaussian distribution centered 
@@ -363,30 +368,30 @@ at the current value is a commonly used proposal.
 
 When MCMC is used in Bayesian inference, the distribution to approximate is 
 \[
-    \pi(\theta) = p(\theta \mid D) = \frac{p(D \mid \theta)p(\theta)}
-    {\int p(D\mid \theta)p(\theta)d\theta}.
+    \pi(\theta) = p(\theta \mid X) = \frac{p(X \mid \theta)p(\theta)}
+    {\int p(X\mid \theta)p(\theta)d\theta}.
 \]
-The difficult integral \(\int p(D\mid \theta)p(\theta)d\theta\) in the denominator 
+The difficult integral \(\int p(X\mid \theta)p(\theta)d\theta\) in the denominator 
 cancels out when computing \(r\), so only the likelihood and the prior are needed. 
 For numerical stability, \(r\) is usually computed in 
-log space, which makes the acceptance probability \(\min\{1, e^\lambda\}\)
-where 
+log space, which makes the acceptance probability 
+\(\min\{1, e^{\lambda(\theta, \theta')}\}\) where 
 \[
-    \lambda = \ln \frac{p(D\mid \theta^*)}{p(D\mid \theta_{i-1})}
-    + \ln \frac{p(\theta^*)}{p(\theta_{i-1})}
-    + \ln \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}.
+    \lambda(\theta, \theta') = \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
+    + \ln \frac{p(\theta')}{p(\theta)}
+    + \ln \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}.
 \]
 
-The dataset \(D\) is typically a table with \(n\) independent rows.
-The likelihood is given as \(p(D_j\mid \theta)\)
-for row \(D_j\). Independence of the rows means that 
+The dataset \(X\) is typically a table with \(n\) independent rows.
+The likelihood is given as \(p(x_j\mid \theta)\)
+for row \(x_j\). Independence of the rows means that 
 \[
-    p(D\mid \theta) = \prod_{j=1}^k p(D_j\mid \theta)
+    p(X\mid \theta) = \prod_{j=1}^n p(x_j\mid \theta)
 \]
 which means that the log likelihood ratio term of \(\lambda\) is 
 \[
-    \ln \frac{p(D\mid \theta^*)}{p(D\mid \theta_{i-1})}
-    = \sum_{j=1}^n \ln\frac{p(D_j\mid \theta^*)}{p(D_j\mid \theta_{i-1})}
+    \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
+    = \sum_{j=1}^n \ln\frac{p(x_j\mid \theta')}{p(x_j\mid \theta)}
 \]
 Algorithm~\ref{MH_algo} puts all of this together to summarise the MH 
 algorithm used for Bayesian inference.
@@ -394,17 +399,18 @@ algorithm used for Bayesian inference.
 \begin{algorithm}[H]\label{MH_algo}
     \SetAlgoLined
     \For{\(1 \leq i \leq k\)}{
-        sample \(\theta^* \sim q(\theta_{i-1})\)\\
-        \(\ln p(D\mid \theta) = 
-            \sum_{j=1}^n (\ln p(D_j \mid \theta^*) - \ln p(D_j\mid \theta_{i-1}))
+        denote \(\theta = \theta_{i-1}\)\\
+        sample \(\theta' \sim q(\theta)\)\\
+        \(\ln p(X\mid \theta) = 
+            \sum_{j=1}^n (\ln p(x_j \mid \theta') - \ln p(x_j\mid \theta))
         \)\\
-    \(\lambda = \ln p(D\mid \theta)
-        + \ln p(\theta^*) - \ln p(\theta_{i-1})
-        + \ln q(\theta_{i-1}\mid \theta^*) - \ln q(\theta^*\mid \theta_{i-1})\)
+        \(\lambda = \ln p(X\mid \theta)
+        + \ln p(\theta') - \ln p(\theta)
+        + \ln q(\theta\mid \theta') - \ln q(\theta'\mid \theta)\)
         \\
         \(\theta_i = \begin{cases}
-            \theta^* & \text{ with probability } \min\{1, e^\lambda\} \\
-            \theta_{i-1} & \text{ otherwise}
+            \theta' & \text{ with probability } \min\{1, e^\lambda\} \\
+            \theta & \text{ otherwise}
         \end{cases}
         \)\\
     }
@@ -412,7 +418,7 @@ algorithm used for Bayesian inference.
     \caption{
         Metropolis-Hastings: number of iterations \(k\), proposal 
         distribution \(q\) and initial value \(\theta_0\) and 
-        dataset \(D\) as input
+        dataset \(X\) as input
     }
 \end{algorithm}
 
@@ -581,7 +587,7 @@ the algorithm still converges to the correct distribution~\cite{YildirimE19}.
 The corrected acceptance probability for Gaussian noise with variance 
 \(\sigma^2\) is 
 \[
-    \min\{1, e^{\lambda - \frac{1}{2}\sigma^2}\}
+    \min\{1, e^{\lambda(\theta, \theta') - \frac{1}{2}\sigma^2}\}
 \]
 
 Theorem~\ref{DP_penalty_theorem_zcdp} gives the number of iterations DP penalty 
@@ -593,15 +599,12 @@ Theorem~\ref{DP_penalty_theorem_adp}.
 \begin{theorem}\label{DP_penalty_theorem_zcdp}
     Let \(\epsilon > 0\), \(0 < \delta < 1\), \(\alpha > 0\) and \(\tau > 0\).
     Let
-    % \[
-    %     \beta = -\frac{\ln \delta}{\ln n}
-    % \]
     \[
         \rho = (\sqrt{\epsilon - \ln \delta} - \sqrt{-\ln \delta})^2
     \]
     \[
-        c(\theta, \theta') = \sup_{D_j, D'_j} (p(D_j\mid \theta') - p(D_j\mid \theta) 
-        - (p(D'_j\mid \theta') - p(D'_j\mid \theta)))
+        c(\theta, \theta') = \sup_{x_j, x'_j} (p(x_j\mid \theta') - p(x_j\mid \theta) 
+        - (p(x'_j\mid \theta') - p(x'_j\mid \theta)))
     \]
     \[
         \sigma^2(\theta, \theta') = \tau^2 n^{2\alpha}c^2(\theta, \theta')
@@ -635,7 +638,7 @@ Theorem~\ref{DP_penalty_theorem_adp}.
     \(c(\theta, \theta')\). For the tight ADP bound used here, the sensitivity must be 
     constant in each iteration. This is achieved by releasing 
     \(\frac{\lambda(\theta, \theta')}{c(\theta, \theta')}\) instead, which 
-    has sensitivity 1. \(c(\theta, \theta')\) does not depend on \(D\), 
+    has sensitivity 1. \(c(\theta, \theta')\) does not depend on \(X\), 
     so \(\lambda(\theta, \theta')\) can be obtained from 
     \(\frac{\lambda(\theta, \theta')}{c(\theta, \theta')}\) by post processing.
 
@@ -657,7 +660,7 @@ can be solved for numerically.
 Theorems~\ref{DP_penalty_theorem_zcdp} and~\ref{DP_penalty_theorem_adp}
 require a bound on sensitivity of the log likelihood ratio. If there is a bound 
 \[
-    |\ln p(D_j\mid \theta') - \ln p(D_j\mid \theta)| \leq L||\theta - \theta'||_2
+    |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq L||\theta - \theta'||_2
 \]
 for all \(D_j, \theta\) and \(\theta'\) then 
 \[
@@ -749,15 +752,15 @@ between \(\caln(0, \sigma^2 - \sigma^2_b)\), where \(\sigma^2_b\) is the
 batch sample variance, for two adjacent inputs. Subsampling amplification 
 is accounted for with an amplification theorem for Rényi DP~\cite{WangBK19}.
 
-\begin{theorem}
+\begin{theorem}\label{dp_barker_theorem}
     If 
     \[
-        |\ln p(D_j\mid \theta') - \ln p(D_j\mid \theta)| \leq \frac{\sqrt{|B|}}{n}
+        |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq \frac{\sqrt{|B|}}{n}
     \]
     \[
         \alpha < \frac{|B|}{5}, \alpha \in \N
     \]
-    for all \(\theta, \theta' \in \Theta\), all \(D\) and \(1\leq j \leq n\),
+    for all \(\theta, \theta' \in \Theta\), all \(X\) and \(1\leq j \leq n\),
     running \(k\) iterations of DP Barker is \((\alpha, k\epsilon(\alpha))\)-RDP, 
     with 
     \[
@@ -790,12 +793,12 @@ error in some cases~\cite{HeikkilaJDH19}.
 Using the tempered likelihood, the log likelihood 
 bound becomes 
 \[
-    T|\ln p(D_j\mid \theta') - \ln p(D_j\mid \theta)|
+    T|\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)|
     \leq \frac{\sqrt{|B|}}{n}
 \]
 which is equivalent to 
 \[
-    |\ln p(D_j\mid \theta') - \ln p(D_j\mid \theta)|
+    |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)|
     \leq \frac{\sqrt{|B|}}{n_0}
 \]
 Typically \(n_0 \ll n\) for large datasets, so using a tempered likelihood requires 
@@ -803,23 +806,24 @@ significantly less clipping than a nontempered likelihood.
 
 \begin{algorithm}[H]\label{DP_barker_algo}
     \SetAlgoLined
-    sample \(\theta^* \sim q(\theta_{i-1})\)\\
-    sample \(B \subset \{1, \dotsc, n\}\)\\
     \For{\(1 \leq i \leq k\)}{
+        denote \(\theta = \theta\)\\
+        sample \(\theta' \sim q(\theta)\)\\
+        sample \(B \subset \{1, \dotsc, n\}\)\\
         \For{\(j \in B\)}{
-            \(r_j = \ln \frac{p(\theta^*\mid D_j)}{p(\theta_{i-1}\mid D_j)}\)\\
+            \(r_j = \ln p(\theta'\mid x_j) - \ln p(\theta\mid x_j)\)\\
         }
         \(\sigma^2_b = \mathrm{Var}\{r_j\mid j\in B\}\)\\
         \(\lambda = 
         \frac{n}{|B|}\sum_{j\in B} r_j
-        + \ln \frac{p(\theta^*)}{p(\theta_{i-1})}
-        + \ln \frac{q(\theta_{i-1}\mid \theta^*)}{q(\theta^*\mid \theta_{i-1})}\)
+        + \ln \frac{p(\theta')}{p(\theta)}
+        + \ln \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}\)
         \\
         sample \(s \sim \caln(0, \sigma^2 - \sigma^2_b)\)\\
         sample \(c \sim V_{corr}^{\sigma^2}\)\\
         \(\theta_i = \begin{cases}
-            \theta^* & \text{ if } \lambda + s + c > 0 \\
-            \theta_{i-1} & \text{ otherwise}
+            \theta' & \text{ if } \lambda + s + c > 0 \\
+            \theta & \text{ otherwise}
         \end{cases}
         \)\\
     }
@@ -848,21 +852,21 @@ to correct for the subsampling error.
 
 The acceptance probability with subsampling is
 \[
-    \min\{1, e^{\lambda - \frac{1}{2}(\sigma^2 + \sigma_b^2)}\},
+    \min\{1, e^{\lambda^*(\theta, \theta') - \frac{1}{2}(\sigma^2 + \sigma_b^2)}\},
 \]
 where
 \[
-\lambda = \frac{nT}{|B|}\sum_{j\in B}
-\ln \frac{p(D_j\mid \theta')}{p(D_j \mid \theta)}
-+ \ln \frac{p(\theta')q(\theta \mid \theta')}{p(\theta)q(\theta' \mid \theta)},
+    \lambda^*(\theta, \theta') = \frac{nT}{|B|}\sum_{j\in B}
+    \ln \frac{p(x_j\mid \theta')}{p(x_j \mid \theta)}
+    + \ln \frac{p(\theta')q(\theta \mid \theta')}{p(\theta)q(\theta' \mid \theta)},
 \]
 and \(\sigma_b^2\) is the sample variance of the log likelihood ratios in 
 batch \(B\). Denote
 \[
-    r_j = \ln \frac{p(D_j\mid \theta')}{p(D_j\mid \theta)},
+    r_j = \ln \frac{p(x_j\mid \theta')}{p(x_j\mid \theta)},
 \]
 \[
-R = \sum_{x\in B}r_j.
+    R = \sum_{x\in B}r_j.
 \]
 Then \(\sigma^2_b\) can be estimated from the sample variance of \(r_j\):
 \begin{align*}
@@ -898,40 +902,39 @@ The sensitivity of \(\sigma_b^2\) must be bounded separately.
     \end{align*}
 \end{lemma}
 \begin{proof}
-    For datasets \(D \sim D'\), that only differ in one element, denote the 
-    common part they have by \(D^*\), and the differing element by \(d\in D\) 
-    and \(d'\in D'\)
+    For datasets \(X \sim X'\), that only differ in one element, denote the 
+    common part they have by \(X^*\), and the differing element by \(x\in X\) 
+    and \(x'\in X'\)
     \begin{align*}
-        \Delta \sigma^2_b &= \sup_{D\sim D'} |\sigma^2_b(D) - \sigma^2_b(D')|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{D\sim D'}\Big|
-        \sum_{d\in D}r^2(d) - \sum_{d\in D'}r^2(d)
-        + \frac{1}{b}R^2(D') - \frac{1}{b}R^2(D)\Big|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{d, d', D^*}\Big|
-        r^2(d) - r^2(d')
-        + \frac{1}{b}(R(D^*) + r(d'))^2 - \frac{1}{b}(R(D^*) + r(d))^2\Big|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{d, d', D^*}\Big|
-        r^2(d) - r^2(d')
-        + \frac{1}{b}(R^2(D^*) + 2R(D^*)r(d') + r^2(d'))
-        \\&- \frac{1}{b}(R^2(D^*) + 2R(D^*)r(d) + r^2(d))\Big|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{d, d', X^*}\Big|
-        \left(1 - \frac{1}{b}\right)(r^2(d) - r^2(d'))
-        + \frac{2}{b}D(X^*)(r(d') - r(d))\Bigg|
+        \Delta \sigma^2_b &= \sup_{D\sim D'} |\sigma^2_b(X) - \sigma^2_b(X')|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{X\sim X'}\Big|
+        \sum_{x\in X}r^2(x) - \sum_{x\in X'}r^2(x)
+        + \frac{1}{b}R^2(X') - \frac{1}{b}R^2(X)\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        r^2(x) - r^2(x')
+        + \frac{1}{b}(R(X^*) + r(x'))^2 - \frac{1}{b}(R(X^*) + r(x))^2\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        r^2(x) - r^2(x')
+        + \frac{1}{b}(R^2(X^*) + 2R(X^*)r(x') + r^2(x'))
+        \\&- \frac{1}{b}(R^2(X^*) + 2R(X^*)r(x) + r^2(x))\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        \left(1 - \frac{1}{b}\right)(r^2(x) - r^2(x'))
+        + \frac{2}{b}D(X^*)(r(x') - r(x))\Bigg|
         \\&\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
-        \sup_{d, d'}\Big|(r^2(d) - r^2(d'))\Big|
-        + \frac{2}{b}\left(\frac{nT}{b}\right)^2 \sup_{d, d', D^*}\Big|
-        R(D^*)(r(d') - r(d))\Bigg|
+        \sup_{x, x'}\Big|(r^2(x) - r^2(x'))\Big|
+        + \frac{2}{b}\left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        R(X^*)(r(x') - r(x))\Bigg|
         \\&= \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
-        \sup_{d, d'}\Big|(r^2(d) - r^2(d'))\Big|
+        \sup_{x, x'}\Big|(r^2(x) - r^2(x'))\Big|
         + \frac{2}{b}\left(\frac{nT}{b}\right)^2
-        \sup_{d, d'}|r(d') - r(d)|
-        \sup_{X^*}|R(D^*)|
+        \sup_{x, x'}|r(x') - r(x)|
+        \sup_{X^*}|R(X^*)|
         \\&\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
-        \sup_{d, d'}\Big|(r^2(d) - r^2(d'))\Big|
+        \sup_{x, x'}\Big|(r^2(x) - r^2(x'))\Big|
         + \frac{2}{b}\left(\frac{nT}{b}\right)^2
-        \sup_{d, d'}|r(d') - r(d)|
-        (b - 1)\sup_{d}|r(d)|.
+        \sup_{x, x'}|r(x') - r(x)|(b - 1)\sup_{d}|r(x)|.
     \end{align*}
-    Plugging the bound \(\sup_d |r(d)| \leq L||\theta - \theta'||_2\) 
+    Plugging the bound \(\sup_x |r(x)| \leq L||\theta - \theta'||_2\) 
     into the last expression proves the claim.
 \end{proof}
 
@@ -990,11 +993,378 @@ The sensitivity of \(\sigma_b^2\) must be bounded separately.
     when run for \(k\) iterations for integer \(\alpha \geq 2\).
 \end{proof}
 
+The appearance of \(n\) as a multiplier of \(\Delta_\lambda\) and 
+\(n^2\) as a multiplier of \(\Delta_\sigma\) causes the noise variance to increase 
+with \(n\), without a corresponding decrease in \(\epsilon'\). This makes subsampled 
+DP penalty unsuitable for problems with large datasets, unless tempering is 
+used. Like with DP Barker, using tempering \(T = \frac{n_0}{n}\) cancels \(n\)
+out of the noise variance.
+
 \section{DP Metropolis-Adjusted Langevin Algorithm}
+
+Metropolis adjusted Langevin algorithm (MALA)~\cite{Roberts1998} 
+is Metropolis-Hastings with the proposal distribution 
+\[
+    q(\theta' \mid \theta, X) = \caln\left(\theta + \frac{1}{2}\sigma^2_p
+    \nabla \ln p(X\mid \theta), \sigma^2_p I\right)
+\]
+The gradient in the proposal is meant to guide the random walk to regions 
+of high probability. Because of it, MALA can achieve a higher acceptance rate 
+than standards random walk MH, and requires fewer iterations to 
+converge~\cite{Roberts1998}.
+
+MALA can be made DP with using the penalty algorithm. Because MALA is just 
+the MH algorithm with a particular proposal, the penalty algorithm using the 
+MALA proposal will converge to the correct distribution. Proving any DP bound 
+for MALA requires computing the sensitivities of the different data-dependent 
+values that the algorithm computes.
+
+Like random walk MH, the acceptance probability for non-DP MALA is
+\[
+    p = \min\left\{1, \exp(\lambda(X, \theta, \theta'))\right\},
+\]
+with 
+\[
+    \lambda(X, \theta, \theta') 
+    = \sum_{x\in X} \ln\frac{p(x\mid \theta')}{p(x\mid \theta)} 
+    + \ln \frac{q(\theta\mid \theta', X)} {q(\theta'\mid \theta, X)}
+    + \ln \frac{p(\theta')}{p(\theta)}.
+\]
+
+For DP MALA, the penalty correction is applied, and the acceptance probability is
+\[
+    p = \min\left\{\exp\left(\lambda^*(X, \theta, \theta')
+    - \frac{1}{2}\sigma^2(\theta, \theta')\right)\right\}
+\]
+where \(\lambda^*(X, \theta, \theta') \sim \caln(\lambda(X, \theta, \theta'), 
+\sigma^2(\theta, \theta'))\) and \(\sigma^2\) is symmetric in \(\theta\) and 
+\(\theta'\).
+
+\begin{algorithm}[H]
+    \SetAlgoLined 
+    \For{\(1 \leq i \leq k\)}{
+        sample \(\theta'\) from 
+        \(\calm_g(\theta_{i-1} + \frac{1}{2}\sigma_p^2\nabla \ln p(X\mid \theta_{i-1}))\)\\
+        sample \(\lambda^*\) from \(\calm_l(\lambda)\)\\
+        \(p = \min\left\{1, \exp\left(\lambda^* - \frac{1}{2}\sigma^2\right)\right\}\)\\
+        \(\theta_i = \begin{cases}
+            \theta^* & \text{ with probability } p \\
+            \theta_{i-1} & \text{ otherwise }
+        \end{cases}\)
+    }
+    \caption{DP MALA
+    }
+\end{algorithm}
+
+On each iteration, the proposal \(\theta'\) is sampled from a Gaussian 
+mechanism \(\calm_g(\theta + \frac{1}{2}\sigma^2_p\nabla \ln p(X\mid \theta))\)
+with variance \(a\sigma_p^2\).
+Then \(\lambda^*(X, \theta, \theta')\) is sampled from a 
+Gaussian mechanism \(\calm_l(\lambda(X, \theta, \theta'))\) with variance 
+\(\sigma^2\). The reason for using variance \(a\sigma^2_p\) for the proposal 
+instead of \(\sigma^2_p\) that non-DP MALA uses is to allow better adjustment 
+of the privacy cost of the proposal.
+
+\begin{lemma}\label{dp_mala_gradient}
+    \(\calm_g\) is \(\rho_g\)-zCDP with 
+    \[
+        \rho_g(\theta) = \frac{\sigma_p^2 c_g^2}{8a}
+    \]
+    where 
+    \[
+        c_g \geq \Delta_2 \nabla \ln p(X\mid \theta)
+    \]
+\end{lemma}
+\begin{proof}
+    The sensitivity of 
+    \[
+        \frac{1}{2}\sigma_p^2 \nabla \ln p(X\mid \theta)
+    \]
+    is 
+    \[
+        \frac{1}{2}\sigma_p^2 \nabla \Delta_2 \nabla \ln p(X\mid \theta)
+    \]
+    The zCDP bound follows from Theorem~\ref{gauss-DP-bounds}.
+\end{proof}
+
+\(c_g\) cannot depend on \(\theta\) as the privacy cost of each iteration in 
+a composition must be determinable ahead of time to apply 
+Theorem~\ref{composition-theorem}.
+
+\begin{lemma}\label{dp_mala_likelihood_bound}
+    \(\calm_l\) is \(\rho_l\)-zCDP with 
+    \[
+        \rho_l = \frac{1}{2\tau},
+    \]
+    when 
+    \[
+        c_l(\theta, \theta') = \Delta_2^2 \lambda(X, \theta, \theta'),
+    \]
+    and
+    \[
+        \sigma^2(\theta, \theta') = \tau c^2_l(\theta, \theta').
+    \]
+\end{lemma}
+\begin{proof}
+    By Theorem~\ref{gauss-DP-bounds}, \(\calm_l\) is \(\rho\)-zCDP with
+    \[
+        \rho_l = \frac{c_l^2(\theta, \theta')}{2\sigma^2(\theta, \theta')}.
+    \]
+    The claim follows from plugging in \(\sigma(\theta, \theta')\).
+\end{proof}
+
+\begin{theorem}\label{dp_mala_zcdp_bound}
+    With given ADP bounds \(\epsilon\) and \(\delta\),
+    DP MALA can be run for 
+    \[
+        k = \left\lfloor \frac{\rho}{\rho_g + \rho_l} \right\rfloor
+    \]
+    iterations, where \(\rho_g\) is from Lemma~\ref{dp_mala_gradient},
+    \(\rho_l\) is from Lemma~\ref{dp_mala_likelihood_bound}, and
+    \[
+        \rho = \left(\sqrt{\log \frac{1}{\delta} + \epsilon} 
+        - \sqrt{\log \frac{1}{\delta}}\right)^2
+    \]
+\end{theorem}
+\begin{proof}
+    A single iteration is \((\rho_l + \rho_g)\)-zCDP. The claim then follows from 
+    Theorems~\ref{other_dp_to_adp} and~\ref{composition-theorem}.
+\end{proof}
+
+The zCDP bounds of DP MALA can be computed with Theorem~\ref{dp_mala_zcdp_bound}
+if the sensitivities \(c_g\) and \(c_l\) are known. As in DP penalty, they are 
+specific the likelihood, but they can be forced with clipping. Clipping the 
+gradients does not affect the distribution the algorithm converges to, but can 
+diminish the amount of utility the algorithm can get from the gradients.
+Clipping the likelihood does change the invariant distribution, but if the clipping 
+is limited the algorithm should remain accurate.
+
+Clipping the gradients of each individual iteration results in
+\begin{align*}
+    ||\nabla \log p(X\mid \theta) - \nabla \log p(X'\mid \theta)||_2
+    &= ||\nabla \log p(x\mid \theta) - \nabla \log p(x'\mid \theta)||_2
+    \leq 2L_g
+\end{align*}
+so 
+\[
+    c_g(\theta) = 2L_g
+\]
+and 
+\[
+    \rho_g = \frac{\sigma_p^2L_g^2}{2a}.
+\]
+
+\(c_l\) consists of two term that depend on the data, the 
+log likelihood term 
+\[
+    \sum_{i=1}^n \ln \frac{p(x_i\mid \theta')}{p(x_i\mid \theta)}
+\]
+and the log proposal ratio
+\[
+    \ln \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
+\]
+
+The log likelihood term is the same that appears in DP penalty, and can be 
+bound in the same way. If it is clipped such that
+\(\left|\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right| \leq L||\theta - \theta'||_2\)
+then
+\[
+    \Delta\left(\sum_{x_in X}\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right)
+    \leq 2L||\theta - \theta'||_2.
+\]
+
+The log proposal term does not appear in DP penalty, because it uses a symmetric 
+proposal where the term is always 0. In DP MALA, the proposal is not symmetric, 
+and depends on the data through \(\nabla \ln p(X\mid \theta)\), so the term 
+must be included in the sensitivity calculation.
+
+Let \(d\) be the dimensionality of \(\theta\). Then
+\[
+    q(\theta\mid \theta', X) = \prod_{i=1}^d
+    \frac{1}{\sqrt{2\pi a\sigma_p^2}}\exp\left(
+    \frac{(\theta_i - \theta_i' - \frac{1}{2}\sigma_p^2
+    \frac{\partial}{\partial \theta'_i} \log p(X, \theta'))^2}
+    {2a\sigma_p^2}\right)
+\]
+\begin{align*}
+    \log \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
+    &= \sum_{i=1}^d \left(C +
+    \frac{(\theta_i - \theta'_i
+    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2}
+    {2a\sigma_p^2}\right)
+    - \sum_{i=1}^d \left(C +
+    \frac{(\theta_i' - \theta_i 
+    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2}
+    {2a\sigma_p^2}\right)
+  \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
+    (\theta_i - \theta'_i
+    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2
+    - (\theta_i' - \theta_i 
+    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2
+    \right)
+  \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
+    (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
+    - (\theta_i' - \theta_i - G_i(X\mid \theta))^2\right)
+\end{align*}
+
+Let 
+\[
+    G_i(X\mid \theta) = \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i}
+    \log p(X\mid \theta)
+\]
+As 
+\[
+    \log p(X\mid \theta) = \sum_{x\in X}\log p(x\mid \theta)
+\]
+if \(X\) and \(X'\) only differ in one row, those being \(x\) and \(x'\),
+then
+\begin{align*}
+    G_i(X\mid \theta) - G_i(X'\mid \theta) 
+    &= \frac{1}{2}\sigma_p^2\sum_{j=1}^n \frac{\partial}{\partial \theta_i}
+    (\log p(x_j\mid \theta) - \log p(x'_j\mid \theta))
+  \\&= \frac{1}{2}\sigma_p^2 \frac{\partial}{\partial \theta_i}
+    (\log p(x\mid \theta) - \log p(x'\mid \theta))
+  \\&= G_i(x\mid \theta) - G_i(x'\mid \theta)
+\end{align*}
+Let \(X^*\) be the equal part of \(X\) and \(X'\). Then 
+\[
+G_i(X\mid \theta) = G_i(X^*\mid \theta) + G_i(x\mid \theta)
+\]
+and 
+\[
+    G_i(X'\mid \theta) = G_i(X^*\mid \theta) + G_i(x'\mid \theta)
+\]
+
+Additionally
+\[
+    (a + b)^2 - (a + c)^2 = 2a(b - c) + b^2 - c^2
+\]
+for any \(a, b, c\in \R\).
+
+Let 
+\[
+\Delta(X) = \left|\log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)} 
+- \log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)}\right|
+\]
+\begin{align*}
+    \Delta(X) 
+    &=
+    \frac{1}{2a\sigma_p^2}
+    \Bigg|\sum_{i=1}^d (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
+    - (\theta'_i - \theta_i - G_i(X\mid \theta))^2
+  \\&- (\theta_i - \theta'_i - G_i(X'\mid \theta'))^2
+    + (\theta'_i - \theta_i - G_i(X'\mid \theta))^2\Bigg|
+  \\&=
+    \frac{1}{2a\sigma_p^2}
+    \Bigg|\sum_{i=1}^d \Big(
+    (\theta_i - \theta'_i)^2 - 2(\theta_i - \theta'_i)G_i(X\mid \theta')
+    + G_i(X\mid \theta')^2
+  \\&- (\theta'_i - \theta_i)^2 + 2(\theta'_i - \theta_i)G_i(X\mid \theta)
+    - G_i(X\mid \theta)^2
+  \\&- (\theta_i - \theta_i')^2 + 2(\theta_i - \theta'_i)G_i(X'\mid \theta')
+    - G_i(X'\mid \theta')^2
+  \\&+ (\theta'_i - \theta_i)^2 - 2(\theta'_i - \theta_i)G_i(X'\mid \theta)
+    + G_i(X'\mid \theta)^2\Big)\Bigg|
+  \\&=
+    \frac{1}{2a\sigma_p^2}
+    \Bigg|\sum_{i=1}^d \Big(
+    2(\theta'_i - \theta_i)(G_i(X\mid \theta) - G_i(X'\mid \theta))
+    + 2(\theta_i - \theta'_i)(G_i(X'\mid \theta') - G_i(X\mid \theta'))
+  \\&+ G_i(X\mid \theta')^2
+    - G_i(X\mid \theta)^2
+    - G_i(X'\mid \theta')^2
+    + G_i(X'\mid \theta)^2\Big)\Bigg|
+  \\&=
+    \frac{1}{2a\sigma_p^2}
+    \Bigg|\sum_{i=1}^d \Big(
+    2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
+    + G_i(x\mid \theta') - G_i(x'\mid \theta'))
+  \\&+(G_i(X^*\mid \theta') + G_i(x\mid \theta'))^2
+    - (G_i(X^*\mid \theta') + G_i(x'\mid \theta'))^2
+  \\&+ (G_i(X^*\mid \theta) + G_i(x'\mid \theta))^2
+    - (G_i(X^*\mid \theta) + G_i(x\mid \theta))^2\Big)\Bigg|
+  \\&=
+    \frac{1}{2a\sigma_p^2}
+    \Bigg|\sum_{i=1}^d \Big(
+    2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
+    + G_i(x\mid \theta') - G_i(x'\mid \theta'))
+  \\&+ 2G_i(X^*\mid \theta')(G_i(x\mid \theta') - G_i(x'\mid \theta'))
+  + G_i(x\mid \theta')^2 - G_i(x'\mid \theta')^2
+  \\&+ 2G_i(X^*\mid \theta)(G_i(x'\mid \theta) - G_i(x\mid \theta))
+  + G_i(x'\mid \theta)^2 - G_i(x\mid \theta)^2\Big)\Bigg|
+  \\&\leq \frac{1}{2a\sigma_p^2}\Bigg(
+  2\left|(\theta' - \theta)^T(G(x\mid \theta) - G(x'\mid \theta) 
+  + G(x\mid \theta') - G(x'\mid \theta'))\right|
+  \\&+ 2\left|G(X^*\mid \theta')^T(G(x\mid \theta') - G(x'\mid \theta'))\right|
+  + 2\left|G(X^*\mid \theta)^T(G(x'\mid \theta) - G(x\mid \theta))\right|
+  \\&+ |||G(x\mid \theta')||_2^2 - ||G(x'\mid \theta')||_2^2
+  + ||G(x'\mid \theta)||_2^2 - ||G(x\mid \theta)||_2^2|
+  \Bigg)
+\end{align*}
+Continued:
+\begin{align*}
+    \Delta(X)
+    &\leq \frac{1}{2a}
+  \left|(\theta' - \theta)^T(\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
+  + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta'))\right|
+  \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta')^T(\nabla \log p(x\mid \theta') 
+  - \nabla \log p(x'\mid \theta'))\right|
+  \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta)^T(\nabla \log p(x'\mid \theta) 
+  - \nabla \log p(x\mid \theta))\right|
+  \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
+  - ||\nabla \log p(x'\mid \theta')||_2^2
+  + ||\nabla \log p(x'\mid \theta)||_2^2 
+  - ||\nabla \log p(x\mid \theta)||_2^2\Big|
+  \\&\leq \frac{1}{2a}
+  ||\theta' - \theta||_2||\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
+  + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta')||_2
+  \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta')||_2||\nabla \log p(x\mid \theta') 
+  - \nabla \log p(x'\mid \theta')||_2
+  \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta)||_2||\nabla \log p(x'\mid \theta) 
+  - \nabla \log p(x\mid \theta)||_2
+  \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
+  - ||\nabla \log p(x'\mid \theta')||_2^2
+  + ||\nabla \log p(x'\mid \theta)||_2^2 
+  - ||\nabla \log p(x\mid \theta)||_2^2\Big|
+  \\&\leq \frac{2}{a}L_g||\theta' - \theta||_2 + \frac{\sigma_p^2}{a}(n-1)L_g^2
+  + \frac{\sigma_p^2L_g^2}{2a}
+\end{align*}
+with bound \(||\nabla \log p(x\mid \theta)||_2 \leq L_g\).
+There may be possibility for improving the bound with additional information on
+\(\nabla \log p(x\mid \theta) - \nabla \log p(x\mid \theta')\).
+
+Together with the bound on the log likelihood ration this implies that 
+\[
+    \Delta \lambda(X, \theta, \theta') 
+    \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
+    + \frac{\sigma_p^2}{a}(n - 1)L_g^2 + \frac{1}{2a}\sigma_p^2L_g^2 
+\]
+
+If there is an additional bound \(||\log p(X\mid \theta)||_2 \leq L_S\), then
+\(||\log p(X^*\mid \theta)||_2 \leq L_S + L_g\) and 
+\[
+    \Delta \lambda(X, \theta, \theta')
+    \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
+    + \frac{\sigma_p^2}{a}(L_S + L_g) L_g + \frac{1}{2a}\sigma_p^2L_g^2 
+\]
+With large \(n\) this results in a much tighter sensitivity bound than the 
+previous bound.
 
 \chapter{The Gauss-Bernoulli Algorithm}
 
+\chapter{Limitations and Alternatives of DP MCMC}
+
+\section{Dataset Size}
+
+\section{Alternatives to DP MCMC}
+
+\subsection{DP Variational Inference}
+\subsection{Releasing Summary Statistics Privately}
+
 \chapter{Experiments}
+
+\section{The Effects of Clipping}
+% Run non-DP MCMC algorithms with and without clipping
 
 \section{Banana Distribution}
 
