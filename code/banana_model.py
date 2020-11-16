@@ -13,8 +13,8 @@ sigma1 = 1 / np.sqrt(tau1)
 sigma2 = 1 / np.sqrt(tau2)
 sigma3 = 1 / np.sqrt(tau3)
 # a = 80.0
-a = 40
-# a = 5
+# a = 40
+a = 20
 b = 0.0
 m = 0.0
 dim = 2
@@ -33,30 +33,59 @@ logc1 = -np.log(sigma1 * np.sqrt(2 * np.pi))
 logc2 = -np.log(sigma2 * np.sqrt(2 * np.pi))
 logc3 = -np.log(sigma3 * np.sqrt(2 * np.pi))
 
-@jax.jit
-def log_likelihood_no_sum(X, theta):
+@jax.jit 
+def log_likelihood_per_sample(x, theta):
     theta1 = theta[0]
     theta2 = theta[1]
-    return (
-        -0.5 * (X[...,0] - theta1)**2 / sigma1**2 + logc1 
-        - 0.5 * (X[...,1] - (theta2 + a * (theta1 - m)**2) + b)**2 / sigma2**2
-        + logc2
-        # - 0.5 * np.sum((X[...,2:] - theta[2:])**2, axis=1) / sigma3**2 + logc3 * (dim - 2)
-    )
+    theta_rest = theta[2:]
+    x1 = x[0]
+    x2 = x[1]
+    xrest = x[2:]
+    term1 = -0.5 * (x1 - theta1)**2 / sigma1**2 + logc1
+    term2 = -0.5 * (x2 - (theta2 + a * (theta1 - m)**2) + b)**2 / sigma2**2 + logc2
+    term3 = -0.5 * np.sum((xrest - theta_rest)**2) / sigma3**2 + logc3 * (dim - 2)
+    return term1 + term2 + term3
+
+log_likelihood_no_sum = jax.jit(jax.vmap(log_likelihood_per_sample, in_axes=(0, None)))
+log_likelihood = jax.jit(lambda X, theta: np.sum(log_likelihood_no_sum(X, theta)))
+# @jax.jit
+# def log_likelihood_no_sum(X, theta):
+#     theta1 = theta[0]
+#     theta2 = theta[1]
+#     return (
+#         -0.5 * (X[...,0] - theta1)**2 / sigma1**2 + logc1 
+#         - 0.5 * (X[...,1] - (theta2 + a * (theta1 - m)**2) + b)**2 / sigma2**2
+#         + logc2
+#         - 0.5 * np.sum((X[...,2:] - theta[2:])**2, axis=1) / sigma3**2 + logc3 * (dim - 2)
+#     )
+#
+# @jax.jit
+# def log_likelihood(X, theta):
+#     theta1 = theta[0]
+#     theta2 = theta[1]
+#     return (
+#         np.sum(-0.5 * (X[...,0] - theta1)**2 / sigma1**2 + logc1)
+#         - np.sum(0.5 * (X[...,1] - (theta2 + a * (theta1 - m)**2) + b)**2 / sigma2**2 + logc2)
+#         - np.sum(0.5 * (X[...,2:] - theta[2:])**2 / sigma3**2 + logc3)
+#     )
+#     # return np.sum(log_likelihood_no_sum(X, theta))
+
+log_likelihood_grads = jax.jit(jax.vmap(jax.grad(log_likelihood_per_sample, 1), in_axes=(0, None)))
+log_prior_grad = jax.jit(jax.grad(log_prior))
 
 @jax.jit
-def log_likelihood(X, theta):
-    # theta1 = theta[0]
-    # theta2 = theta[1]
-    # return (
-    #     np.sum(-0.5 * (X[...,0] - theta1)**2 / sigma1**2 + logc1)
-    #     - np.sum(0.5 * (X[...,1] - (theta2 + a * (theta1 - m)**2) + b)**2 / sigma2**2 + logc2)
-    #     - np.sum(0.5 * (X[...,2:] - theta[2:])**2 / sigma3**2 + logc3)
-    # )
-    return np.sum(log_likelihood_no_sum(X, theta))
+def log_likelihood_grad_clipped(data, theta, clip):
+    n, dim = data.shape
+    grads = log_likelihood_grads(data, theta)
+    grads, did_clip = jax.vmap(clip_norm, in_axes=(0, None))(grads, clip)
+    clipped_grad = np.sum(did_clip)
+    return (np.sum(grads, axis=0), clipped_grad)
 
-log_likelihood_grads = jax.jit(jax.vmap(jax.grad(log_likelihood, 1), in_axes=(0, None)))
-log_prior_grad = jax.grad(log_prior)
+@jax.jit 
+def clip_norm(x, bound):
+    norm = np.sqrt(np.sum(x**2))
+    clipped_norm = np.max(np.array((norm, bound)))
+    return (x / norm * clipped_norm, norm > bound)
 
 def generate_test_data():
     n = 100000
