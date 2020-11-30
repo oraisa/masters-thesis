@@ -17,7 +17,7 @@ def log_prior(theta, a, b, m, tau0):
 
 
 @jax.jit 
-def log_likelihood_per_sample(x, theta, a, b, m, sigma1, sigma2, sigma3, dim):
+def log_likelihood_per_sample(theta, x, a, b, m, sigma1, sigma2, sigma3, dim):
     logc1 = -np.log(sigma1 * np.sqrt(2 * np.pi))
     logc2 = -np.log(sigma2 * np.sqrt(2 * np.pi))
     logc3 = -np.log(sigma3 * np.sqrt(2 * np.pi))
@@ -34,17 +34,17 @@ def log_likelihood_per_sample(x, theta, a, b, m, sigma1, sigma2, sigma3, dim):
     return term1 + term2 + term3
 
 log_likelihood_no_sum = jax.jit(jax.vmap(
-    log_likelihood_per_sample, in_axes=(0, None, None, None, None, None, None, None, None)
+    log_likelihood_per_sample, in_axes=(None, 0, None, None, None, None, None, None, None)
 ))
-log_likelihood = jax.jit(lambda X, theta: np.sum(log_likelihood_no_sum(X, theta)))
+log_likelihood = jax.jit(lambda theta, X: np.sum(log_likelihood_no_sum(theta, X)))
 log_likelihood_grads = jax.jit(jax.vmap(
-    jax.grad(log_likelihood_per_sample, 1), 
-    in_axes=(0, None, None, None, None, None, None, None, None)
+    jax.grad(log_likelihood_per_sample, 0), 
+    in_axes=(None, 0, None, None, None, None, None, None, None)
 ))
 log_prior_grad = jax.jit(jax.grad(log_prior, 0))
 
 @jax.jit
-def log_likelihood_grad_clipped(data, theta, clip):
+def log_likelihood_grad_clipped(theta, data, clip):
     n, dim = data.shape
     grads = log_likelihood_grads(data, theta)
     grads, did_clip = jax.vmap(clip_norm, in_axes=(0, None))(grads, clip)
@@ -63,7 +63,7 @@ class BananaModel:
         self.tau0 = 0.001
         self.tau1 = 0.05
         self.tau2 = 0.4
-        self.tau3 = 10
+        self.tau3 = 1
         self.sigma1 = 1 / np.sqrt(self.tau1)
         self.sigma2 = 1 / np.sqrt(self.tau2)
         self.sigma3 = 1 / np.sqrt(self.tau3)
@@ -88,12 +88,20 @@ class BananaModel:
         xrest = jax.random.normal(keys[2], (n, self.dim - 2)) * self.sigma3 + theta_rest
         return np.hstack((x1s, x2s, xrest))
 
-    def log_likelihood_no_sum(self, data, theta):
+    def log_likelihood_no_sum(self, theta, data):
         return log_likelihood_no_sum(
-            data, theta, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
+            theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
         )
     def log_prior(self, theta):
         return log_prior(theta, self.a, self.b, self.m, self.tau0)
+
+    def log_likelihood_grads(self, theta, data):
+        return log_likelihood_grads(
+            theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
+        )
+
+    def log_prior_grad(self, theta):
+        return log_prior_grad(theta, self.a, self.b, self.m, self.tau0)
 
     def banana_density(self, theta1, theta2, mu1, mu2, sigma1, sigma2, a, b, m):
         return (

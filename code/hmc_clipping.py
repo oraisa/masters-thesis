@@ -21,16 +21,21 @@ np.random.seed(seed)
 banana = banana_model.BananaModel(dim=args.dim)
 data = banana.generate_test_data()
 n, data_dim = data.shape
-
-iters = 3000
-prop_sigma = 0.01
-clip_bound = args.clip_bound
 dim = args.dim
+
+iters = 500
+eta = 0.001
+L = 15
+mass = np.ones(dim)
+mass[1] = 0.5
+if dim > 2:
+    mass[2:] = 0.4
+clip_bound = args.clip_bound
 theta0 = np.zeros(dim)
 theta0[1] = 3
 theta0 += np.random.normal(scale=0.05, size=dim)
 
-res = clipping.rwmh(banana, data, iters, prop_sigma, clip_bound, theta0)
+res = clipping.hmc(banana, data, iters, eta, L, mass, clip_bound, theta0)
 
 acceptance = res.accepts / iters
 clipping = np.sum(res.clipped / iters / n)
@@ -45,7 +50,7 @@ result = pd.DataFrame({
     "clip bound": [clip_bound],
     "dim": [dim],
     "i": [args.index],
-    "algo": ["RWMH"],
+    "algo": ["HMC"],
     "acceptance": [acceptance],
     "clipping": [clipping],
     "diff decisions": [diff_decisions],
