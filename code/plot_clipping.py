@@ -13,10 +13,11 @@ args = parser.parse_args()
 
 df = pd.read_csv(
     args.results, names=[
-        "clip bound", "dim", "i", "algo", "acceptance", "clipping", "diff decisions", 
-        "mmd", "mean error", "var error"
+        "Clip Bound", "dim", "i", "Algorithm", "Acceptance", "Clipping", "Disagreements", 
+        "MMD", "Mean Error", "Variance Error"
     ]
 )
+df = df[df["Clip Bound"].isin([0.5, 1, 2, 4, 6, 8, 10, 1000])]
 
 key = jax.random.PRNGKey(46237)
 keys = jax.random.split(key, 10)
@@ -29,36 +30,31 @@ mmds2 = [mmd.mmd(banana2.generate_posterior_samples(1000, data2, 1, keys[i]), po
 mmds2 = np.array(mmds2)
 
 df10 = df[df["dim"] == 10]
+df10 = df10[df10["Algorithm"] == "HMC"]
 banana10 = banana_model.BananaModel(dim=10)
 data10 = banana10.generate_test_data()
 posterior10 = banana10.generate_posterior_samples(2000, data10, 1, keys[0])
 mmds10= [mmd.mmd(banana10.generate_posterior_samples(1000, data10, 1, keys[i]), posterior10) for i in range(1, len(keys))]
 mmds10 = np.array(mmds10)
 
-sns.catplot(x="clip bound", y="mmd", hue="algo", kind="strip", data=df2, height=5, aspect=2)
+fig, axes = plt.subplots(2, 2, figsize=(10, 5))
+sns.stripplot(x="Clip Bound", y="MMD", hue="Algorithm", hue_order=["HMC", "RWMH"], data=df2, ax=axes[0, 0])
 for mmd in mmds2:
-    plt.axhline(mmd, linestyle="dashed", color="black")
-for mmd in mmds10:
-    plt.axhline(mmd, linestyle="dashed", color="green")
-plt.show()
+    axes[0, 0].axhline(mmd, linestyle="dashed", color="black")
 
-sns.relplot(x="clipping", y="mmd", hue="algo", kind="scatter", data=df2, height=5, aspect=2)
+sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", hue_order=["HMC", "RWMH"], data=df2, ax=axes[1, 0])
 for mmd in mmds2:
-    plt.axhline(mmd, linestyle="dashed", color="black")
-for mmd in mmds10:
-    plt.axhline(mmd, linestyle="dashed", color="green")
-plt.show()
+    axes[1, 0].axhline(mmd, linestyle="dashed", color="black")
 
-sns.catplot(x="clip bound", y="mmd", hue="algo", kind="strip", data=df10, height=5, aspect=2)
-for mmd in mmds2:
-    plt.axhline(mmd, linestyle="dashed", color="black")
+sns.stripplot(x="Clip Bound", y="MMD", hue="Algorithm", data=df10, ax=axes[0, 1])
 for mmd in mmds10:
-    plt.axhline(mmd, linestyle="dashed", color="green")
-plt.show()
+    axes[0, 1].axhline(mmd, linestyle="dashed", color="black")
 
-sns.relplot(x="clipping", y="mmd", hue="algo", kind="scatter", data=df10, height=5, aspect=2)
-for mmd in mmds2:
-    plt.axhline(mmd, linestyle="dashed", color="black")
+sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", data=df10, ax=axes[1, 1])
 for mmd in mmds10:
-    plt.axhline(mmd, linestyle="dashed", color="green")
-plt.show()
+    axes[1, 1].axhline(mmd, linestyle="dashed", color="black")
+
+axes[0, 0].set_title("d = 2")
+axes[0, 1].set_title("d = 10")
+plt.tight_layout()
+plt.savefig("../Thesis/figures/clipping.pdf")

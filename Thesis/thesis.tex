@@ -1363,8 +1363,24 @@ previous bound.
 
 \chapter{Experiments}
 
+\section{Maximum Mean Discrepancy}
+
 \section{The Effects of Clipping}
 
+\begin{figure}[h]\label{clip_effect_fig}
+    \centering
+    \includegraphics[width=\textwidth]{figures/clipping.pdf}
+    \caption{
+        The effect of log likelihood ratio clipping on the posterior of the 
+        banana model for random walk Metropolis-Hastings and HMC.
+        The top row shows posterior MMD as a function of the clip bound, and 
+        the bottom row shows MMD as a function of the fraction of log likelihoods 
+        that were clipped. The left columns used a 2-dimensional posterior 
+        while the right columns had a 10-dimensional posterior. Random walk 
+        Metropolis-Hastings was not included with the 10-dimensional experiment 
+        as it was unable to converge and provide meaningful results there.
+    }
+\end{figure}
 \section{Accuracy of CLT With Subsampling}
 
 % Run non-DP MCMC algorithms with and without clipping
