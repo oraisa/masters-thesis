@@ -1350,7 +1350,7 @@ If there is an additional bound \(||\log p(X\mid \theta)||_2 \leq L_S\), then
 With large \(n\) this results in a much tighter sensitivity bound than the 
 previous bound.
 
-\chapter{The Gauss-Bernoulli Algorithm}
+\chapter{Differentially Private Hamiltonian Monte Carlo}
 
 \chapter{Limitations and Alternatives of DP MCMC}
 
@@ -1365,9 +1365,73 @@ previous bound.
 
 \section{Maximum Mean Discrepancy}
 
+The convergence of non-DP MCMC algorithms is typically assessed using 
+\(\hat{R}\)~\cite{BDA}, which measures how well multiple chains started from 
+different points have mixed together. The utility of a sample produced by an 
+MCMC algorithm can be evaluated using effective sample size (ESS)~\cite{BDA},
+which is an estimate of the size of an uncorrelated sample of the posterior
+with the same estimation utility as the MCMC sample. 
+
+Both \(\hat{R}\) and ESS require that the MCMC algorithm asymptotically targets 
+the true posterior, as they cannot detect an algorithm that has converged to the 
+wrong distribution. Because some of the DP MCMC algorithms use approximations 
+that may cause the algorithms to not converge to the true posterior, 
+such as clipping the log likelihood ratios, \(\hat{R}\) and ESS are not suitable 
+for assessing the performance of the algorithms.
+
+Because the DP MCMC algorithms may not converge to the correct distribution, 
+their performance should be evaluated with a metric that measures how close 
+to the true distribution they are. A very general such metric is maximum mean
+discrepancy (MMD)~\cite{GrettonBRSS12}. MMD between distributions \(p\) and \(q\) 
+is defined as 
+\[
+    \mathrm{MMD}(p, q) = \sup_{f\in \mathcal{F}}(E_{x\sim p}f(x) - E_{y\sim q}f(y))
+\]
+where \(\mathcal{F}\) is some class of functions. It turns out that by 
+choosing a suitable \(\mathcal{F}\), \(MMD(p, q)\) can be estimated from a 
+sample from \(p\) and \(q\). The suitable classes \(\mathcal{F}\) can be 
+characterised by a kernel function \(k\colon P\times Q \to \R\), where 
+\(P\) and \(Q\) are the supports of \(p\) and \(q\), respectively.
+The Gaussian radial basis function (RBF) kernel 
+\[
+    k(x, y) = \exp\left(\frac{||x - y||_2^2}{2\sigma^2}\right)
+\]
+is particularly well suited, as it has the property that 
+\(\mathrm{MMD}(p, q) = 0\) if and only if \(p = q\). After choosing a kernel,
+\(\mathrm{MMD}(p, q)\) may be estimated from finite samples of \(p\) and \(q\).
+To evaluate MCMC algorithms, one of the samples is the output of the algorithm 
+to be evaluated, and the other is a sample from the true posterior.
+
+The choice of the \(\sigma\) parameter of \(k\) affects the way MMD evaluates 
+different kinds of differences in \(p\) and \(q\). For some preliminary experiments
+in this thesis, \(\sigma\) was chosen to be 1, which penalised error in the 
+mean much more than errors in higher moments in the experiments. 
+The \(\sigma\) used for the final experiments chosen by picking 50 subsamples 
+from both samples with replacement and setting \(\sigma\) to be the median 
+between distances of points of the subsamples. This is following the procedure of 
+Gretton et.\ al.~\cite{GrettonBRSS12}, with the addition of the subsampling step 
+to handle samples of different sizes.
+
 \section{The Effects of Clipping}
 
-\begin{figure}[h]\label{clip_effect_fig}
+The first experiment evaluates the effect of clipping log likelihood ratios.
+Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
+distribution as proposal distributions} 
+algorithms were run on 2 and 10 dimensional banana models. RWMH did not 
+converge in reasonable time in 10 dimensions so it was excluded from those results.
+DP was not used so that error from the extra noise would not affect the results.
+
+Figure~\ref{clip_effect_fig} shows the results of the clipping experiment.
+The top left and bottom left panels show MMD as a function of the clip bound 
+and the fraction of log likelihoods that was actually clipped for both 
+HMC and RWMH in the 2-dimensional model. The effect of clipping on MMD 
+is nonexistent for all but the lowest clip bounds. The top and bottom right 
+panels show results for the 10-dimensional model. This time there are chains 
+that did not converge correctly with most clip bounds, but the chains with 
+the higher bounds converged. Based on these results, if the clip fraction is 
+less than 10\%, clipping is likely undetectable without a very large sample.
+
+\begin{figure}[h]
     \centering
     \includegraphics[width=\textwidth]{figures/clipping.pdf}
     \caption{
@@ -1376,10 +1440,15 @@ previous bound.
         The top row shows posterior MMD as a function of the clip bound, and 
         the bottom row shows MMD as a function of the fraction of log likelihoods 
         that were clipped. The left columns used a 2-dimensional posterior 
-        while the right columns had a 10-dimensional posterior. Random walk 
+        while the right columns had a 10-dimensional posterior. 
+        The black lines show the MMDs ten different samples of the true posterior
+        compared to the reference sample. All of the lines are close the each 
+        other and appear as a single line.
+        Random walk 
         Metropolis-Hastings was not included with the 10-dimensional experiment 
         as it was unable to converge and provide meaningful results there.
     }
+    \label{clip_effect_fig}
 \end{figure}
 \section{Accuracy of CLT With Subsampling}
 
