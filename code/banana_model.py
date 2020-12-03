@@ -136,7 +136,7 @@ class BananaModel:
 
     def scatterplot_posterior(self, X, ax, T):
         post = self.generate_posterior_samples(1000, X, T)
-        ax.scatter(post[:, 0], post[:, 1])
+        ax.scatter(post[:, 0], post[:, 1], alpha=0.5)
 
     def plot_posterior(self, X, ax, T):
         mu1, mu2, _, sigma1_p, sigma2_p, __ = self.compute_posterior_params(X, T)
@@ -156,8 +156,8 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     banana.scatterplot_posterior(X, ax, 1)
     banana.plot_posterior(X, ax, 1)
+    plt.savefig("../Thesis/figures/banana_density.pdf")
     plt.show()
-    # plt.savefig("../latex/figures/banana-nontempered/posterior-easy.pdf")
 
     # fig, ax = plt.subplots()
     # scatterplot_posterior(X, ax, T)
@@ -170,6 +170,3 @@ if __name__ == "__main__":
     print(np.quantile(post[:, 1], np.array([0.01, 0.99])))
     for i in range(banana.dim - 2):
         print(np.quantile(post[:, i + 2], np.array((0.01, 0.99))))
-
-    # np.save("data/banana/X.npy", X, False)
-    # np.save("data/banana/X-easy.npy", X, False)

@@ -447,6 +447,7 @@ target distribution must be the posterior of some inference problem, as
 otherwise there is no data to protect with differential privacy.
 Theorem~\ref{banana_posterior_theorem} gives a suitable inference problem 
 for testing DP MCMC algorithms.
+Figure~\ref{banana_density_fig} shows the posterior of a 2-dimensional model.
 
 \begin{theorem}\label{banana_posterior_theorem}
     Let
@@ -597,6 +598,17 @@ for testing DP MCMC algorithms.
     % \(\frac{Tn\tau_2\bar{x}_2}{Tn\tau_2 + \tau_0}\), \(Tn\tau_1 + \tau_0\),
     % \(Tn\tau_2 + \tau_0\), \(a\) and \(b\).
 \end{proof}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{figures/banana_density}
+    \caption{
+        Density of the banana model posterior with \(a = 20\), \(b = m = 0\), 
+        \(\sigma_1^2 = 20\), \(\sigma_2^2 = 2.5\) and \(\sigma_0^2 = 1000\).
+        The blue points are 1000 samples from the posterior.
+    }
+    \label{banana_density_fig}
+\end{figure}
 
 \chapter{Differentially Private MCMC}
 
@@ -1043,357 +1055,487 @@ DP penalty unsuitable for problems with large datasets, unless tempering is
 used. Like with DP Barker, using tempering \(T = \frac{n_0}{n}\) cancels \(n\)
 out of the noise variance.
 
-\section{DP Metropolis-Adjusted Langevin Algorithm}
-
-Metropolis adjusted Langevin algorithm (MALA)~\cite{Roberts1998} 
-is Metropolis-Hastings with the proposal distribution 
-\[
-    q(\theta' \mid \theta, X) = \caln\left(\theta + \frac{1}{2}\sigma^2_p
-    \nabla \ln p(X\mid \theta), \sigma^2_p I\right)
-\]
-The gradient in the proposal is meant to guide the random walk to regions 
-of high probability. Because of it, MALA can achieve a higher acceptance rate 
-than standards random walk MH, and requires fewer iterations to 
-converge~\cite{Roberts1998}.
-
-MALA can be made DP with using the penalty algorithm. Because MALA is just 
-the MH algorithm with a particular proposal, the penalty algorithm using the 
-MALA proposal will converge to the correct distribution. Proving any DP bound 
-for MALA requires computing the sensitivities of the different data-dependent 
-values that the algorithm computes.
-
-Like random walk MH, the acceptance probability for non-DP MALA is
-\[
-    p = \min\left\{1, \exp(\lambda(X, \theta, \theta'))\right\},
-\]
-with 
-\[
-    \lambda(X, \theta, \theta') 
-    = \sum_{x\in X} \ln\frac{p(x\mid \theta')}{p(x\mid \theta)} 
-    + \ln \frac{q(\theta\mid \theta', X)} {q(\theta'\mid \theta, X)}
-    + \ln \frac{p(\theta')}{p(\theta)}.
-\]
-
-For DP MALA, the penalty correction is applied, and the acceptance probability is
-\[
-    p = \min\left\{\exp\left(\lambda^*(X, \theta, \theta')
-    - \frac{1}{2}\sigma^2(\theta, \theta')\right)\right\}
-\]
-where \(\lambda^*(X, \theta, \theta') \sim \caln(\lambda(X, \theta, \theta'), 
-\sigma^2(\theta, \theta'))\) and \(\sigma^2\) is symmetric in \(\theta\) and 
-\(\theta'\).
-
-\begin{algorithm}[H]
-    \SetAlgoLined 
-    \For{\(1 \leq i \leq k\)}{
-        sample \(\theta'\) from 
-        \(\calm_g(\theta_{i-1} + \frac{1}{2}\sigma_p^2\nabla \ln p(X\mid \theta_{i-1}))\)\\
-        sample \(\lambda^*\) from \(\calm_l(\lambda)\)\\
-        \(p = \min\left\{1, \exp\left(\lambda^* - \frac{1}{2}\sigma^2\right)\right\}\)\\
-        \(\theta_i = \begin{cases}
-            \theta^* & \text{ with probability } p \\
-            \theta_{i-1} & \text{ otherwise }
-        \end{cases}\)
-    }
-    \caption{DP MALA
-    }
-\end{algorithm}
-
-On each iteration, the proposal \(\theta'\) is sampled from a Gaussian 
-mechanism \(\calm_g(\theta + \frac{1}{2}\sigma^2_p\nabla \ln p(X\mid \theta))\)
-with variance \(a\sigma_p^2\).
-Then \(\lambda^*(X, \theta, \theta')\) is sampled from a 
-Gaussian mechanism \(\calm_l(\lambda(X, \theta, \theta'))\) with variance 
-\(\sigma^2\). The reason for using variance \(a\sigma^2_p\) for the proposal 
-instead of \(\sigma^2_p\) that non-DP MALA uses is to allow better adjustment 
-of the privacy cost of the proposal.
-
-\begin{lemma}\label{dp_mala_gradient}
-    \(\calm_g\) is \(\rho_g\)-zCDP with 
-    \[
-        \rho_g(\theta) = \frac{\sigma_p^2 c_g^2}{8a}
-    \]
-    where 
-    \[
-        c_g \geq \Delta_2 \nabla \ln p(X\mid \theta)
-    \]
-\end{lemma}
-\begin{proof}
-    The sensitivity of 
-    \[
-        \frac{1}{2}\sigma_p^2 \nabla \ln p(X\mid \theta)
-    \]
-    is 
-    \[
-        \frac{1}{2}\sigma_p^2 \nabla \Delta_2 \nabla \ln p(X\mid \theta)
-    \]
-    The zCDP bound follows from Theorem~\ref{gauss-DP-bounds}.
-\end{proof}
-
-\(c_g\) cannot depend on \(\theta\) as the privacy cost of each iteration in 
-a composition must be determinable ahead of time to apply 
-Theorem~\ref{composition-theorem}.
-
-\begin{lemma}\label{dp_mala_likelihood_bound}
-    \(\calm_l\) is \(\rho_l\)-zCDP with 
-    \[
-        \rho_l = \frac{1}{2\tau},
-    \]
-    when 
-    \[
-        c_l(\theta, \theta') = \Delta_2^2 \lambda(X, \theta, \theta'),
-    \]
-    and
-    \[
-        \sigma^2(\theta, \theta') = \tau c^2_l(\theta, \theta').
-    \]
-\end{lemma}
-\begin{proof}
-    By Theorem~\ref{gauss-DP-bounds}, \(\calm_l\) is \(\rho\)-zCDP with
-    \[
-        \rho_l = \frac{c_l^2(\theta, \theta')}{2\sigma^2(\theta, \theta')}.
-    \]
-    The claim follows from plugging in \(\sigma(\theta, \theta')\).
-\end{proof}
-
-\begin{theorem}\label{dp_mala_zcdp_bound}
-    With given ADP bounds \(\epsilon\) and \(\delta\),
-    DP MALA can be run for 
-    \[
-        k = \left\lfloor \frac{\rho}{\rho_g + \rho_l} \right\rfloor
-    \]
-    iterations, where \(\rho_g\) is from Lemma~\ref{dp_mala_gradient},
-    \(\rho_l\) is from Lemma~\ref{dp_mala_likelihood_bound}, and
-    \[
-        \rho = \left(\sqrt{\log \frac{1}{\delta} + \epsilon} 
-        - \sqrt{\log \frac{1}{\delta}}\right)^2
-    \]
-\end{theorem}
-\begin{proof}
-    A single iteration is \((\rho_l + \rho_g)\)-zCDP. The claim then follows from 
-    Theorems~\ref{other_dp_to_adp} and~\ref{composition-theorem}.
-\end{proof}
-
-The zCDP bounds of DP MALA can be computed with Theorem~\ref{dp_mala_zcdp_bound}
-if the sensitivities \(c_g\) and \(c_l\) are known. As in DP penalty, they are 
-specific the likelihood, but they can be forced with clipping. Clipping the 
-gradients does not affect the distribution the algorithm converges to, but can 
-diminish the amount of utility the algorithm can get from the gradients.
-Clipping the likelihood does change the invariant distribution, but if the clipping 
-is limited the algorithm should remain accurate.
-
-Clipping the gradients of each individual iteration results in
-\begin{align*}
-    ||\nabla \log p(X\mid \theta) - \nabla \log p(X'\mid \theta)||_2
-    &= ||\nabla \log p(x\mid \theta) - \nabla \log p(x'\mid \theta)||_2
-    \leq 2L_g
-\end{align*}
-so 
-\[
-    c_g(\theta) = 2L_g
-\]
-and 
-\[
-    \rho_g = \frac{\sigma_p^2L_g^2}{2a}.
-\]
-
-\(c_l\) consists of two term that depend on the data, the 
-log likelihood term 
-\[
-    \sum_{i=1}^n \ln \frac{p(x_i\mid \theta')}{p(x_i\mid \theta)}
-\]
-and the log proposal ratio
-\[
-    \ln \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
-\]
-
-The log likelihood term is the same that appears in DP penalty, and can be 
-bound in the same way. If it is clipped such that
-\(\left|\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right| \leq L||\theta - \theta'||_2\)
-then
-\[
-    \Delta\left(\sum_{x_in X}\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right)
-    \leq 2L||\theta - \theta'||_2.
-\]
-
-The log proposal term does not appear in DP penalty, because it uses a symmetric 
-proposal where the term is always 0. In DP MALA, the proposal is not symmetric, 
-and depends on the data through \(\nabla \ln p(X\mid \theta)\), so the term 
-must be included in the sensitivity calculation.
-
-Let \(d\) be the dimensionality of \(\theta\). Then
-\[
-    q(\theta\mid \theta', X) = \prod_{i=1}^d
-    \frac{1}{\sqrt{2\pi a\sigma_p^2}}\exp\left(
-    \frac{(\theta_i - \theta_i' - \frac{1}{2}\sigma_p^2
-    \frac{\partial}{\partial \theta'_i} \log p(X, \theta'))^2}
-    {2a\sigma_p^2}\right)
-\]
-\begin{align*}
-    \log \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
-    &= \sum_{i=1}^d \left(C +
-    \frac{(\theta_i - \theta'_i
-    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2}
-    {2a\sigma_p^2}\right)
-    - \sum_{i=1}^d \left(C +
-    \frac{(\theta_i' - \theta_i 
-    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2}
-    {2a\sigma_p^2}\right)
-  \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
-    (\theta_i - \theta'_i
-    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2
-    - (\theta_i' - \theta_i 
-    - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2
-    \right)
-  \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
-    (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
-    - (\theta_i' - \theta_i - G_i(X\mid \theta))^2\right)
-\end{align*}
-
-Let 
-\[
-    G_i(X\mid \theta) = \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i}
-    \log p(X\mid \theta)
-\]
-As 
-\[
-    \log p(X\mid \theta) = \sum_{x\in X}\log p(x\mid \theta)
-\]
-if \(X\) and \(X'\) only differ in one row, those being \(x\) and \(x'\),
-then
-\begin{align*}
-    G_i(X\mid \theta) - G_i(X'\mid \theta) 
-    &= \frac{1}{2}\sigma_p^2\sum_{j=1}^n \frac{\partial}{\partial \theta_i}
-    (\log p(x_j\mid \theta) - \log p(x'_j\mid \theta))
-  \\&= \frac{1}{2}\sigma_p^2 \frac{\partial}{\partial \theta_i}
-    (\log p(x\mid \theta) - \log p(x'\mid \theta))
-  \\&= G_i(x\mid \theta) - G_i(x'\mid \theta)
-\end{align*}
-Let \(X^*\) be the equal part of \(X\) and \(X'\). Then 
-\[
-G_i(X\mid \theta) = G_i(X^*\mid \theta) + G_i(x\mid \theta)
-\]
-and 
-\[
-    G_i(X'\mid \theta) = G_i(X^*\mid \theta) + G_i(x'\mid \theta)
-\]
-
-Additionally
-\[
-    (a + b)^2 - (a + c)^2 = 2a(b - c) + b^2 - c^2
-\]
-for any \(a, b, c\in \R\).
-
-Let 
-\[
-\Delta(X) = \left|\log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)} 
-- \log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)}\right|
-\]
-\begin{align*}
-    \Delta(X) 
-    &=
-    \frac{1}{2a\sigma_p^2}
-    \Bigg|\sum_{i=1}^d (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
-    - (\theta'_i - \theta_i - G_i(X\mid \theta))^2
-  \\&- (\theta_i - \theta'_i - G_i(X'\mid \theta'))^2
-    + (\theta'_i - \theta_i - G_i(X'\mid \theta))^2\Bigg|
-  \\&=
-    \frac{1}{2a\sigma_p^2}
-    \Bigg|\sum_{i=1}^d \Big(
-    (\theta_i - \theta'_i)^2 - 2(\theta_i - \theta'_i)G_i(X\mid \theta')
-    + G_i(X\mid \theta')^2
-  \\&- (\theta'_i - \theta_i)^2 + 2(\theta'_i - \theta_i)G_i(X\mid \theta)
-    - G_i(X\mid \theta)^2
-  \\&- (\theta_i - \theta_i')^2 + 2(\theta_i - \theta'_i)G_i(X'\mid \theta')
-    - G_i(X'\mid \theta')^2
-  \\&+ (\theta'_i - \theta_i)^2 - 2(\theta'_i - \theta_i)G_i(X'\mid \theta)
-    + G_i(X'\mid \theta)^2\Big)\Bigg|
-  \\&=
-    \frac{1}{2a\sigma_p^2}
-    \Bigg|\sum_{i=1}^d \Big(
-    2(\theta'_i - \theta_i)(G_i(X\mid \theta) - G_i(X'\mid \theta))
-    + 2(\theta_i - \theta'_i)(G_i(X'\mid \theta') - G_i(X\mid \theta'))
-  \\&+ G_i(X\mid \theta')^2
-    - G_i(X\mid \theta)^2
-    - G_i(X'\mid \theta')^2
-    + G_i(X'\mid \theta)^2\Big)\Bigg|
-  \\&=
-    \frac{1}{2a\sigma_p^2}
-    \Bigg|\sum_{i=1}^d \Big(
-    2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
-    + G_i(x\mid \theta') - G_i(x'\mid \theta'))
-  \\&+(G_i(X^*\mid \theta') + G_i(x\mid \theta'))^2
-    - (G_i(X^*\mid \theta') + G_i(x'\mid \theta'))^2
-  \\&+ (G_i(X^*\mid \theta) + G_i(x'\mid \theta))^2
-    - (G_i(X^*\mid \theta) + G_i(x\mid \theta))^2\Big)\Bigg|
-  \\&=
-    \frac{1}{2a\sigma_p^2}
-    \Bigg|\sum_{i=1}^d \Big(
-    2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
-    + G_i(x\mid \theta') - G_i(x'\mid \theta'))
-  \\&+ 2G_i(X^*\mid \theta')(G_i(x\mid \theta') - G_i(x'\mid \theta'))
-  + G_i(x\mid \theta')^2 - G_i(x'\mid \theta')^2
-  \\&+ 2G_i(X^*\mid \theta)(G_i(x'\mid \theta) - G_i(x\mid \theta))
-  + G_i(x'\mid \theta)^2 - G_i(x\mid \theta)^2\Big)\Bigg|
-  \\&\leq \frac{1}{2a\sigma_p^2}\Bigg(
-  2\left|(\theta' - \theta)^T(G(x\mid \theta) - G(x'\mid \theta) 
-  + G(x\mid \theta') - G(x'\mid \theta'))\right|
-  \\&+ 2\left|G(X^*\mid \theta')^T(G(x\mid \theta') - G(x'\mid \theta'))\right|
-  + 2\left|G(X^*\mid \theta)^T(G(x'\mid \theta) - G(x\mid \theta))\right|
-  \\&+ |||G(x\mid \theta')||_2^2 - ||G(x'\mid \theta')||_2^2
-  + ||G(x'\mid \theta)||_2^2 - ||G(x\mid \theta)||_2^2|
-  \Bigg)
-\end{align*}
-Continued:
-\begin{align*}
-    \Delta(X)
-    &\leq \frac{1}{2a}
-  \left|(\theta' - \theta)^T(\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
-  + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta'))\right|
-  \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta')^T(\nabla \log p(x\mid \theta') 
-  - \nabla \log p(x'\mid \theta'))\right|
-  \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta)^T(\nabla \log p(x'\mid \theta) 
-  - \nabla \log p(x\mid \theta))\right|
-  \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
-  - ||\nabla \log p(x'\mid \theta')||_2^2
-  + ||\nabla \log p(x'\mid \theta)||_2^2 
-  - ||\nabla \log p(x\mid \theta)||_2^2\Big|
-  \\&\leq \frac{1}{2a}
-  ||\theta' - \theta||_2||\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
-  + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta')||_2
-  \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta')||_2||\nabla \log p(x\mid \theta') 
-  - \nabla \log p(x'\mid \theta')||_2
-  \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta)||_2||\nabla \log p(x'\mid \theta) 
-  - \nabla \log p(x\mid \theta)||_2
-  \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
-  - ||\nabla \log p(x'\mid \theta')||_2^2
-  + ||\nabla \log p(x'\mid \theta)||_2^2 
-  - ||\nabla \log p(x\mid \theta)||_2^2\Big|
-  \\&\leq \frac{2}{a}L_g||\theta' - \theta||_2 + \frac{\sigma_p^2}{a}(n-1)L_g^2
-  + \frac{\sigma_p^2L_g^2}{2a}
-\end{align*}
-with bound \(||\nabla \log p(x\mid \theta)||_2 \leq L_g\).
-There may be possibility for improving the bound with additional information on
-\(\nabla \log p(x\mid \theta) - \nabla \log p(x\mid \theta')\).
-
-Together with the bound on the log likelihood ration this implies that 
-\[
-    \Delta \lambda(X, \theta, \theta') 
-    \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
-    + \frac{\sigma_p^2}{a}(n - 1)L_g^2 + \frac{1}{2a}\sigma_p^2L_g^2 
-\]
-
-If there is an additional bound \(||\log p(X\mid \theta)||_2 \leq L_S\), then
-\(||\log p(X^*\mid \theta)||_2 \leq L_S + L_g\) and 
-\[
-    \Delta \lambda(X, \theta, \theta')
-    \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
-    + \frac{\sigma_p^2}{a}(L_S + L_g) L_g + \frac{1}{2a}\sigma_p^2L_g^2 
-\]
-With large \(n\) this results in a much tighter sensitivity bound than the 
-previous bound.
+% \section{DP Metropolis-Adjusted Langevin Algorithm}
+%
+% Metropolis adjusted Langevin algorithm (MALA)~\cite{Roberts1998} 
+% is Metropolis-Hastings with the proposal distribution 
+% \[
+%     q(\theta' \mid \theta, X) = \caln\left(\theta + \frac{1}{2}\sigma^2_p
+%     \nabla \ln p(X\mid \theta), \sigma^2_p I\right)
+% \]
+% The gradient in the proposal is meant to guide the random walk to regions 
+% of high probability. Because of it, MALA can achieve a higher acceptance rate 
+% than standards random walk MH, and requires fewer iterations to 
+% converge~\cite{Roberts1998}.
+%
+% MALA can be made DP with using the penalty algorithm. Because MALA is just 
+% the MH algorithm with a particular proposal, the penalty algorithm using the 
+% MALA proposal will converge to the correct distribution. Proving any DP bound 
+% for MALA requires computing the sensitivities of the different data-dependent 
+% values that the algorithm computes.
+%
+% Like random walk MH, the acceptance probability for non-DP MALA is
+% \[
+%     p = \min\left\{1, \exp(\lambda(X, \theta, \theta'))\right\},
+% \]
+% with 
+% \[
+%     \lambda(X, \theta, \theta') 
+%     = \sum_{x\in X} \ln\frac{p(x\mid \theta')}{p(x\mid \theta)} 
+%     + \ln \frac{q(\theta\mid \theta', X)} {q(\theta'\mid \theta, X)}
+%     + \ln \frac{p(\theta')}{p(\theta)}.
+% \]
+%
+% For DP MALA, the penalty correction is applied, and the acceptance probability is
+% \[
+%     p = \min\left\{\exp\left(\lambda^*(X, \theta, \theta')
+%     - \frac{1}{2}\sigma^2(\theta, \theta')\right)\right\}
+% \]
+% where \(\lambda^*(X, \theta, \theta') \sim \caln(\lambda(X, \theta, \theta'), 
+% \sigma^2(\theta, \theta'))\) and \(\sigma^2\) is symmetric in \(\theta\) and 
+% \(\theta'\).
+%
+% \begin{algorithm}[H]
+%     \SetAlgoLined 
+%     \For{\(1 \leq i \leq k\)}{
+%         sample \(\theta'\) from 
+%         \(\calm_g(\theta_{i-1} + \frac{1}{2}\sigma_p^2\nabla \ln p(X\mid \theta_{i-1}))\)\\
+%         sample \(\lambda^*\) from \(\calm_l(\lambda)\)\\
+%         \(p = \min\left\{1, \exp\left(\lambda^* - \frac{1}{2}\sigma^2\right)\right\}\)\\
+%         \(\theta_i = \begin{cases}
+%             \theta^* & \text{ with probability } p \\
+%             \theta_{i-1} & \text{ otherwise }
+%         \end{cases}\)
+%     }
+%     \caption{DP MALA
+%     }
+% \end{algorithm}
+%
+% On each iteration, the proposal \(\theta'\) is sampled from a Gaussian 
+% mechanism \(\calm_g(\theta + \frac{1}{2}\sigma^2_p\nabla \ln p(X\mid \theta))\)
+% with variance \(a\sigma_p^2\).
+% Then \(\lambda^*(X, \theta, \theta')\) is sampled from a 
+% Gaussian mechanism \(\calm_l(\lambda(X, \theta, \theta'))\) with variance 
+% \(\sigma^2\). The reason for using variance \(a\sigma^2_p\) for the proposal 
+% instead of \(\sigma^2_p\) that non-DP MALA uses is to allow better adjustment 
+% of the privacy cost of the proposal.
+%
+% \begin{lemma}\label{dp_mala_gradient}
+%     \(\calm_g\) is \(\rho_g\)-zCDP with 
+%     \[
+%         \rho_g(\theta) = \frac{\sigma_p^2 c_g^2}{8a}
+%     \]
+%     where 
+%     \[
+%         c_g \geq \Delta_2 \nabla \ln p(X\mid \theta)
+%     \]
+% \end{lemma}
+% \begin{proof}
+%     The sensitivity of 
+%     \[
+%         \frac{1}{2}\sigma_p^2 \nabla \ln p(X\mid \theta)
+%     \]
+%     is 
+%     \[
+%         \frac{1}{2}\sigma_p^2 \nabla \Delta_2 \nabla \ln p(X\mid \theta)
+%     \]
+%     The zCDP bound follows from Theorem~\ref{gauss-DP-bounds}.
+% \end{proof}
+%
+% \(c_g\) cannot depend on \(\theta\) as the privacy cost of each iteration in 
+% a composition must be determinable ahead of time to apply 
+% Theorem~\ref{composition-theorem}.
+%
+% \begin{lemma}\label{dp_mala_likelihood_bound}
+%     \(\calm_l\) is \(\rho_l\)-zCDP with 
+%     \[
+%         \rho_l = \frac{1}{2\tau},
+%     \]
+%     when 
+%     \[
+%         c_l(\theta, \theta') = \Delta_2^2 \lambda(X, \theta, \theta'),
+%     \]
+%     and
+%     \[
+%         \sigma^2(\theta, \theta') = \tau c^2_l(\theta, \theta').
+%     \]
+% \end{lemma}
+% \begin{proof}
+%     By Theorem~\ref{gauss-DP-bounds}, \(\calm_l\) is \(\rho\)-zCDP with
+%     \[
+%         \rho_l = \frac{c_l^2(\theta, \theta')}{2\sigma^2(\theta, \theta')}.
+%     \]
+%     The claim follows from plugging in \(\sigma(\theta, \theta')\).
+% \end{proof}
+%
+% \begin{theorem}\label{dp_mala_zcdp_bound}
+%     With given ADP bounds \(\epsilon\) and \(\delta\),
+%     DP MALA can be run for 
+%     \[
+%         k = \left\lfloor \frac{\rho}{\rho_g + \rho_l} \right\rfloor
+%     \]
+%     iterations, where \(\rho_g\) is from Lemma~\ref{dp_mala_gradient},
+%     \(\rho_l\) is from Lemma~\ref{dp_mala_likelihood_bound}, and
+%     \[
+%         \rho = \left(\sqrt{\log \frac{1}{\delta} + \epsilon} 
+%         - \sqrt{\log \frac{1}{\delta}}\right)^2
+%     \]
+% \end{theorem}
+% \begin{proof}
+%     A single iteration is \((\rho_l + \rho_g)\)-zCDP. The claim then follows from 
+%     Theorems~\ref{other_dp_to_adp} and~\ref{composition-theorem}.
+% \end{proof}
+%
+% The zCDP bounds of DP MALA can be computed with Theorem~\ref{dp_mala_zcdp_bound}
+% if the sensitivities \(c_g\) and \(c_l\) are known. As in DP penalty, they are 
+% specific the likelihood, but they can be forced with clipping. Clipping the 
+% gradients does not affect the distribution the algorithm converges to, but can 
+% diminish the amount of utility the algorithm can get from the gradients.
+% Clipping the likelihood does change the invariant distribution, but if the clipping 
+% is limited the algorithm should remain accurate.
+%
+% Clipping the gradients of each individual iteration results in
+% \begin{align*}
+%     ||\nabla \log p(X\mid \theta) - \nabla \log p(X'\mid \theta)||_2
+%     &= ||\nabla \log p(x\mid \theta) - \nabla \log p(x'\mid \theta)||_2
+%     \leq 2L_g
+% \end{align*}
+% so 
+% \[
+%     c_g(\theta) = 2L_g
+% \]
+% and 
+% \[
+%     \rho_g = \frac{\sigma_p^2L_g^2}{2a}.
+% \]
+%
+% \(c_l\) consists of two term that depend on the data, the 
+% log likelihood term 
+% \[
+%     \sum_{i=1}^n \ln \frac{p(x_i\mid \theta')}{p(x_i\mid \theta)}
+% \]
+% and the log proposal ratio
+% \[
+%     \ln \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
+% \]
+%
+% The log likelihood term is the same that appears in DP penalty, and can be 
+% bound in the same way. If it is clipped such that
+% \(\left|\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right| \leq L||\theta - \theta'||_2\)
+% then
+% \[
+%     \Delta\left(\sum_{x_in X}\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right)
+%     \leq 2L||\theta - \theta'||_2.
+% \]
+%
+% The log proposal term does not appear in DP penalty, because it uses a symmetric 
+% proposal where the term is always 0. In DP MALA, the proposal is not symmetric, 
+% and depends on the data through \(\nabla \ln p(X\mid \theta)\), so the term 
+% must be included in the sensitivity calculation.
+%
+% Let \(d\) be the dimensionality of \(\theta\). Then
+% \[
+%     q(\theta\mid \theta', X) = \prod_{i=1}^d
+%     \frac{1}{\sqrt{2\pi a\sigma_p^2}}\exp\left(
+%     \frac{(\theta_i - \theta_i' - \frac{1}{2}\sigma_p^2
+%     \frac{\partial}{\partial \theta'_i} \log p(X, \theta'))^2}
+%     {2a\sigma_p^2}\right)
+% \]
+% \begin{align*}
+%     \log \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
+%     &= \sum_{i=1}^d \left(C +
+%     \frac{(\theta_i - \theta'_i
+%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2}
+%     {2a\sigma_p^2}\right)
+%     - \sum_{i=1}^d \left(C +
+%     \frac{(\theta_i' - \theta_i 
+%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2}
+%     {2a\sigma_p^2}\right)
+%   \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
+%     (\theta_i - \theta'_i
+%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2
+%     - (\theta_i' - \theta_i 
+%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2
+%     \right)
+%   \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
+%     (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
+%     - (\theta_i' - \theta_i - G_i(X\mid \theta))^2\right)
+% \end{align*}
+%
+% Let 
+% \[
+%     G_i(X\mid \theta) = \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i}
+%     \log p(X\mid \theta)
+% \]
+% As 
+% \[
+%     \log p(X\mid \theta) = \sum_{x\in X}\log p(x\mid \theta)
+% \]
+% if \(X\) and \(X'\) only differ in one row, those being \(x\) and \(x'\),
+% then
+% \begin{align*}
+%     G_i(X\mid \theta) - G_i(X'\mid \theta) 
+%     &= \frac{1}{2}\sigma_p^2\sum_{j=1}^n \frac{\partial}{\partial \theta_i}
+%     (\log p(x_j\mid \theta) - \log p(x'_j\mid \theta))
+%   \\&= \frac{1}{2}\sigma_p^2 \frac{\partial}{\partial \theta_i}
+%     (\log p(x\mid \theta) - \log p(x'\mid \theta))
+%   \\&= G_i(x\mid \theta) - G_i(x'\mid \theta)
+% \end{align*}
+% Let \(X^*\) be the equal part of \(X\) and \(X'\). Then 
+% \[
+% G_i(X\mid \theta) = G_i(X^*\mid \theta) + G_i(x\mid \theta)
+% \]
+% and 
+% \[
+%     G_i(X'\mid \theta) = G_i(X^*\mid \theta) + G_i(x'\mid \theta)
+% \]
+%
+% Additionally
+% \[
+%     (a + b)^2 - (a + c)^2 = 2a(b - c) + b^2 - c^2
+% \]
+% for any \(a, b, c\in \R\).
+%
+% Let 
+% \[
+% \Delta(X) = \left|\log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)} 
+% - \log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)}\right|
+% \]
+% \begin{align*}
+%     \Delta(X) 
+%     &=
+%     \frac{1}{2a\sigma_p^2}
+%     \Bigg|\sum_{i=1}^d (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
+%     - (\theta'_i - \theta_i - G_i(X\mid \theta))^2
+%   \\&- (\theta_i - \theta'_i - G_i(X'\mid \theta'))^2
+%     + (\theta'_i - \theta_i - G_i(X'\mid \theta))^2\Bigg|
+%   \\&=
+%     \frac{1}{2a\sigma_p^2}
+%     \Bigg|\sum_{i=1}^d \Big(
+%     (\theta_i - \theta'_i)^2 - 2(\theta_i - \theta'_i)G_i(X\mid \theta')
+%     + G_i(X\mid \theta')^2
+%   \\&- (\theta'_i - \theta_i)^2 + 2(\theta'_i - \theta_i)G_i(X\mid \theta)
+%     - G_i(X\mid \theta)^2
+%   \\&- (\theta_i - \theta_i')^2 + 2(\theta_i - \theta'_i)G_i(X'\mid \theta')
+%     - G_i(X'\mid \theta')^2
+%   \\&+ (\theta'_i - \theta_i)^2 - 2(\theta'_i - \theta_i)G_i(X'\mid \theta)
+%     + G_i(X'\mid \theta)^2\Big)\Bigg|
+%   \\&=
+%     \frac{1}{2a\sigma_p^2}
+%     \Bigg|\sum_{i=1}^d \Big(
+%     2(\theta'_i - \theta_i)(G_i(X\mid \theta) - G_i(X'\mid \theta))
+%     + 2(\theta_i - \theta'_i)(G_i(X'\mid \theta') - G_i(X\mid \theta'))
+%   \\&+ G_i(X\mid \theta')^2
+%     - G_i(X\mid \theta)^2
+%     - G_i(X'\mid \theta')^2
+%     + G_i(X'\mid \theta)^2\Big)\Bigg|
+%   \\&=
+%     \frac{1}{2a\sigma_p^2}
+%     \Bigg|\sum_{i=1}^d \Big(
+%     2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
+%     + G_i(x\mid \theta') - G_i(x'\mid \theta'))
+%   \\&+(G_i(X^*\mid \theta') + G_i(x\mid \theta'))^2
+%     - (G_i(X^*\mid \theta') + G_i(x'\mid \theta'))^2
+%   \\&+ (G_i(X^*\mid \theta) + G_i(x'\mid \theta))^2
+%     - (G_i(X^*\mid \theta) + G_i(x\mid \theta))^2\Big)\Bigg|
+%   \\&=
+%     \frac{1}{2a\sigma_p^2}
+%     \Bigg|\sum_{i=1}^d \Big(
+%     2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
+%     + G_i(x\mid \theta') - G_i(x'\mid \theta'))
+%   \\&+ 2G_i(X^*\mid \theta')(G_i(x\mid \theta') - G_i(x'\mid \theta'))
+%   + G_i(x\mid \theta')^2 - G_i(x'\mid \theta')^2
+%   \\&+ 2G_i(X^*\mid \theta)(G_i(x'\mid \theta) - G_i(x\mid \theta))
+%   + G_i(x'\mid \theta)^2 - G_i(x\mid \theta)^2\Big)\Bigg|
+%   \\&\leq \frac{1}{2a\sigma_p^2}\Bigg(
+%   2\left|(\theta' - \theta)^T(G(x\mid \theta) - G(x'\mid \theta) 
+%   + G(x\mid \theta') - G(x'\mid \theta'))\right|
+%   \\&+ 2\left|G(X^*\mid \theta')^T(G(x\mid \theta') - G(x'\mid \theta'))\right|
+%   + 2\left|G(X^*\mid \theta)^T(G(x'\mid \theta) - G(x\mid \theta))\right|
+%   \\&+ |||G(x\mid \theta')||_2^2 - ||G(x'\mid \theta')||_2^2
+%   + ||G(x'\mid \theta)||_2^2 - ||G(x\mid \theta)||_2^2|
+%   \Bigg)
+% \end{align*}
+% Continued:
+% \begin{align*}
+%     \Delta(X)
+%     &\leq \frac{1}{2a}
+%   \left|(\theta' - \theta)^T(\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
+%   + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta'))\right|
+%   \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta')^T(\nabla \log p(x\mid \theta') 
+%   - \nabla \log p(x'\mid \theta'))\right|
+%   \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta)^T(\nabla \log p(x'\mid \theta) 
+%   - \nabla \log p(x\mid \theta))\right|
+%   \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
+%   - ||\nabla \log p(x'\mid \theta')||_2^2
+%   + ||\nabla \log p(x'\mid \theta)||_2^2 
+%   - ||\nabla \log p(x\mid \theta)||_2^2\Big|
+%   \\&\leq \frac{1}{2a}
+%   ||\theta' - \theta||_2||\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
+%   + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta')||_2
+%   \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta')||_2||\nabla \log p(x\mid \theta') 
+%   - \nabla \log p(x'\mid \theta')||_2
+%   \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta)||_2||\nabla \log p(x'\mid \theta) 
+%   - \nabla \log p(x\mid \theta)||_2
+%   \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
+%   - ||\nabla \log p(x'\mid \theta')||_2^2
+%   + ||\nabla \log p(x'\mid \theta)||_2^2 
+%   - ||\nabla \log p(x\mid \theta)||_2^2\Big|
+%   \\&\leq \frac{2}{a}L_g||\theta' - \theta||_2 + \frac{\sigma_p^2}{a}(n-1)L_g^2
+%   + \frac{\sigma_p^2L_g^2}{2a}
+% \end{align*}
+% with bound \(||\nabla \log p(x\mid \theta)||_2 \leq L_g\).
+% There may be possibility for improving the bound with additional information on
+% \(\nabla \log p(x\mid \theta) - \nabla \log p(x\mid \theta')\).
+%
+% Together with the bound on the log likelihood ration this implies that 
+% \[
+%     \Delta \lambda(X, \theta, \theta') 
+%     \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
+%     + \frac{\sigma_p^2}{a}(n - 1)L_g^2 + \frac{1}{2a}\sigma_p^2L_g^2 
+% \]
+%
+% If there is an additional bound \(||\log p(X\mid \theta)||_2 \leq L_S\), then
+% \(||\log p(X^*\mid \theta)||_2 \leq L_S + L_g\) and 
+% \[
+%     \Delta \lambda(X, \theta, \theta')
+%     \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
+%     + \frac{\sigma_p^2}{a}(L_S + L_g) L_g + \frac{1}{2a}\sigma_p^2L_g^2 
+% \]
+% With large \(n\) this results in a much tighter sensitivity bound than the 
+% previous bound.
 
 \chapter{Differentially Private Hamiltonian Monte Carlo}
+
+Hamiltonian Monte Carlo (HMC\footnote{
+    HMC originally stood for hybrid Monte Carlo, 
+    but the name Hamiltonian Monte Carlo has become more common.
+})~\cite{neal2012mcmc} is a widely used MCMC algorithm that, like 
+Metropolis-Hastings and the penalty algorithm, was originally developed 
+for simulations in physics and chemistry, but has since been applied to 
+Bayesian inference. 
+
+HMC simulates the trajectory of a moving particle in a way 
+that allows it to draw samples from a target distribution~\cite{neal2012mcmc}. 
+With perfect simulation 
+an acceptance test would not be needed, but exact simulation of the moving particle 
+is typically not possible so a Metropolis-Hastings acceptance test is used
+for proposal generated by the simulation. Despite imperfections, the simulation can generate long jumps 
+that stay in areas of high probability, giving HMC a higher acceptance rate 
+that Metropolis-Hastings using a Gaussian distribution as the proposal, at the 
+cost of higher computational requirements.
+
+This chapter first introduces HMC in the non-DP setting in Section~\ref{hmc_basics_section}.
+In Section~\ref{dp_hmc_section} the HMC is made differentially private using the 
+acceptance test of the penalty algorithm and adding noise to the proposal phase 
+appropriately.
+
+\section{MCMC with Hamiltonian Dynamics}\label{hmc_basics_section}
+
+The motion of a particle on a frictionless surface of varying height is governed 
+by the initial position and velocity of the particle, and the height of the 
+surface at different positions~\cite{neal2012mcmc}. 
+The kinetic energy of the particle with 
+momentum\footnote{Momentum is velocity times mass.}
+\(p\) and mass \(m\) is \(\frac{p^2}{2m}\). The potential energy of the particle 
+at position \(\theta\) is proportional to the height of the surface, given by 
+a function \(U(\theta)\). The sum of potential and kinetic energies, the total 
+energy of the system, is called the Hamiltonian \(H\). Hamilton's equations 
+give the equations of motion for a system with a given Hamiltonian:
+\begin{align*}
+    &\frac{d\theta}{dt} = \frac{\partial H}{\partial p},
+    &\frac{dp}{dt} = -\frac{\partial H}{\partial \theta}.
+\end{align*}
+Given \(H(\theta, p) = U(\theta) + \frac{p^2}{2m}\),
+\begin{align*}
+    \frac{d\theta}{dt} &= \frac{p}{m}, \\
+    \frac{dp}{dt} &= -\nabla U(\theta).
+\end{align*}
+
+These equations define a function \(T_t\) taking an initial state 
+\((\theta, p)\) of the particle to the state \(T(\theta, p)\) after time \(t\).
+Solving \(T_t\) analytically is usually not possible, but \(T_t\) can be 
+approximately simulated by the leapfrog method. The leapfrog method sequentially 
+updates an estimate \((\theta^*, p^*)\) of the state in steps \(L\) of \(\epsilon\) 
+as follows:
+\begin{align*}
+    p_{i+1/2} &= p_i - \frac{\epsilon}{2}\nabla U(\theta_i) \\
+    \theta_{i+1} &= \theta_i + \frac{\epsilon p_{i+1/2}}{m} \\
+    p_{i+1} &= p_{i+1/2} - \frac{\epsilon}{2}\nabla U(\theta_{i+1}) \\
+\end{align*}
+The simulation starts with \(\theta_0 = \theta\) and \(p_0 = p\) and the 
+result is given by \(T_{L\epsilon}(\theta, p) \approx (\theta_L, p_L)\).
+
+\section{Differential Privacy with HMC}\label{dp_hmc_section}
+DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
+
+%TODO: the gradient does not have to be computed L + 1 times at every iteration
+\begin{algorithm}[H]
+    \SetAlgoLined
+    \For{\(1 \leq i \leq k\)}{
+        \(p_0 = \caln_d(0, M)\)\\
+        \(\theta_{i,0} = \theta_{i-1}\)\\
+        \(G_{i,0} = \mathrm{grad}(\theta_{i,0}, b_g)\)\\
+        \For{\(1 \leq j \leq L\)}{
+            \(p_{j-0.5} = p_{j-1} + \frac{1}{2}\eta \left(G_{i,j-1} 
+            - \frac{1}{2}\sigma_g^2M^{-1}p_{j-1}\right)\)\\
+            \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-0.5}\)\\
+            \(G_{i,j} = \mathrm{grad}(\theta_{i,j}, b_g)\)\\
+            \(p_{j} = p_{j-0.5} + \frac{1}{2}\eta \left(G_{i,j}
+            - \frac{1}{2}\sigma_g^2M^{-1}p_{j-0.5}\right)\)\\
+        }
+        \(r_l = \ln \frac{p(\theta_{i,L}\mid x_l)}{p(\theta_{i-1}\mid x_l)}\)\\
+        \(R = \sum_{l=1}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_l)\)\\
+        \(s_{var} = (2\sigma_lb_l||\theta_{i-1} - \theta_{i,L}||_2)^2\)\\
+        \(\Delta H = R + \frac{1}{2}p_0^TM^{-1}p_0 - \frac{1}{2}p_L^TM^{-1}p_L
+        + \ln \frac{p(\theta_{i,L})}{p(\theta_{i-1})} + \caln(0, s_{var})\)\\
+        \(u = \mathrm{Unif}(0, 1)\)\\
+        \If{\(u < \Delta H - \frac{1}{2}s_{var}\)}{
+            \(\theta_{i} = \theta_{i, L}\)\\
+        }
+        \Else{
+            \(\theta_i = \theta_{i-1}\)\\
+        }
+    }
+    where
+    \[
+        \mathrm{grad}(\theta, b) = \sum_{i=1}^n \mathrm{clip}_b(\nabla \ln p(\theta\mid x_i))
+        + \nabla \ln p(\theta)
+    \]
+    and \(\mathrm{clip}_b(\theta)\) clips the euclidean norm of \(\theta\) to be 
+    less than or equal to \(b\).
+
+    \caption{DP HMC}
+    \label{dp_hmc_algo}
+\end{algorithm}
+
+Each iteration of the outer for-loop computes the gradient \(L+1\) times and 
+the log likelihood ratio once. Releasing a single gradient has zCDP privacy 
+cost of 
+\[
+    \rho_g = \frac{4b_g^2}{2\sigma_g^2} = \frac{1}{2\tau_g^2n},
+\]
+where \(\sigma_g = 2\tau_g\sqrt{n}b_g\).
+Releasing the log likelihood ratio of \(\theta\) and \(\theta'\) has privacy cost 
+\[
+    \rho_l = \frac{4b_l^2||\theta - \theta'||_2^2}{2\sigma_l(\theta, \theta')^2} = \frac{1}{2\tau_l^2n},
+\]
+where \(\sigma_l(\theta, \theta') = 2\tau_l\sqrt{n}b_l||\theta - \theta'||_2\).
+
+The total zCDP budget with given \((\epsilon, \delta)\)-bound is 
+\[
+    \rho = \left(\sqrt{\epsilon - \ln \delta} - \sqrt{-\ln \delta}\right)^2.
+\]
+This means that the number of iteration that the algorithm is allowed to run for 
+is 
+\[
+    k = \left\lfloor\frac{\rho}{\rho_l + (L + 1)\rho_g}\right\rfloor
+\]
+
+zCDP based privacy accounting is loose, to the above bound could be improved 
+by using the tight bound for the Gaussian mechanism.
+
+
 
 \chapter{Limitations and Alternatives of DP MCMC}
 
@@ -1465,7 +1607,7 @@ converge in reasonable time in 10 dimensions so it was excluded from these resul
 DP was not used so that error from the extra noise would not affect the results.
 
 The banana model used hyperparameter values \(a = 20\), \(b = m = 0\), 
-\(\sigma_1^2 = 20\), \(\sigma_2^2 = 2.5\), \(\sigma_3^2 = 1\),
+\(\sigma_1^2 = 20\), \(\sigma_2^2 = 2.5\), \(\sigma_3^2 = \dotsb = \sigma_{10}^2 = 1\),
 \(\sigma_0^2 = 1000\) and \(n = 100000\).
 In both experiments, 500 samples from HMC and 3000 samples from RWMH were taken
 and the latter half\footnote{As the start of an MCMC chain depends heavily on the 

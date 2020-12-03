@@ -1,0 +1,4 @@
+rule banana_density_plot:
+    input: "banana_model.py"
+    output: "../Thesis/figures/banana_density.pdf"
+    shell: "python banana_model.py"
