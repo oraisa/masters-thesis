@@ -1439,7 +1439,8 @@ The kinetic energy of the particle with
 momentum\footnote{Momentum is velocity times mass.}
 \(p\) and mass \(m\) is \(\frac{p^2}{2m}\). The potential energy of the particle 
 at position \(\theta\) is proportional to the height of the surface, given by 
-a function \(U(\theta)\). The sum of potential and kinetic energies, the total 
+a continuously differentiable function \(U(\theta)\). 
+The sum of potential and kinetic energies, the total 
 energy of the system, is called the Hamiltonian \(H\). Hamilton's equations 
 give the equations of motion for a system with a given Hamiltonian:
 \begin{align*}
@@ -1456,15 +1457,101 @@ These equations define a function \(T_t\) taking an initial state
 \((\theta, p)\) of the particle to the state \(T(\theta, p)\) after time \(t\).
 Solving \(T_t\) analytically is usually not possible, but \(T_t\) can be 
 approximately simulated by the leapfrog method. The leapfrog method sequentially 
-updates an estimate \((\theta^*, p^*)\) of the state in steps \(L\) of \(\epsilon\) 
+updates an estimate \((\theta_i, p_i)\) of the state in steps \(L\) of \(\eta\) 
 as follows:
 \begin{align*}
-    p_{i+1/2} &= p_i - \frac{\epsilon}{2}\nabla U(\theta_i) \\
+    p_{i+1/2} &= p_i - \frac{\eta}{2}\nabla U(\theta_i) \\
     \theta_{i+1} &= \theta_i + \frac{\epsilon p_{i+1/2}}{m} \\
-    p_{i+1} &= p_{i+1/2} - \frac{\epsilon}{2}\nabla U(\theta_{i+1}) \\
+    p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}\nabla U(\theta_{i+1}) \\
 \end{align*}
 The simulation starts with \(\theta_0 = \theta\) and \(p_0 = p\) and the 
-result is given by \(T_{L\epsilon}(\theta, p) \approx (\theta_L, p_L)\).
+result is given by \(T_{L\eta}(\theta, p) \approx (\theta_L, p_L)\).
+
+Hamiltonian dynamics have three important properties~\cite{neal2012mcmc} 
+that make them useful as a
+proposal mechanism for MCMC. They are reversibility, 
+conservation of the Hamiltonian and conservation of volume.
+
+Reversibility means that the function \(T_t\) is injective, meaning that
+it has an inverse \(T_{-t}\) where \(T_t(\theta_1, p_1) = (\theta_2, p_2)\)
+implies that \(T_{-t}(\theta_2, p_2) = (\theta_1, p_1)\)~\cite{neal2012mcmc}.
+For the Hamiltonian of the particle moving on a surface, the inverse 
+is obtained by \(T_t(\theta_2, -p_2) = (\theta_1, -p_1)\).
+
+Conservation of the Hamiltonian follows from Hamilton's equations and the 
+chain rule of derivatives:
+\[
+    \frac{dH}{dt} = \frac{\partial H}{\partial \theta}\frac{d \theta}{dt}
+    + \frac{\partial H}{\partial p}\frac{dp}{dt}
+    = \frac{\partial H}{\partial \theta}\frac{\partial H}{\partial p}
+    - \frac{\partial H}{\partial p}\frac{\partial H}{\partial \theta}
+    = 0.
+\]
+
+Conservation of volume in the \((\theta, p)\)-space follows from the fact that 
+the absolute value of the Jacobian determinant of \(T_t\) is 1 and the 
+injectivity of \(T_t\). A somewhat 
+lengthier proof for the Jacobian determinant of \(T_t\) is given by 
+Neal~\cite{neal2012mcmc}. 
+
+To see why 
+having \(|\det J_f| = 1\), where \(J_f\) is the Jacobian matrix of an injective 
+continuously differentiable function \(f\), 
+implies \(f\) preserving volume, recall that the volume of a set 
+\(A\) is given by 
+\[
+    \int_A 1dx.
+\]
+The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
+\[
+    \int_{f(A)}1dx = \int_{A}|\det J_f(x)|dx = \int_A 1dx.
+\]
+where the first equality follows from the change of variables formula.
+
+The leapfrog method does not conserve the Hamiltonian exactly, but it 
+preserves volumes and is reversible exactly~\cite{neal2012mcmc}. 
+These properties of the leapfrog 
+method are important for its use as a proposal mechanism for MCMC.
+
+The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
+\[
+    P(\theta, p) \propto \exp(-H(\theta, p)).
+\]
+With \(H(\theta, p) = U(\theta) + \frac{p^2}{m}\),
+\[
+    P(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{p^2}{2m}\right)
+\]
+This means that the marginal distributions of \(\theta\) and \(p\) are 
+independent, the marginal distribution of \(p\) is a Gaussian distribution 
+with mean 0 and variance \(m\), and the marginal distribution of 
+\(\theta\) can have any continuously differentiable log likelihood \(-U\).
+Because of this, \(\theta\) is used to represent the variables of interest,
+while \(p\) is a set of auxiliary variables used for the proposals.
+
+Generating a \((\theta, p)\)-sample is done in two stages~\cite{neal2012mcmc}, 
+which are technically 
+two separate Metropolis-Hastings proposals and acceptance tests. In the first 
+stage, \(p\) is proposed from the Gaussian distribution with mean 0 and 
+covariance \(M\). Because the proposal matches the marginal distribution of 
+\(p\), it is always accepted.
+
+In the second stage, Hamiltonian dynamics for the particle on a surface are 
+simulated with the leapfrog method, starting from the current value 
+of \(\theta\) and the proposed value of \(p\). The end result is a proposal 
+for both \(\theta\) and \(p\). Because the leapfrog simulation preserves volumes 
+and is reversible by negating \(p\), the acceptance probability of the 
+proposal is simply
+\[
+    \min\{\exp(H(\theta, p) - H(\theta', p'))\}.
+\]
+If the simulation conserved \(H\) exactly, the acceptance probability would 
+always be 1. Because this is usually not possible, there is always some probability 
+of rejecting, which depends on the length of the jump taken by the leapfrog 
+method, \(\eta\), and the number of leapfrog steps, \(L\). It might be expected 
+that the errors from the leapfrog steps would accumulate during the simulation, 
+but in practice the errors in different steps tend to cancel each 
+other~\cite{neal2012mcmc}, meaning 
+that the acceptance probability mainly depends on \(\eta\).
 
 \section{Differential Privacy with HMC}\label{dp_hmc_section}
 DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
