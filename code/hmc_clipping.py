@@ -42,7 +42,7 @@ clipping = np.sum(res.clipped / iters / n)
 diff_decisions = np.sum(res.diff_accepts)
 
 posterior = banana.generate_posterior_samples(2000, data, 1)
-mmd = mmd.mmd(res.final_chain, posterior)
+mmd = mmd.mmd(np.asarray(res.final_chain), np.asarray(posterior))
 mean_error = np.sqrt(np.sum((np.mean(posterior, axis=0) - np.mean(res.final_chain, axis=0))**2))
 var_error = np.sqrt(np.sum((np.var(posterior, axis=0) - np.var(res.final_chain, axis=0))**2))
 
@@ -59,4 +59,3 @@ result = pd.DataFrame({
     "var error": [var_error]
 })
 result.to_csv(args.output, header=False)
-

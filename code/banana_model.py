@@ -15,8 +15,7 @@ def log_prior(theta, a, b, m, tau0):
         + np.sum(stats.norm.logpdf(theta[2:], scale=1 / np.sqrt(tau0)))
     )
 
-
-@jax.jit 
+@jax.jit
 def log_likelihood_per_sample(theta, x, a, b, m, sigma1, sigma2, sigma3, dim):
     logc1 = -np.log(sigma1 * np.sqrt(2 * np.pi))
     logc2 = -np.log(sigma2 * np.sqrt(2 * np.pi))
@@ -59,7 +58,7 @@ def clip_norm(x, bound):
 
 
 class BananaModel:
-    def __init__(self, dim=2):
+    def __init__(self, dim=2, a=20):
         self.tau0 = 0.001
         self.tau1 = 0.05
         self.tau2 = 0.4
@@ -69,7 +68,7 @@ class BananaModel:
         self.sigma3 = 1 / np.sqrt(self.tau3)
         # a = 80.0
         # a = 40
-        self.a = 20
+        self.a = a
         self.b = 0.0
         self.m = 0.0
         self.dim = dim
@@ -87,6 +86,11 @@ class BananaModel:
         x2s = jax.random.normal(keys[1], (n,1)) * self.sigma2 + theta2 + self.a * (theta1 - self.m)**2 + self.b
         xrest = jax.random.normal(keys[2], (n, self.dim - 2)) * self.sigma3 + theta_rest
         return np.hstack((x1s, x2s, xrest))
+
+    def log_likelihood_per_sample(self, theta, data):
+        return log_likelihood_per_sample(
+            theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
+        )
 
     def log_likelihood_no_sum(self, theta, data):
         return log_likelihood_no_sum(
