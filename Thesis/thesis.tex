@@ -95,6 +95,7 @@
 \DeclareMathOperator{\erfc}{erfc}
 \DeclareMathOperator{\ban}{Ban}
 \DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\clip}{clip}
 
 \begin{document}
 
@@ -159,7 +160,7 @@ substitute neighbourhood.
 The neighbourhood relation is denoted by \(\sim\). The definitions and 
 theorems of this section are valid for all neighbourhood relations.
 
-There many other definitions of differential privacy that are mostly used 
+There many other definitions of differential privacy that are mostly used
 to compute \((\epsilon, \delta)\)-bounds for ADP. This thesis uses two of them: 
 Rényi-DP (RDP)~\cite{Mironov17} and 
 zero-concentrated differential privacy (zCDP)~\cite{BuS16}. Both are based 
@@ -297,7 +298,7 @@ mechanism are quite simple. The ADP bound is more complicated:
     \end{enumerate}
 \end{theorem}
 
-The most common use case for the Gaussian mechanism is computing a 
+The most common use case for the Gaussian mechanism is computing a
 function \(f\colon \calx \to \R\) of private data and feeding the result into 
 the Gaussian mechanism to privately release the function value. 
 The condition that the inputs 
@@ -312,7 +313,7 @@ sensitivity of a function
     \]
 \end{definition}
 
-Theorem \ref{gauss-DP-bounds} implies that the value of any function with 
+Theorem~\ref{gauss-DP-bounds} implies that the value of any function with
 finite \(l_2\)-sensitivity can be privately released using the Gaussian mechanism 
 with appropriate noise variance \(\sigma^2\). Of course, the usefulness of the 
 released value depends on the magnitude of \(\sigma^2\) compared to the actual 
@@ -1437,8 +1438,8 @@ by the initial position and velocity of the particle, and the height of the
 surface at different positions~\cite{neal2012mcmc}. 
 The kinetic energy of the particle with 
 momentum\footnote{Momentum is velocity times mass.}
-\(p\) and mass \(m\) is \(\frac{p^2}{2m}\). The potential energy of the particle 
-at position \(\theta\) is proportional to the height of the surface, given by 
+\(p \in \R^{2}\) and mass \(m \in \R\) is \(\frac{p^{T}p}{2m}\). The potential energy of the particle
+at position \(\theta \in \R^{2}\) is proportional to the height of the surface, given by
 a continuously differentiable function \(U(\theta)\). 
 The sum of potential and kinetic energies, the total 
 energy of the system, is called the Hamiltonian \(H\). Hamilton's equations 
@@ -1447,7 +1448,7 @@ give the equations of motion for a system with a given Hamiltonian:
     &\frac{d\theta}{dt} = \frac{\partial H}{\partial p},
     &\frac{dp}{dt} = -\frac{\partial H}{\partial \theta}.
 \end{align*}
-Given \(H(\theta, p) = U(\theta) + \frac{p^2}{2m}\),
+Given \(H(\theta, p) = U(\theta) + \frac{p^{T}p}{2m}\), Hamilton's equations become
 \begin{align*}
     \frac{d\theta}{dt} &= \frac{p}{m}, \\
     \frac{dp}{dt} &= -\nabla U(\theta).
@@ -1461,11 +1462,21 @@ updates an estimate \((\theta_i, p_i)\) of the state in steps \(L\) of \(\eta\)
 as follows:
 \begin{align*}
     p_{i+1/2} &= p_i - \frac{\eta}{2}\nabla U(\theta_i) \\
-    \theta_{i+1} &= \theta_i + \frac{\epsilon p_{i+1/2}}{m} \\
+    \theta_{i+1} &= \theta_i + \frac{\eta p_{i+1/2}}{m} \\
     p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}\nabla U(\theta_{i+1}) \\
 \end{align*}
 The simulation starts with \(\theta_0 = \theta\) and \(p_0 = p\) and the 
 result is given by \(T_{L\eta}(\theta, p) \approx (\theta_L, p_L)\).
+
+The above equations for two-dimensional \(\theta\) and \(p\) generalize to
+any number of dimensions \(d\)~\cite{neal2012mcmc}. The physical analogue would be a particle moving
+on a \(d\)-dimensional hypersurface with ``height'' given by \(U(\theta)\).
+The mass of the particle, \(m\), can also be generalized to any positive
+definite matrix \(M \in \R^{p\times p}\), which changes division by
+\(m\) to multiplication by \(M^{-1}\). Specifically, the kinetic energy of the
+particle becomes \(\frac{1}{2}p^{T}M^{-1}p\) and
+\(\frac{d\theta}{dt} = M^{-1}p\). The generalization to a mass matrix does not
+have a physical analogue, but it can be useful for MCMC.
 
 Hamiltonian dynamics have three important properties~\cite{neal2012mcmc} 
 that make them useful as a
@@ -1517,13 +1528,14 @@ The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
 \[
     P(\theta, p) \propto \exp(-H(\theta, p)).
 \]
-With \(H(\theta, p) = U(\theta) + \frac{p^2}{m}\),
+With \(H(\theta, p) = U(\theta) + \frac{1}{2}p^{T}M^{-1}p\),
 \[
-    P(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{p^2}{2m}\right)
+    P(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{1}{2}p^{T}M^{-1}p\right)
 \]
 This means that the marginal distributions of \(\theta\) and \(p\) are 
-independent, the marginal distribution of \(p\) is a Gaussian distribution 
-with mean 0 and variance \(m\), and the marginal distribution of 
+independent, the marginal distribution of \(p\) is a d-dimensional
+Gaussian distribution 
+with mean 0 and covariance \(M\), and the marginal distribution of
 \(\theta\) can have any continuously differentiable log likelihood \(-U\).
 Because of this, \(\theta\) is used to represent the variables of interest,
 while \(p\) is a set of auxiliary variables used for the proposals.
@@ -1542,7 +1554,7 @@ for both \(\theta\) and \(p\). Because the leapfrog simulation preserves volumes
 and is reversible by negating \(p\), the acceptance probability of the 
 proposal is simply
 \[
-    \min\{\exp(H(\theta, p) - H(\theta', p'))\}.
+    \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
 \]
 If the simulation conserved \(H\) exactly, the acceptance probability would 
 always be 1. Because this is usually not possible, there is always some probability 
@@ -1554,6 +1566,214 @@ other~\cite{neal2012mcmc}, meaning
 that the acceptance probability mainly depends on \(\eta\).
 
 \section{Differential Privacy with HMC}\label{dp_hmc_section}
+
+HMC only uses the model log likelihood, and thus the data, through \(U\).
+\(U\) is used in two ways. Firstly, its value is used in the acceptance test,
+and secondly, its gradients are used in to obtain proposals. Adding appropriate
+amounts of noise to both accesses would make HMC private, but the addition of
+noise may break some of the properties required for the algorithm's correctness.
+
+The addition of noise to the log likelihood ratios can be corrected using the penalty
+acceptance test, i.e. changing the acceptance probability to
+\[
+    \min\left\{\exp\left(H(\theta, p) - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\},
+\]
+where \(\sigma_{l}^{2}\) is the variance of the noise added to the log likelihood
+ratios. This is because with \(U(\theta) = -\ln p(X\mid \theta)\), the difference
+of the Hamiltonians in the acceptance probability is
+\[
+  H(\theta, p) - H(\theta', p') = \ln p(X\mid \theta') - \ln p(X\mid \theta)
+  + \frac{1}{2}(p^{T}M^{-1}p - p'^{T}M^{-1}p').
+\]
+As with the penalty algorithm, the sensitivity of the log likelihood ratios must
+be bounded. If a bound does not exist, clipping must be used, nullifies the asymptotic
+converge guarantee of the algorithm. However, in Section~\ref{clipping_experiments}
+it is shown that
+clipping low numbers of gradients does not affect convergence in practice.
+
+Releasing the gradients privately requires a trade-off. The leapfrog method remains
+reversible with noisy and potentially clipped gradients, as is shows in the following,
+but they no longer simulate the correct Hamiltonian dynamics~\cite{CFG14}. This does not affect
+asymptotic convergence, but it can potentially lower acceptance rates.
+The dynamics can be corrected by adding a friction term to the equations of
+motion of the simulation~\cite{CFG14}, but this removes volume preservation of the simulation,
+which means that the acceptance probability must be corrected.
+
+The leapfrog update equations with noisy and clipped gradients become
+\begin{align*}
+  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i})) + \caln(0, \sigma_{g}^{2})) \\
+  \theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2} \\
+  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i+1})) + \caln(0, \sigma_{g}^{2})).
+\end{align*}
+The second equation is unchanged, and remains both volume preserving and reversible
+by negating \(p\). Both the first and third equations apply the function
+\(l_{p}\colon \R^{2d}\to \R^{2d}\),
+\[
+  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(\clip(\nabla U(\theta))
+    + \caln(0, \sigma_{g^{2}}))\right).
+\]
+to \(\theta\) and \(p\).
+
+The Jacobian of \(l_{p}\) is
+\[
+  J_{l_{p}}(\theta, p) =
+  \begin{pmatrix}
+    I_{d\times d} & 0_{d\times d} \\
+    C(\theta, p) & I_{d\times d}
+  \end{pmatrix},
+\]
+where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
+zero matrices, respectively, and \(C(\theta, p) = J_{\clip(\nabla U(\theta))}(\theta, p)\).
+Because \(J_{l_{p}}(\theta, p)\) is triangular, \(\det J_{l_{p}}(\theta, p) = 1\)
+for all \(\theta\) and \(p\), which means that \(l_{p}\) preserves volume.
+As the step updating \(\theta\) also preserves volume, the entire leapfrog
+simulation preserves volume.
+
+Showing that the leapfrog simulation is reversible by negating \(p\) requires
+more thought, as the simulation is no longer deterministic. Recall that the
+MH acceptance test uses the acceptance probability
+\[
+  \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}
+    \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}\right\},
+\]
+where \(\pi\) is the target density and \(q\) is the proposal density.
+For HMC, \(q\) must be understood as a Dirac \(\delta\) function, as the
+standard leapfrog is deterministic. The reversibility of the leapfrog
+by negating \(p\) means that
+\(q(\theta', p'\mid \theta, p) = q(\theta, -p\mid \theta', -p')\).
+If \(p\) were negated after the leapfrog simulation, one would have another
+proposal distribution \(q'\), with
+\(q'(\theta', p'\mid \theta, p) = q'(\theta, p\mid \theta', p')\).
+Running HMC with proposal \(q'\) instead of \(q\) does not change the
+output of the algorithm, as \(p\) is not stored and
+the kinetic energy term in the Hamiltonian is \(\frac{1}{2}p^{T}M^{-1}p\), so
+\(H(\theta, p) = H(\theta, -p)\). This means that the proposal ratio in the
+MH acceptance probability is one for HMC.
+
+The with noisy gradient, the leapfrog proposal is no longer deterministic,
+so the reversibility by negating \(p\) must be proven separately.
+
+The proof requires defining some new terminology. Let
+\(l\colon \R^{2d} \to \R^{2d}\) be a function giving a potentially random
+proposal for given \((\theta, p)\). Because \(l\) is potentially random,
+it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\),
+where
+\[
+  P(l(\theta, p) \in A) = \int_{A} d(\theta', p') q_{l}(\theta', p'\mid \theta, p).
+\]
+Now reversibility by negating \(p\) can be defined:
+\begin{definition}\label{prop_revers_definition}
+  A proposal function \(l\) is reversible by negating \(p\) if
+  \[
+    q_{l}(\theta', p'\mid \theta, p) = q_{l}(\theta, -p \mid \theta', -p')
+  \]
+\end{definition}
+This can be simplified by defining \(\bar{l}\) as the the proposal
+function that has density
+\(q_{\bar{l}}(\theta', p'\mid \theta, p) = q_{l}(\theta, p\mid \theta', p')\),
+and defining \(l_{-}\) as \(l_{-}(\theta, p) = (\theta, -p)\).
+Definition~\ref{prop_revers_definition} can then be written as
+\(\bar{l} = l_{-}\circ l\circ l_{-}\).
+
+\begin{lemma}\label{prop_fun_comp_lemma}
+  Let \(l_{1}\) and \(l_{2}\) be proposal functions in \(\R^{2d}\).
+  Then \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
+  For a sequence \(l_{1}, \dotsc, l_{k}\) of proposal functions,
+  \(\overline{l_{k}\circ \dotsb \circ l_{1}} = \bar{l_{1}}\circ \dotsb \circ \bar{l_{k}}\).
+\end{lemma}
+\begin{proof}
+  \begin{align*}
+	q_{\overline{l_{2}\circ l_{1}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
+    &= q_{l_{2}\circ l_{1}}(\theta_{1}, p_{1}\mid \theta_{3}, p_{3})
+    \\&= \int_{\R^{2d}} d(\theta_{2}, p_{2}) q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{3}, p_{3})
+      q_{l_{2}}(\theta_{1}, p_{1}\mid \theta_{2}, p_{2})
+    \\&= \int_{\R^{2d}} d(\theta_{2}, p_{2}) q_{\bar{l}_{1}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2})
+      q_{\bar{l}_{2}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
+    \\&= q_{\bar{l_{1}}\circ \bar{l_{2}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
+  \end{align*}
+  which means that \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
+  The claim for sequences follows by induction.
+\end{proof}
+
+\begin{theorem}\label{leapfrog_revers_theorem}
+  The leapfrog simulation with noisy and clipped gradients is reversible by
+  negating \(p\).
+\end{theorem}
+\begin{proof}
+  The leapfrog simulation is a composition of proposal functions
+  \(l_{p}\) and \(l_{\theta}\) where
+  \[
+    l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(\clip(\nabla U(\theta))
+      + \caln(0, \sigma_{g}^{2}))\right)
+  \]
+  and
+  \[
+    l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p).
+  \]
+  Specifically, the simulation is
+  \[
+    (l_{p} \circ l_{\theta}\circ l_{p})\circ
+    \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})
+  \]
+  with \(L\) compositions of \(l_{p} \circ l_{\theta}\circ l_{p}\).
+  Denoting \(g(\theta) = \clip(\nabla U(\theta))\),
+  \begin{align*}
+    q_{l_{p}}(\theta', p'\mid \theta, p) &= \delta_{\theta'}(\theta)
+    \cdot \caln\left(p'\mid p - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
+    \\&= \delta_{\theta}(\theta')
+    \cdot \caln\left(-p\mid -p' - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
+    \\&= q_{l_{p}}(\theta, -p\mid \theta', -p')
+  \end{align*}
+  and
+  \begin{align*}
+	q_{l_{\theta}}(\theta, -p\mid \theta', -p')
+    &= \delta_{\theta}(\theta' - \eta M^{-1}p')\cdot\delta_{-p}(-p')
+    \\&= \delta_{\theta'}(\theta + \eta M^{-1}p)\cdot\delta_{p'}(p)
+	\\&= q_{l_{\theta}}(\theta', p'\mid \theta, p),
+  \end{align*}
+  which means that both \(l_{p}\) and \(l_{\theta}\) are reversible by
+  negating \(p\). Then the reverse of the leapfrog composition can be
+  written as
+  \begin{align*}
+	\overline{(l_{p} \circ l_{\theta}\circ l_{p})\circ
+    \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})}
+    &= (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}}) \circ \dotsb \circ
+    (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}})
+    \\&= l_{-}\circ(l_{p}\circ l_{\theta} \circ l_{p}) \circ \dotsb \circ
+    (l_{p}\circ l_{\theta} \circ l_{p})\circ l_{-},
+  \end{align*}
+  where the first equality uses Lemma~\ref{prop_fun_comp_lemma} and
+  the fact that the sequence of compositions is symmetric.
+  The second equality uses the fact that \(l_{p}\) and \(l_{\theta}\)
+  are reversible by negating \(p\).
+  This means that the leapfrog simulation with noisy and clipped gradients is
+  reversible by negating \(p\).
+\end{proof}
+
+If the friction term that corrects the dynamics is used, the equations of
+motion become~\cite{CFG14}
+\begin{align*}
+  \frac{d\theta}{dt} &= M^{-1}p \\
+  \frac{dp}{dt} &= -\nabla U(\theta) - \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \caln(0, \sigma_{g}^{2})
+\end{align*}
+The equation for \(\theta\) is unchanged, but the equation for \(p\) has the
+additional term \(-\frac{1}{2}\sigma_{g}^{2}M^{-1}p\).
+For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p}\) changes
+to
+\[
+  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(\clip(\nabla U(\theta))
+  + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \caln(0, \sigma_{g}^{2}))\right).
+\]
+\(l_{p}\) no longer preserves volumes, as the Jacobian of \(l_{p}\) is
+\[
+  J_{l_{p}}(\theta, p) =
+  \begin{bmatrix}
+    I_{d\times d} & 0_{d\times d} \\
+    C(\theta, p) & I_{d\times d} - \frac{\eta}{4}\sigma_{g}^{2}M^{-1}
+  \end{bmatrix}
+\]
+which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
+
 DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
 
 %TODO: the gradient does not have to be computed L + 1 times at every iteration
@@ -1623,7 +1843,6 @@ zCDP based privacy accounting is loose, to the above bound could be improved
 by using the tight bound for the Gaussian mechanism.
 
 
-
 \chapter{Limitations and Alternatives of DP MCMC}
 
 \section{Dataset Size}
@@ -1632,6 +1851,7 @@ by using the tight bound for the Gaussian mechanism.
 
 \subsection{DP Variational Inference}
 \subsection{Releasing Summary Statistics Privately}
+\subsection{MCMC with synthetic data}
 
 \chapter{Experiments}
 
@@ -1684,7 +1904,7 @@ between distances of points of the subsamples. This is following the procedure o
 Gretton et.\ al.~\cite{GrettonBRSS12}, with the addition of the subsampling step 
 to handle samples of different sizes.
 
-\section{The Effects of Clipping}
+\section{The Effects of Clipping}\label{clipping_experiments}
 
 The first experiment evaluates the effect of clipping log likelihood ratios.
 Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
@@ -1734,8 +1954,7 @@ less than 10\%, clipping is likely undetectable without a large sample.
 \end{figure}
 \section{Accuracy of CLT With Subsampling}
 
-% Run non-DP MCMC algorithms with and without clipping
-
+\section{Illustrating HMC}
 \section{Banana Distribution}
 
 \chapter{Conclusions}
