@@ -1,9 +1,9 @@
 import jax.numpy as np
 import jax
 import jax.scipy.stats as stats
-# import scipy.stats as scipystats
 import matplotlib.pyplot as plt
 import numpy.random as npr
+import util
 
 @jax.jit
 def log_prior(theta, a, b, m, tau0):
@@ -32,29 +32,29 @@ def log_likelihood_per_sample(theta, x, a, b, m, sigma1, sigma2, sigma3, dim):
     term3 = -0.5 * np.sum((xrest - theta_rest)**2) / sigma3**2 + logc3 * (dim - 2)
     return term1 + term2 + term3
 
-log_likelihood_no_sum = jax.jit(jax.vmap(
-    log_likelihood_per_sample, in_axes=(None, 0, None, None, None, None, None, None, None)
-))
-log_likelihood = jax.jit(lambda theta, X: np.sum(log_likelihood_no_sum(theta, X)))
-log_likelihood_grads = jax.jit(jax.vmap(
-    jax.grad(log_likelihood_per_sample, 0), 
-    in_axes=(None, 0, None, None, None, None, None, None, None)
-))
-log_prior_grad = jax.jit(jax.grad(log_prior, 0))
+# log_likelihood_no_sum = jax.jit(jax.vmap(
+#     log_likelihood_per_sample, in_axes=(None, 0, None, None, None, None, None, None, None)
+# ))
+# log_likelihood = jax.jit(lambda theta, X: np.sum(log_likelihood_no_sum(theta, X)))
+# log_likelihood_grads = jax.jit(jax.vmap(
+#     jax.grad(log_likelihood_per_sample, 0),
+#     in_axes=(None, 0, None, None, None, None, None, None, None)
+# ))
+# log_prior_grad = jax.jit(jax.grad(log_prior, 0))
 
-@jax.jit
-def log_likelihood_grad_clipped(theta, data, clip):
-    n, dim = data.shape
-    grads = log_likelihood_grads(data, theta)
-    grads, did_clip = jax.vmap(clip_norm, in_axes=(0, None))(grads, clip)
-    clipped_grad = np.sum(did_clip)
-    return (np.sum(grads, axis=0), clipped_grad)
+# @jax.jit
+# def log_likelihood_grad_clipped(theta, data, clip):
+#     n, dim = data.shape
+#     grads = log_likelihood_grads(data, theta)
+#     grads, did_clip = jax.vmap(clip_norm, in_axes=(0, None))(grads, clip)
+#     clipped_grad = np.sum(did_clip)
+#     return (np.sum(grads, axis=0), clipped_grad)
 
-@jax.jit 
-def clip_norm(x, bound):
-    norm = np.sqrt(np.sum(x**2))
-    clipped_norm = np.max(np.array((norm, bound)))
-    return (x / norm * clipped_norm, norm > bound)
+# @jax.jit
+# def clip_norm(x, bound):
+#     norm = np.sqrt(np.sum(x**2))
+#     clipped_norm = np.max(np.array((norm, bound)))
+#     return (x / norm * clipped_norm, norm > bound)
 
 
 class BananaModel:
@@ -92,20 +92,24 @@ class BananaModel:
             theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
         )
 
-    def log_likelihood_no_sum(self, theta, data):
-        return log_likelihood_no_sum(
-            theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
-        )
+    # def log_likelihood_no_sum(self, theta, data):
+    #     return log_likelihood_no_sum(
+    #         theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
+        # )
     def log_prior(self, theta):
         return log_prior(theta, self.a, self.b, self.m, self.tau0)
 
-    def log_likelihood_grads(self, theta, data):
-        return log_likelihood_grads(
-            theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
-        )
+    # def log_likelihood_grads(self, theta, data):
+    #     return log_likelihood_grads(
+    #         theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
+    #     )
 
-    def log_prior_grad(self, theta):
-        return log_prior_grad(theta, self.a, self.b, self.m, self.tau0)
+    # def log_prior_grad(self, theta):
+    #     return log_prior_grad(theta, self.a, self.b, self.m, self.tau0)
+
+    def get_problem(self):
+        data = self.generate_test_data()
+        return util.Problem(self.log_likelihood_per_sample, self.log_prior, data)
 
     def banana_density(self, theta1, theta2, mu1, mu2, sigma1, sigma2, a, b, m):
         return (

@@ -112,16 +112,3 @@ def hmc(problem, epsilon, delta, params):
         chain, leapfrog_chain, accepts, clipped_r, iters,
         clipped_grad_counter.clipped_grad, clipped_grad_counter.grad_accesses
     )
-
-
-# lines = plt.plot(leapfrog_chain[:, 0], leapfrog_chain[:, 1])
-# plt.show()
-
-# mcmc_trace = arviz.from_netcdf("abalone_post.nc")
-# mcmc_samples = np.concatenate(mcmc_trace.posterior.theta.values, axis=0)
-# fig, axes = plt.subplots(dim)
-# for i in range(dim):
-#     sns.kdeplot(mcmc_samples[:, i], ax=axes[i])
-#     sns.kdeplot(final_chain[:, i], ax=axes[i])
-# plt.show()
-

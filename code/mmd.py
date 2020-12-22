@@ -32,12 +32,15 @@ def r_hat(chains):
     r_hats = np.sqrt(var / W)
     return r_hats
 
+def mmd(sample1, sample2):
+    return numba_mmd(np.asarray(sample1), np.asarray(sample2))
+
 @numba.njit
 def kernel(x1, x2, sigma):
     return np.exp(-np.sum((x1 - x2)**2) / (2 * sigma**2))
 
 @numba.njit
-def mmd(sample1, sample2):
+def numba_mmd(sample1, sample2):
     subset1 = sample1[np.random.choice(sample1.shape[0], 500, replace=True), :]
     subset2 = sample2[np.random.choice(sample2.shape[0], 500, replace=True), :]
     distances = np.sqrt(np.sum((subset1 - subset2)**2, axis=1))
@@ -58,7 +61,7 @@ def mmd(sample1, sample2):
     for i in range(n):
         for j in range(m):
             term3 += kernel(sample1[i, :], sample2[j, :], sigma)
-    return 2 * term1 / (n * (n - 1)) + 2 * term2 / (m * (m - 1)) - 2 * term3 / (n * m)
+    return np.sqrt(np.abs(2 * term1 / (n * (n - 1)) + 2 * term2 / (m * (m - 1)) - 2 * term3 / (n * m)))
 
 if __name__ == "__main__":
     n = 100

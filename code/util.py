@@ -1,7 +1,6 @@
 import jax 
 import jax.numpy as np
 
-
 class Problem:
     def __init__(self, log_likelihood_per_sample, log_prior, data):
         """Log likelihood per sample should have signature (theta, sample) -> float"""
