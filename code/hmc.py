@@ -1,13 +1,6 @@
 import numpy as np
-import scipy.stats as stats 
-import banana_model as banana
-import arviz 
-import pickle
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import mmd
-import util
+import scipy.stats as stats
+import scipy.special as spec
 
 class HMCParams:
     def __init__(self, tau, tau_g, L, eta, mass, r_clip, grad_clip, theta0):
@@ -25,7 +18,41 @@ class GradClipCounter:
         self.clipped_grad = 0
         self.grad_accesses = 0
 
-def hmc(problem, epsilon, delta, params):
+def zcdp_iters(epsilon, delta, params, n):
+    rho = (np.sqrt(epsilon - np.log(delta)) - np.sqrt(-np.log(delta)))**2
+    rho_l = 1 / (2 * params.tau**2 * n)
+    rho_g = 1 / (2 * params.tau_g**2 * n)
+    # print("rho_l: {}".format(rho_l))
+    # print("rho_g: {}".format(rho_g))
+
+    iters = int((rho - rho_g) / (rho_l + params.L * rho_g))
+    return iters
+
+def adp_delta(k, epsilon, params, n):
+    tau_l = params.tau
+    tau_g = params.tau_g
+    L = params.L
+    mu = k / (2 * tau_l**2 * n) + (k*L + 1) / (2 * tau_g**2 * n)
+    term1 = spec.erfc((epsilon - mu) / (2 * np.sqrt(mu)))
+    term2 = np.exp(epsilon) * spec.erfc((epsilon + mu) / (2 * np.sqrt(mu)))
+    return (0.5 * (term1 - term2)).sum()
+
+def adp_iters(epsilon, delta, params, n):
+    low_iters = zcdp_iters(epsilon, delta, params, n)
+    up_iters = low_iters
+    while adp_delta(up_iters, epsilon, params, n) < delta:
+        up_iters *= 2
+    while int(up_iters) > int(low_iters):
+        new_iters = (low_iters + up_iters) / 2
+        new_delta = adp_delta(new_iters, epsilon, params, n)
+        if new_delta > delta:
+            up_iters = new_iters
+        else:
+            low_iters = new_iters
+
+    return int(low_iters)
+
+def hmc(problem, epsilon, delta, params, use_adp=True):
 
     data = problem.data
     n, data_dim = data.shape
@@ -39,15 +66,12 @@ def hmc(problem, epsilon, delta, params):
     r_clip = params.r_clip
     grad_clip = params.grad_clip
 
-    rho = (np.sqrt(epsilon - np.log(delta)) - np.sqrt(-np.log(delta)))**2
-    rho_l = 1 / (2 * tau**2 * n)
-    rho_g = (L + 1) / (2 * tau_g**2 * n)
-    print("rho_l: {}".format(rho_l))
-    print("rho_g: {}".format(rho_g))
+    if not use_adp:
+        iters = zcdp_iters(epsilon, delta, params, n)
+    else:
+        iters = adp_iters(epsilon, delta, params, n)
 
-    iters = int(rho / (rho_l + rho_g))
     print("Iterations: {}".format(iters))
-
     sigma = tau * np.sqrt(n)
 
     chain = np.zeros((iters + 1, dim))
