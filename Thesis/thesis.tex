@@ -681,11 +681,11 @@ Theorem~\ref{DP_penalty_theorem_adp}.
     \[
         \delta(\epsilon) 
         = \frac{1}{2}\left(
-            \erfc\left(\frac{\tau n^\alpha(\epsilon - k\mu)}{\sqrt{2k}}\right)
-            - e^\epsilon \erfc\left(\frac{\tau n^\alpha(\epsilon + k\mu)}{\sqrt{2k}}\right)
+            \erfc\left(\frac{\epsilon - k\mu}{2\sqrt{k\mu}}\right)
+            - e^\epsilon \erfc\left(\frac{\epsilon + k\mu}{2\sqrt{k\mu}}\right)
         \right)
     \]
-    where \(\mu = \frac{1}{\tau^2 n^{2\alpha}}\).
+    where \(\mu = \frac{1}{2\tau^2 n^{2\alpha}}\).
 \end{theorem}
 \begin{proof}
     DP penalty is an adaptive composition of Gaussian mechanisms that release 
@@ -1650,7 +1650,7 @@ the kinetic energy term in the Hamiltonian is \(\frac{1}{2}p^{T}M^{-1}p\), so
 \(H(\theta, p) = H(\theta, -p)\). This means that the proposal ratio in the
 MH acceptance probability is one for HMC.
 
-The with noisy gradient, the leapfrog proposal is no longer deterministic,
+With the noisy gradient, the leapfrog proposal is no longer deterministic,
 so the reversibility by negating \(p\) must be proven separately.
 
 The proof requires defining some new terminology. Let
@@ -1779,10 +1779,10 @@ DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
 %TODO: the gradient does not have to be computed L + 1 times at every iteration
 \begin{algorithm}[H]
     \SetAlgoLined
+    \(G_{1,0} = \mathrm{grad}(\theta_{0}, b_g)\)\\
     \For{\(1 \leq i \leq k\)}{
         \(p_0 = \caln_d(0, M)\)\\
         \(\theta_{i,0} = \theta_{i-1}\)\\
-        \(G_{i,0} = \mathrm{grad}(\theta_{i,0}, b_g)\)\\
         \For{\(1 \leq j \leq L\)}{
             \(p_{j-0.5} = p_{j-1} + \frac{1}{2}\eta \left(G_{i,j-1} 
             - \frac{1}{2}\sigma_g^2M^{-1}p_{j-1}\right)\)\\
@@ -1799,9 +1799,11 @@ DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
         \(u = \mathrm{Unif}(0, 1)\)\\
         \If{\(u < \Delta H - \frac{1}{2}s_{var}\)}{
             \(\theta_{i} = \theta_{i, L}\)\\
+            \(G_{i+1,0} = G_{i,L}\)\\
         }
         \Else{
             \(\theta_i = \theta_{i-1}\)\\
+            \(G_{i+1,0} = G_{i,0}\)\\
         }
     }
     where
@@ -1816,8 +1818,9 @@ DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
     \label{dp_hmc_algo}
 \end{algorithm}
 
-Each iteration of the outer for-loop computes the gradient \(L+1\) times and 
-the log likelihood ratio once. Releasing a single gradient has zCDP privacy 
+Each iteration of the outer for-loop computes the gradient \(L\) times and
+the log likelihood ratio once. The gradient is also computed once before the
+outer for-loop. Releasing a single gradient has zCDP privacy
 cost of 
 \[
     \rho_g = \frac{4b_g^2}{2\sigma_g^2} = \frac{1}{2\tau_g^2n},
@@ -1836,12 +1839,50 @@ The total zCDP budget with given \((\epsilon, \delta)\)-bound is
 This means that the number of iteration that the algorithm is allowed to run for 
 is 
 \[
-    k = \left\lfloor\frac{\rho}{\rho_l + (L + 1)\rho_g}\right\rfloor
+    k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
 \]
 
 zCDP based privacy accounting is loose, to the above bound could be improved 
-by using the tight bound for the Gaussian mechanism.
+by using the tight bound for the Gaussian mechanism. Because DP HMC has both
+different sensitivities and different noise variances between the log likelihood
+ratios and gradients, Theorem~\ref{gauss-DP-bounds} is not directly applicable.
+However, the bound of Theorem~\ref{gauss-DP-bounds} is extendable to differing variances
+between composition.
 
+Sommer et. al.~\cite{Sommer2019} prove the ADP bound of Theorem~\ref{gauss-DP-bounds} with
+the \emph{privacy loss distribution} (PLD) of the Gaussian mechanism. First, they
+show that the PLD of the Gaussian mechanism with sensitivity \(\Delta\) and variance
+\(\sigma^{2}\) is a Gaussian distribution
+\(\caln(\mu, 2\mu)\), where \(\mu = \frac{\Delta^{2}}{2\sigma^{2}}\)~\cite[Lemma 11]{Sommer2019}.
+Next, they show that the ADP bounds \((\epsilon, \delta(\epsilon))\) for a
+Gaussian PLD \(\caln(\mu, 2\mu)\) are given by~\cite[Lemma 12]{Sommer2019}
+\[
+  \delta(\epsilon) = \frac{1}{2}\left(
+    \erfc\left(\frac{\epsilon - \mu}{2\sqrt{\mu}}\right)
+    - e^{\epsilon}\erfc\left(\frac{\epsilon + \mu}{2\sqrt{\mu}}\right)\right).
+\]
+Finally, they show that the PLD of an adaptive composition is the convolution of
+the PLDs of the individual parts of the composition~\cite[Theorem 1]{Sommer2019}.
+As convolution of distributions corresponds to summing random variables, the PLD of a
+convolution of Gaussian mechanisms with PLDs \(\caln(\mu_{i}, 2\mu_{i})\) is
+simply \(\caln(\sum \mu_{i}, 2\sum \mu_{i})\).
+
+Because the sensitivity of the log likelihood ratio is
+\(2b_{l}||\theta - \theta'||_{2}\) and the sensitivity of the gradient is
+\(2b_{g}\), both the gradient and log likelihood ratio are divided by their
+sensitivities before adding noise, which normalises both to have sensitivity
+one. Adding noise with variance \(\sigma_{l}^2(\theta, \theta')\)
+and \(\sigma_{g}^{2}\) to the log likelihood ratio and gradient respectively
+is equivalent to adding noise with variance
+\(\sigma_{l}'^{2} = \tau_{l}^{2}n\) and \(\sigma_{g}'^{2} = \tau_{g}^{2}n\).
+to the normalised log likelihood ratio and gradient.
+
+DP HMC releases the log likelihood ratio \(k\) times and the gradient
+\(kL + 1\) times. This means that the PLD of DP HMC is a Gaussian distribution
+\(\caln(\mu, 2\mu)\) with
+\[
+  \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{kL + 1}{2\sigma_{g}'^{2}}.
+\]
 
 \chapter{Limitations and Alternatives of DP MCMC}
 
