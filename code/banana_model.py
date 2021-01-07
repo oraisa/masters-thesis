@@ -32,31 +32,6 @@ def log_likelihood_per_sample(theta, x, a, b, m, sigma1, sigma2, sigma3, dim):
     term3 = -0.5 * np.sum((xrest - theta_rest)**2) / sigma3**2 + logc3 * (dim - 2)
     return term1 + term2 + term3
 
-# log_likelihood_no_sum = jax.jit(jax.vmap(
-#     log_likelihood_per_sample, in_axes=(None, 0, None, None, None, None, None, None, None)
-# ))
-# log_likelihood = jax.jit(lambda theta, X: np.sum(log_likelihood_no_sum(theta, X)))
-# log_likelihood_grads = jax.jit(jax.vmap(
-#     jax.grad(log_likelihood_per_sample, 0),
-#     in_axes=(None, 0, None, None, None, None, None, None, None)
-# ))
-# log_prior_grad = jax.jit(jax.grad(log_prior, 0))
-
-# @jax.jit
-# def log_likelihood_grad_clipped(theta, data, clip):
-#     n, dim = data.shape
-#     grads = log_likelihood_grads(data, theta)
-#     grads, did_clip = jax.vmap(clip_norm, in_axes=(0, None))(grads, clip)
-#     clipped_grad = np.sum(did_clip)
-#     return (np.sum(grads, axis=0), clipped_grad)
-
-# @jax.jit
-# def clip_norm(x, bound):
-#     norm = np.sqrt(np.sum(x**2))
-#     clipped_norm = np.max(np.array((norm, bound)))
-#     return (x / norm * clipped_norm, norm > bound)
-
-
 class BananaModel:
     def __init__(self, dim=2, a=20):
         self.tau0 = 0.001
@@ -73,8 +48,7 @@ class BananaModel:
         self.m = 0.0
         self.dim = dim
 
-    def generate_test_data(self, seed=81638):
-        n = 100000
+    def generate_test_data(self, n=100000):
         theta1 = 0
         theta2 = 3
         theta_rest = np.zeros(self.dim - 2)
@@ -92,24 +66,23 @@ class BananaModel:
             theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
         )
 
-    # def log_likelihood_no_sum(self, theta, data):
-    #     return log_likelihood_no_sum(
-    #         theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
-        # )
     def log_prior(self, theta):
         return log_prior(theta, self.a, self.b, self.m, self.tau0)
 
-    # def log_likelihood_grads(self, theta, data):
-    #     return log_likelihood_grads(
-    #         theta, data, self.a, self.b, self.m, self.sigma1, self.sigma2, self.sigma3, self.dim
-    #     )
-
-    # def log_prior_grad(self, theta):
-    #     return log_prior_grad(theta, self.a, self.b, self.m, self.tau0)
-
-    def get_problem(self):
-        data = self.generate_test_data()
-        return util.Problem(self.log_likelihood_per_sample, self.log_prior, data)
+    def get_problem(self, n=100000, n0=None):
+        data = self.generate_test_data(n)
+        n, d = data.shape
+        if n0 is None:
+            temp_scale = 1
+        else:
+            temp_scale = n0 / n
+        true_posterior = self.generate_posterior_samples(1000, data, temp_scale)
+        theta0 = np.zeros(self.dim)
+        theta0 = jax.ops.index_update(theta0, 1, 3)
+        return util.Problem(
+            self.log_likelihood_per_sample, self.log_prior, data,
+            temp_scale, theta0, true_posterior
+        )
 
     def banana_density(self, theta1, theta2, mu1, mu2, sigma1, sigma2, a, b, m):
         return (
@@ -153,6 +126,13 @@ class BananaModel:
         X, Y = np.meshgrid(xs, ys)
         Z = self.banana_density(X, Y, mu1, mu2, sigma1_p, sigma2_p, self.a, self.b, self.m)
         ax.contour(X, Y, Z)
+
+def get_problem(dim, use_tempering):
+    n = 200000 if dim == 10 else 100000
+    if use_tempering:
+        return BananaModel(dim=dim, a=5).get_problem(n=n, n0=1000)
+    else:
+        return BananaModel(dim=dim, a=20).get_problem(n=n, n0=None)
 
 if __name__ == "__main__":
     T = 100 / 100000

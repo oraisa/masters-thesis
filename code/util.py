@@ -2,19 +2,24 @@ import jax
 import jax.numpy as np
 
 class Problem:
-    def __init__(self, log_likelihood_per_sample, log_prior, data):
+    def __init__(self, log_likelihood_per_sample, log_prior, data, temp_scale, theta0, true_posterior):
         """Log likelihood per sample should have signature (theta, sample) -> float"""
         self.log_likelihood_per_sample = log_likelihood_per_sample
         self.log_prior = log_prior
         self.data = data
+        self.temp_scale = temp_scale
+        self.true_posterior = true_posterior
+        self.theta0 = theta0
 
         self.log_likelihood_no_sum = jax.jit(jax.vmap(self.log_likelihood_per_sample, in_axes=(None, 0)))
         self.log_likelihood = jax.jit(lambda theta, X: np.sum(self.log_likelihood_no_sum(theta, X)))
+
         self.log_likelihood_grads = jax.jit(
             jax.vmap(jax.grad(self.log_likelihood_per_sample, 0), in_axes=(None, 0))
         )
-        self.log_prior_grad = jax.jit(jax.grad(self.log_prior))
         self.log_likelihood_grad_clipped = clip_grad_fun(self.log_likelihood_grads)
+
+        self.log_prior_grad = jax.jit(jax.grad(self.log_prior))
 
 def clip_grad_fun(grad_fun):
     def return_fun(clip, *args):

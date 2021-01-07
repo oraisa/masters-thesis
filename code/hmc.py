@@ -3,7 +3,7 @@ import scipy.stats as stats
 import scipy.special as spec
 
 class HMCParams:
-    def __init__(self, tau, tau_g, L, eta, mass, r_clip, grad_clip, theta0):
+    def __init__(self, tau, tau_g, L, eta, mass, r_clip, grad_clip):
         self.tau = tau 
         self.tau_g = tau_g 
         self.L = L
@@ -11,7 +11,6 @@ class HMCParams:
         self.mass = mass 
         self.r_clip = r_clip 
         self.grad_clip = grad_clip
-        self.theta0 = theta0
 
 class GradClipCounter:
     def __init__(self):
@@ -56,7 +55,8 @@ def hmc(problem, epsilon, delta, params, use_adp=True):
 
     data = problem.data
     n, data_dim = data.shape
-    dim = params.theta0.size
+    dim = problem.theta0.size
+    temp_scale = problem.temp_scale
 
     tau = params.tau 
     tau_g = params.tau_g
@@ -75,7 +75,7 @@ def hmc(problem, epsilon, delta, params, use_adp=True):
     sigma = tau * np.sqrt(n)
 
     chain = np.zeros((iters + 1, dim))
-    chain[0, :] = params.theta0
+    chain[0, :] = problem.theta0
     leapfrog_chain = np.zeros((iters * L, dim))
     clipped_r = np.zeros(iters)
     clipped_grad_counter = GradClipCounter()
@@ -89,10 +89,10 @@ def hmc(problem, epsilon, delta, params, use_adp=True):
         clipped_grad_counter.grad_accesses += 1
 
         pri_grad = problem.log_prior_grad(theta)
-        return ll_grad + pri_grad + stats.norm.rvs(size=dim, scale=grad_noise_sigma)
+        return temp_scale * (ll_grad + stats.norm.rvs(size=dim, scale=grad_noise_sigma)) + pri_grad
 
-    grad = grad_fun(params.theta0)
-    llc = problem.log_likelihood_no_sum(params.theta0, data)
+    grad = grad_fun(problem.theta0)
+    llc = problem.log_likelihood_no_sum(problem.theta0, data)
     for i in range(iters):
         current = chain[i, :]
         #TODO: this assumes diagonal M
@@ -119,10 +119,11 @@ def hmc(problem, epsilon, delta, params, use_adp=True):
         lpc = problem.log_prior(current)
 
         s = stats.norm.rvs(size=1, scale=sigma * d * 2 * r_clip)
-        dH = 0.5 * np.sum(p_orig**2 / mass) - 0.5 * np.sum(p**2 / mass) + np.sum(r) + lpp - lpc + s
+        dp = 0.5 * np.sum(p_orig**2 / mass) - 0.5 * np.sum(p**2 / mass)
+        dH = dp + temp_scale * (np.sum(r) + s) + lpp - lpc
         u = np.log(np.random.rand())
 
-        if u < dH - 0.5 * (sigma * d * 2 * r_clip)**2:
+        if u < dH - 0.5 * (temp_scale * sigma * d * 2 * r_clip)**2:
             chain[i + 1, :] = prop 
             grad = grad_new 
             llc = llp 

@@ -3,11 +3,12 @@ import scipy.stats as stats
 import scipy.special as spec
 
 class PenaltyParams:
-    def __init__(self, tau, theta0, r_clip_bound, prop_sigma):
+    def __init__(self, tau, r_clip_bound, prop_sigma, ocu, grw):
         self.tau = tau
-        self.theta0 = theta0
         self.r_clip_bound = r_clip_bound
         self.prop_sigma = prop_sigma
+        self.ocu = ocu
+        self.grw = grw
 
 def zcdp_iters(epsilon, delta, tau, n):
     rho = (np.sqrt(epsilon - np.log(delta)) - np.sqrt(-np.log(delta)))**2
@@ -16,8 +17,6 @@ def zcdp_iters(epsilon, delta, tau, n):
 
 def adp_delta(k, epsilon, tau, n):
     mu = 1 / (2 * tau**2 * n)
-    # term1 = jspec.erfc(tau * jnp.sqrt(n) * (epsilon - k * mu) / (jnp.sqrt(2 * k)))
-    # term2 = jnp.exp(epsilon) * jspec.erfc(tau * jnp.sqrt(n) * (epsilon + k * mu) / (jnp.sqrt(2 * k)))
     term1 = spec.erfc((epsilon - k * mu) / (2 * np.sqrt(mu * k)))
     term2 = np.exp(epsilon) * spec.erfc((epsilon + k * mu) / (2 * np.sqrt(mu * k)))
     return (0.5 * (term1 - term2)).sum()
@@ -38,11 +37,17 @@ def adp_iters(epsilon, delta, tau, n):
     return int(low_iters)
 
 def dp_penalty(problem, epsilon, delta, params, use_adp=True):
-    dim = params.theta0.size
+    ocu = params.ocu
+    if params.grw:
+        ocu = True # GRW requires one component updates
+
+    dim = problem.theta0.size
     data = problem.data
     n, data_dim = data.shape
+    temp_scale = problem.temp_scale
+
     tau = params.tau
-    theta0 = params.theta0
+    theta0 = problem.theta0
     r_clip_bound = params.r_clip_bound
     prop_sigma = params.prop_sigma
 
@@ -51,6 +56,9 @@ def dp_penalty(problem, epsilon, delta, params, use_adp=True):
     else:
         iters = zcdp_iters(epsilon, delta, tau, n)
     print("Iterations: {}".format(iters))
+
+    if params.grw:
+        prop_dir = np.random.choice([-1, 1], dim)
 
     sigma = tau * np.sqrt(n)
 
@@ -62,7 +70,21 @@ def dp_penalty(problem, epsilon, delta, params, use_adp=True):
     llc = problem.log_likelihood_no_sum(theta0, data)
     for i in range(iters):
         current = chain[i, :]
-        prop = stats.norm.rvs(size=dim, loc=current, scale=prop_sigma)
+
+        if ocu:
+            update_component = np.random.randint(dim)
+            prop = current.copy()
+            if params.grw:
+                magnitude = np.abs(stats.norm.rvs(
+                    size=1, loc=0, scale=params.prop_sigma[update_component]
+                ))
+                prop[update_component] += prop_dir[update_component] * magnitude
+            else:
+                prop[update_component] += stats.norm.rvs(
+                    size=1, loc=0, scale=params.prop_sigma[update_component]
+                )
+        else:
+            prop = stats.norm.rvs(size=dim, loc=current, scale=params.prop_sigma)
 
         llp = problem.log_likelihood_no_sum(prop, data)
         r = llp - llc
@@ -75,15 +97,17 @@ def dp_penalty(problem, epsilon, delta, params, use_adp=True):
         lpc = problem.log_prior(current)
 
         s = stats.norm.rvs(size=1, scale=sigma * d * 2 * r_clip_bound)
-        lambd = np.sum(r) + lpp - lpc + s
+        lambd = temp_scale * (np.sum(r) + s) + lpp - lpc
         u = np.log(np.random.rand())
 
-        if u < lambd - 0.5 * (sigma * d * 2 * r_clip_bound)**2:
+        if u < lambd - 0.5 * (temp_scale * sigma * d * 2 * r_clip_bound)**2:
             chain[i + 1, :] = prop
             llc = llp
             accepts += 1
         else:
             chain[i + 1, :] = current
+            if params.grw:
+                prop_dir[update_component] *= -1
         if (i + 1) % 100 == 0:
             print("Iteration: {}".format(i + 1))
 
