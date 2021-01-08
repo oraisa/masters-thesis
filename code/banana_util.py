@@ -9,10 +9,12 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("epsilon", type=float)
     parser.add_argument("dim", type=int)
-    parser.add_argument("tempering", type=bool)
+    parser.add_argument("tempering", type=int)
     parser.add_argument("index", type=int)
     parser.add_argument("output", type=str)
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.tempering = args.tempering == 1
+    return args
 
 def set_seed(init_seed, index):
     np.random.seed(init_seed)
@@ -52,6 +54,7 @@ def save_results(name, args, problem, chain, accepts, clipped_r, clipped_grad, i
         "epsilon": [epsilon],
         "delta": [delta],
         "dim": [dim],
+        "tempering": [problem.temp_scale != 1],
         "i": [args.index],
         "algo": [name],
         "acceptance": [acceptance],
@@ -61,4 +64,4 @@ def save_results(name, args, problem, chain, accepts, clipped_r, clipped_grad, i
         "mean error": [mean_error],
         "cov error": [cov_error]
     })
-    result.to_csv(args.output, header=False)
+    result.to_csv(args.output, header=False, index=False)
