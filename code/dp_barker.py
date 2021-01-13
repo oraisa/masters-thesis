@@ -3,6 +3,7 @@
 import numpy as np
 from dp_mcmc_module.barker_mog import run_dp_Barker
 from dp_mcmc_module.exact_rdp import get_privacy_spent
+from dp_mcmc_module.X_corr import load_x_corr
 import pickle
 
 class BarkerParams:
@@ -26,14 +27,6 @@ def compute_iters_dp_mcmc(eps, target_delta, N, batch_size):
         cur_T -= increment
 
     return cur_T
-
-def load_x_corr():
-    x_max = 10 # Sets the bound to grid [-x_max, x_max]
-    n_points = 1000 # Number of grid points used
-    normal_variance = 2.0 # C in the paper
-    x_corr_filename = './dp_mcmc_module/X_corr/X_corr_{}_{}_{}_torch.pickle'.format(n_points,x_max,normal_variance)
-    with open(x_corr_filename, "rb") as file:
-        return (pickle.load(file), n_points)
 
 def dp_barker(problem, epsilon, delta, params):
 

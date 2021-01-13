@@ -1,3 +1,28 @@
+
+# MIT License
+
+# Copyright (c) 2019 DPBayes
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# The code has been modified by Ossi Räisä
+
 import numpy as np
 import numpy.random as npr
 import torch, math, pickle
@@ -101,3 +126,10 @@ def sample_from_mix(params, n_samples):
 		samples[i] = mus[k]+npr.randn(1)*sigmas[k]
 	return samples
 
+def load_x_corr():
+    x_max = 10 # Sets the bound to grid [-x_max, x_max]
+    n_points = 1000 # Number of grid points used
+    normal_variance = 2.0 # C in the paper
+    x_corr_filename = './dp_mcmc_module/X_corr/X_corr_{}_{}_{}_torch.pickle'.format(n_points,x_max,normal_variance)
+    with open(x_corr_filename, "rb") as file:
+        return (pickle.load(file), n_points)
