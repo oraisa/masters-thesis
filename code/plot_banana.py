@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 df = pd.read_csv(
     args.results, names=[
-        "Epsilon", "Delta", "dim", "tempering", "i", "Algorithm", "Acceptance",
+        "Epsilon", "Delta", "experiment", "dim", "tempering", "i", "Algorithm", "Acceptance",
         "Clipping", "Grad Clipping",
         "MMD", "Mean Error", "Covariance Error"
     ]
@@ -45,7 +45,8 @@ df10_t = df10[df10["tempering"]]
 # mmds10= [mmd.mmd(banana10.generate_posterior_samples(1000, data10, 1, keys[i]), posterior10) for i in range(1, len(keys))]
 # mmds10 = np.array(mmds10)
 
-fig, axes = plt.subplots(2, 2, figsize=(10, 5))
+print(df2_nt)
+fig, axes = plt.subplots(2, 2, figsize=(20, 10))
 axes[0, 0].set_title("d = 2, non-tempered")
 sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df2_nt, ax=axes[0, 0])
 
@@ -58,6 +59,7 @@ sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df10_nt, ax=axes[1, 0])
 axes[1, 1].set_title("d = 10, tempered")
 sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df10_t, ax=axes[1, 1])
 
+plt.tight_layout()
 plt.savefig("../Thesis/figures/banana_mmd.pdf")
 plt.show()
 
@@ -74,6 +76,7 @@ sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df10_nt, ax=axes[1,
 axes[1, 1].set_title("d = 10, tempered")
 sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df10_t, ax=axes[1, 1])
 
+plt.tight_layout()
 plt.savefig("../Thesis/figures/banana_clipping.pdf")
 plt.show()
 

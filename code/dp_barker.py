@@ -5,6 +5,7 @@ from dp_mcmc_module.barker_mog import run_dp_Barker
 from dp_mcmc_module.exact_rdp import get_privacy_spent
 from dp_mcmc_module.X_corr import load_x_corr
 import pickle
+import util
 
 class BarkerParams:
     def __init__(self, batch_size, prop_sigma):
@@ -28,16 +29,20 @@ def compute_iters_dp_mcmc(eps, target_delta, N, batch_size):
 
     return cur_T
 
-def dp_barker(problem, epsilon, delta, params):
+def dp_barker(problem, epsilon, delta, params, verbose=True):
 
     data = problem.data
     n, data_dim = data.shape
     T = compute_iters_dp_mcmc(epsilon, delta, n, params.batch_size)
-    print("Iterations: {}".format(T))
+    if verbose:
+        print("Iterations: {}".format(T))
 
     xcorr_params, n_points = load_x_corr()
     chain, clip_count, accepts = run_dp_Barker(
         problem, T, params.prop_sigma**2, problem.theta0, problem.temp_scale,
-        xcorr_params, n_points, batch_size=params.batch_size
+        xcorr_params, n_points, batch_size=params.batch_size, verbose=verbose
     )
-    return chain, accepts, clip_count, T
+    return util.MCMCResult(
+        problem, chain, chain, T, accepts,
+        np.sum(clip_count) / T / params.batch_size, np.nan
+    )

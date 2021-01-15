@@ -27,7 +27,7 @@ import numpy.random as npr
 from scipy.special import expit as logistic
 import dp_mcmc_module.X_corr as X_corr
 
-def run_dp_Barker(problem, T, prop_var, theta0, temp_scale, x_corr_df, n_points, batch_size=100):
+def run_dp_Barker(problem, T, prop_var, theta0, temp_scale, x_corr_df, n_points, batch_size=100, verbose=True):
 	"""
 	T : number of iterations
 	theta_0 : the starting value for chain
@@ -106,6 +106,6 @@ def run_dp_Barker(problem, T, prop_var, theta0, temp_scale, x_corr_df, n_points,
 		else:
 			# reject
 			theta_chain[i,:] = theta_chain[i-1,:]
-		if (i + 1) % 100 == 0:
+		if verbose and (i + 1) % 100 == 0:
 			print("Iteration: {}".format(i + 1))
 	return theta_chain, clip_count, accepts

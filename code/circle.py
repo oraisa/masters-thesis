@@ -10,7 +10,10 @@ def log_likelihood_per_sample(theta, r):
     return -0.00001 * (x**2 + y**2 - r[0]**2)**2
 
 def problem():
-    return util.Problem(log_likelihood_per_sample, lambda x: 0.0, generate_data())
+    return util.Problem(
+        log_likelihood_per_sample, lambda x: 0.0, generate_data(),
+        1, np.array((0.0, 1.0)), None
+    )
 
 def generate_data():
     key = random.PRNGKey(742983)

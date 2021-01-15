@@ -9,13 +9,8 @@ import hmc
 import util
 import mmd
 
-dim = 10
-problem = banana_model.get_problem(dim, True)
-# banana = banana_model.BananaModel(dim, a=20)
-# data = banana.generate_test_data()
-# posterior = banana.generate_posterior_samples(1000, data, 1)
-# problem = util.Problem(banana.log_likelihood_per_sample, banana.log_prior, data, 1, posterior)
-# problem = banana.get_problem()
+dim = 50
+problem = banana_model.get_problem(dim=dim, a=0, n0=None, n=200000)
 n, data_dim = problem.data.shape
 posterior = problem.true_posterior
 
@@ -23,35 +18,40 @@ epsilon = 4
 delta = 0.1 / n
 
 params = hmc.HMCParams(
+    # tau = 0.10,
+    # tau_g = 0.40,
+    # L = 10,
+    # eta = 0.00040,
+    # mass = np.array((0.3, 1)),
+    # r_clip = 2.1,
+    # grad_clip = 1.0,
     tau = 0.05,
-    tau_g = 0.2,
+    tau_g = 0.20,
     L = 10,
-    eta = 0.01,
-    mass = np.array((0.3, 1, 2, 2, 2, 2, 2, 2, 2, 2)),
-    r_clip = 3,
-    grad_clip = 3.0,
-    theta0 = np.array((0.0, 3.0, 0, 0, 0, 0, 0, 0, 0, 0))
+    eta = 0.00004,
+    mass = np.hstack((np.array((0.3, 1)), np.repeat(2, 48))),
+    r_clip = 3.1,
+    grad_clip = 8.0,
 )
-# params.theta0 += np.random.normal(scale=0.00, size=dim)
 
-chain, leapfrog_chain, accepts, clipped_r, iters, clipped_grad, grad_accesses = hmc.hmc(
+result = hmc.hmc(
     problem, epsilon, delta, params
 )
+final_chain = result.final_chain
 
-final_chain = chain[int((iters - 1) / 2) + 1:, :]
+print("Acceptance: {}".format(result.acceptance))
+print("Clipping: {}".format(result.clipped_r))
+print("Grad Clipping: {}".format(result.clipped_grad))
+# print("Grad accesses: {}".format(grad_accesses))
 
-print("Acceptance: {}".format(accepts / iters))
-print("Clipping: {}".format(np.sum(clipped_r) / iters / n))
-print("Grad Clipping: {}".format(clipped_grad / n / grad_accesses))
-print("Grad accesses: {}".format(grad_accesses))
-
-print("Mean error: {}".format(mmd.mean_error(final_chain, posterior)))
-print("MMD: {}".format(mmd.mmd(np.asarray(final_chain), np.asarray(posterior))))
+print("Mean error: {}".format(result.mean_error))
+print("Cov error: {}".format(result.cov_error))
+print("MMD: {}".format(result.mmd))
 
 
-fig, axes = plt.subplots(dim)
-for i in range(dim):
-    axes[i].plot(chain[:, i])
+fig, axes = plt.subplots(min(dim, 10))
+for i in range(min(dim, 10)):
+    axes[i].plot(result.chain[:, i])
 plt.show()
 
 fig, ax = plt.subplots()
@@ -61,7 +61,7 @@ ax.scatter(posterior[:, 0], posterior[:, 1])
 ax.plot(final_chain[:, 0], final_chain[:, 1], color="orange", linestyle='', marker='.')
 plt.show()
 
-anim = mcmc_animation.MCMCAnimation(chain, leapfrog_chain)
+anim = mcmc_animation.MCMCAnimation(result.chain, result.leapfrog_chain)
 anim.ax.scatter(posterior[:, 0], posterior[:, 1], color="gray")
 # banana.plot_posterior(problem.data, anim.ax, 1)
 anim.show()

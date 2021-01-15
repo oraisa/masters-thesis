@@ -3,6 +3,7 @@ import numpy.random
 import scipy.stats as stats
 from scipy.special import binom
 import numpy.linalg
+import util
 
 class MinibatchPenaltyParams:
     def __init__(self, tau, batch_size, r_clip_bound, prop_sigma, ocu, grw):
@@ -65,7 +66,7 @@ def c(current, proposal, n, b, temp_scale, clip_bound):
 def sigma(current, proposal, tau, n, b, temp_scale, clip_bound):
     return np.sqrt(tau) * c(current, proposal, n, b, temp_scale, clip_bound)
 
-def dp_penalty_minibatch(problem, epsilon, delta, params):
+def dp_penalty_minibatch(problem, epsilon, delta, params, verbose=True):
     one_component = params.ocu
     if params.grw:
         one_component = True # Guided random walk requires one component updates
@@ -78,7 +79,8 @@ def dp_penalty_minibatch(problem, epsilon, delta, params):
     n, data_dim = data.shape
 
     T = maximize_iterations(epsilon, delta, n, params.batch_size, params.tau)
-    print("Max iterations: {}".format(T))
+    if verbose:
+        print("Max iterations: {}".format(T))
     if params.grw:
         prop_dir = np.random.choice([-1, 1], dim)
 
@@ -134,7 +136,10 @@ def dp_penalty_minibatch(problem, epsilon, delta, params):
             chain[i + 1] = current
             if params.grw:
                 prop_dir[update_component] *= -1
-        if (i + 1) % 100 == 0:
+        if verbose and (i + 1) % 100 == 0:
             print("Iteration: {}".format(i + 1))
 
-    return chain, accepted, clipped, T
+    return util.MCMCResult(
+        problem, chain, chain, T, accepted,
+        np.sum(clipped) / params.batch_size / T, np.nan
+    )

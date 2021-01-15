@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 import scipy.special as spec
+import util
 
 class HMCParams:
     def __init__(self, tau, tau_g, L, eta, mass, r_clip, grad_clip):
@@ -51,7 +52,7 @@ def adp_iters(epsilon, delta, params, n):
 
     return int(low_iters)
 
-def hmc(problem, epsilon, delta, params, use_adp=True):
+def hmc(problem, epsilon, delta, params, verbose=True, use_adp=True):
 
     data = problem.data
     n, data_dim = data.shape
@@ -71,7 +72,8 @@ def hmc(problem, epsilon, delta, params, use_adp=True):
     else:
         iters = adp_iters(epsilon, delta, params, n)
 
-    print("Iterations: {}".format(iters))
+    if verbose:
+        print("Iterations: {}".format(iters))
     sigma = tau * np.sqrt(n)
 
     chain = np.zeros((iters + 1, dim))
@@ -130,10 +132,14 @@ def hmc(problem, epsilon, delta, params, use_adp=True):
             accepts += 1
         else:
             chain[i + 1, :] = current
-        if (i + 1) % 100 == 0:
+        if verbose and (i + 1) % 100 == 0:
             print("Iteration: {}".format(i + 1))
 
-    return (
-        chain, leapfrog_chain, accepts, clipped_r, iters,
-        clipped_grad_counter.clipped_grad, clipped_grad_counter.grad_accesses
+    return util.MCMCResult(
+        problem, chain, leapfrog_chain, iters, accepts, np.sum(clipped_r) / n / iters,
+        np.sum(clipped_grad_counter.clipped_grad) / n / clipped_grad_counter.grad_accesses
     )
+    # return (
+    #     chain, leapfrog_chain, accepts, clipped_r, iters,
+    #     clipped_grad_counter.clipped_grad, clipped_grad_counter.grad_accesses
+    # )

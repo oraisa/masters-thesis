@@ -119,26 +119,22 @@ class BananaModel:
         post = self.generate_posterior_samples(1000, X, T)
         ax.scatter(post[:, 0], post[:, 1], alpha=0.5)
 
-    def plot_posterior(self, X, ax, T):
+    def plot_posterior(self, X, ax, T, scale=1):
         mu1, mu2, _, sigma1_p, sigma2_p, __ = self.compute_posterior_params(X, T)
-        xs = np.linspace(-0.1, 0.1, 1000)
-        ys = np.linspace(-0.1, 0.1, 1000) + mu2
+        xs = np.linspace(-0.1, 0.1, 1000) * scale
+        ys = np.linspace(-0.1, 0.1, 1000) * scale + mu2
         X, Y = np.meshgrid(xs, ys)
         Z = self.banana_density(X, Y, mu1, mu2, sigma1_p, sigma2_p, self.a, self.b, self.m)
         ax.contour(X, Y, Z)
 
-def get_problem(dim, use_tempering):
-    n = 200000 if dim == 10 else 100000
-    if use_tempering:
-        return BananaModel(dim=dim, a=5).get_problem(n=n, n0=1000)
-    else:
-        return BananaModel(dim=dim, a=20).get_problem(n=n, n0=None)
+def get_problem(dim, n0, a, n):
+    return BananaModel(dim=dim, a=a).get_problem(n=n, n0=n0)
 
 if __name__ == "__main__":
-    T = 100 / 100000
+    T = 1000 / 100000
     npr.seed(463728)
 
-    banana = BananaModel()
+    banana = BananaModel(a=50)
     X = banana.generate_test_data()
 
     fig, ax = plt.subplots()
@@ -147,11 +143,13 @@ if __name__ == "__main__":
     plt.savefig("../Thesis/figures/banana_density.pdf")
     plt.show()
 
-    # fig, ax = plt.subplots()
-    # scatterplot_posterior(X, ax, T)
-    # plot_posterior(X, ax, T)
-    # plt.show()
-    # plt.savefig("../latex/figures/banana-tempered/posterior-easy.pdf")
+    banana = BananaModel(a=5)
+    X = banana.generate_test_data()
+    fig, ax = plt.subplots()
+    banana.scatterplot_posterior(X, ax, T)
+    banana.plot_posterior(X, ax, T, 10)
+    plt.savefig("../Thesis/figures/banana_tempered_density.pdf")
+    plt.show()
 
     post = banana.generate_posterior_samples(10000, X, 1)
     print(np.quantile(post[:, 0], np.array([0.01, 0.99])))

@@ -5,15 +5,20 @@ import argparse
 import mmd
 import banana_model
 
+class Experiment:
+    def __init__(self, dim, n0, a, n):
+        self.dim = dim
+        self.n0 = n0
+        self.a = a
+        self.n = n
+
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("experiment", type=str)
     parser.add_argument("epsilon", type=float)
-    parser.add_argument("dim", type=int)
-    parser.add_argument("tempering", type=int)
     parser.add_argument("index", type=int)
     parser.add_argument("output", type=str)
     args = parser.parse_args()
-    args.tempering = args.tempering == 1
     return args
 
 def set_seed(init_seed, index):
@@ -23,22 +28,35 @@ def set_seed(init_seed, index):
     np.random.seed(seed)
 
 def get_problem(args):
-    problem = banana_model.get_problem(args.dim, args.tempering)
-    problem.theta0 += np.random.normal(scale=0.02, size=args.dim)
+    experiments = {
+        "easy_2d": Experiment(dim=2, n0=1, a=20, n=100000),
+        "hard_2d": Experiment(dim=2, n0=1, a=40, n=100000),
+        "easy_10d": Experiment(dim=10, n0=1, a=20, n=200000),
+        "tempered_2d": Experiment(dim=2, n0=1000, a=5, n=100000),
+        "tempered_10d": Experiment(dim=10, n0=1000, a=5, n=200000),
+        "gauss_50d": Experiment(dim=50, n0=1, a=0, n=200000)
+    }
+    exp = experiments[args.experiment]
+    problem = banana_model.get_problem(exp.dim, exp.n0, exp.a, exp.n)
+    problem.theta0 += np.random.normal(scale=0.02, size=problem.dim)
     return problem
 
-def save_results(name, args, problem, chain, accepts, clipped_r, clipped_grad, iters, grad_accesses):
+def save_results(
+        name, args, problem, chain, accepts, clipped_r, clipped_grad, iters,
+        grad_accesses, batch_size=None
+):
     posterior = problem.true_posterior
-    dim = args.dim
+    dim = problem.dim
     n, data_dim = problem.data.shape
     epsilon = args.epsilon
     delta = 0.1 / n
 
     if iters > 0:
+        batch_divisor = n if batch_size is None else batch_size
         final_chain = chain[int((iters - 1) / 2) + 1:, :]
         acceptance = accepts / iters
-        r_clipping = np.sum(clipped_r) / iters / n
-        grad_clipping = np.nan if clipped_grad is None else clipped_grad / n / grad_accesses
+        r_clipping = np.sum(clipped_r) / iters / batch_divisor
+        grad_clipping = np.nan if clipped_grad is None else (clipped_grad / batch_divisor / grad_accesses)
         mean_error = mmd.mean_error(final_chain, posterior)
         cov_error = mmd.cov_error(final_chain, posterior)
         mmd_res = mmd.mmd(final_chain, posterior)
@@ -53,6 +71,7 @@ def save_results(name, args, problem, chain, accepts, clipped_r, clipped_grad, i
     result = pd.DataFrame({
         "epsilon": [epsilon],
         "delta": [delta],
+        "experimen": [args.experiment],
         "dim": [dim],
         "tempering": [problem.temp_scale != 1],
         "i": [args.index],

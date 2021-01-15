@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 import scipy.special as spec
+import util
 
 class PenaltyParams:
     def __init__(self, tau, r_clip_bound, prop_sigma, ocu, grw):
@@ -36,7 +37,7 @@ def adp_iters(epsilon, delta, tau, n):
 
     return int(low_iters)
 
-def dp_penalty(problem, epsilon, delta, params, use_adp=True):
+def dp_penalty(problem, epsilon, delta, params, verbose=True, use_adp=True):
     ocu = params.ocu
     if params.grw:
         ocu = True # GRW requires one component updates
@@ -55,7 +56,9 @@ def dp_penalty(problem, epsilon, delta, params, use_adp=True):
         iters = adp_iters(epsilon, delta, tau, n)
     else:
         iters = zcdp_iters(epsilon, delta, tau, n)
-    print("Iterations: {}".format(iters))
+
+    if verbose:
+        print("Iterations: {}".format(iters))
 
     if params.grw:
         prop_dir = np.random.choice([-1, 1], dim)
@@ -108,7 +111,9 @@ def dp_penalty(problem, epsilon, delta, params, use_adp=True):
             chain[i + 1, :] = current
             if params.grw:
                 prop_dir[update_component] *= -1
-        if (i + 1) % 100 == 0:
+        if verbose and (i + 1) % 100 == 0:
             print("Iteration: {}".format(i + 1))
 
-    return chain, accepts, clipped_r, iters
+    return util.MCMCResult(
+        problem, chain, chain, iters, accepts, np.sum(clipped_r) / n / iters, np.nan
+    )
