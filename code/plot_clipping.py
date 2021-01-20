@@ -30,7 +30,7 @@ mmds2 = [mmd.mmd(banana2.generate_posterior_samples(1000, data2, 1, keys[i]), po
 mmds2 = np.array(mmds2)
 
 df10 = df[df["dim"] == 10]
-df10 = df10[df10["Algorithm"] == "HMC"]
+# df10 = df10[df10["Algorithm"] == "HMC"]
 banana10 = banana_model.BananaModel(dim=10)
 data10 = banana10.generate_test_data()
 posterior10 = banana10.generate_posterior_samples(2000, data10, 1, keys[0])
@@ -46,11 +46,11 @@ sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", hue_order=["HMC", "RWMH"
 for mmd in mmds2:
     axes[1, 0].axhline(mmd, linestyle="dashed", color="black")
 
-sns.stripplot(x="Clip Bound", y="MMD", hue="Algorithm", data=df10, ax=axes[0, 1])
+sns.stripplot(x="Clip Bound", y="MMD", hue="Algorithm", hue_order=["HMC", "RWMH"], data=df10, ax=axes[0, 1])
 for mmd in mmds10:
     axes[0, 1].axhline(mmd, linestyle="dashed", color="black")
 
-sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", data=df10, ax=axes[1, 1])
+sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", hue_order=["HMC", "RWMH"], data=df10, ax=axes[1, 1])
 for mmd in mmds10:
     axes[1, 1].axhline(mmd, linestyle="dashed", color="black")
 

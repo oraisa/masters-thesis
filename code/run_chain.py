@@ -45,7 +45,7 @@ experiments = {
     "easy-10d": Experiment(dim=10, n0=None, a=20, n=200000),
     "tempered-2d": Experiment(dim=2, n0=1000, a=5, n=100000),
     "tempered-10d": Experiment(dim=10, n0=1000, a=5, n=200000),
-    "gauss-50d": Experiment(dim=50, n0=None, a=0, n=200000)
+    "gauss-30d": Experiment(dim=30, n0=None, a=0, n=200000)
 }
 exp = experiments[args.experiment]
 problem = banana_model.get_problem(exp.dim, exp.n0, exp.a, exp.n)

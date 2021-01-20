@@ -1,16 +1,13 @@
-#!/usr/bin/env python3
 import numpy as np
 import matplotlib.pyplot as plt
-import argparse
-import pandas as pd
 import mcmc_animation
 import banana_model
 import hmc
 import util
 import mmd
 
-dim = 50
-problem = banana_model.get_problem(dim=dim, a=0, n0=None, n=200000)
+dim = 2
+problem = banana_model.get_problem(dim=dim, a=40, n0=None, n=100000)
 n, data_dim = problem.data.shape
 posterior = problem.true_posterior
 
@@ -18,21 +15,23 @@ epsilon = 4
 delta = 0.1 / n
 
 params = hmc.HMCParams(
-    # tau = 0.10,
-    # tau_g = 0.40,
-    # L = 10,
-    # eta = 0.00040,
-    # mass = np.array((0.3, 1)),
-    # r_clip = 2.1,
-    # grad_clip = 1.0,
-    tau = 0.05,
-    tau_g = 0.20,
-    L = 10,
-    eta = 0.00004,
-    mass = np.hstack((np.array((0.3, 1)), np.repeat(2, 48))),
-    r_clip = 3.1,
-    grad_clip = 8.0,
+    tau = 0.08,
+    tau_g = 0.35,
+    L = 20,
+    eta = 0.00030,
+    mass = np.array((0.5, 1)),
+    r_clip = 2.1,
+    grad_clip = 2.5,
+
+    # tau = 0.05,
+    # tau_g = 0.10,
+    # L = 5,
+    # eta = 0.0002,
+    # mass = np.hstack((np.array((0.1, 1)), np.repeat(2, dim - 2))),
+    # r_clip = 3.1,
+    # grad_clip = 6.0,
 )
+# problem.theta0 = np.array((-0.03, 2.95))
 
 result = hmc.hmc(
     problem, epsilon, delta, params

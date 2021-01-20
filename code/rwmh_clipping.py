@@ -13,30 +13,32 @@ parser.add_argument("index", type=int)
 parser.add_argument("output", type=str)
 args = parser.parse_args()
 
+
 np.random.seed(46237)
 for i in range(args.index + 1):
     seed = np.random.randint(2**32)
 np.random.seed(seed)
 
-banana = banana_model.BananaModel(dim=args.dim)
-data = banana.generate_test_data()
-n, data_dim = data.shape
+problem = banana_model.get_problem(dim=args.dim, a=20, n0=None, n=100000)
+n, data_dim = problem.data.shape
 
 iters = 3000
-prop_sigma = 0.01
+prop_sigma = 0.01 if args.dim == 2 else np.hstack(
+    (np.array((0.015, 0.015)), np.repeat(0.002, args.dim - 2))
+)
 clip_bound = args.clip_bound
 dim = args.dim
 theta0 = np.zeros(dim)
 theta0[1] = 3
 theta0 += np.random.normal(scale=0.05, size=dim)
 
-res = clipping.rwmh(banana, data, iters, prop_sigma, clip_bound, theta0)
+res = clipping.rwmh(problem, iters, prop_sigma, clip_bound, theta0)
 
 acceptance = res.accepts / iters
 clipping = np.sum(res.clipped / iters / n)
 diff_decisions = np.sum(res.diff_accepts)
 
-posterior = banana.generate_posterior_samples(2000, data, 1)
+posterior = problem.true_posterior
 mmd = mmd.mmd(res.final_chain, posterior)
 mean_error = np.sqrt(np.sum((np.mean(posterior, axis=0) - np.mean(res.final_chain, axis=0))**2))
 var_error = np.sqrt(np.sum((np.var(posterior, axis=0) - np.var(res.final_chain, axis=0))**2))

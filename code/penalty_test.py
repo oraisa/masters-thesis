@@ -10,25 +10,25 @@ import util
 
 # np.random.seed(53527482)
 
-dim = 50
-problem = banana_model.get_problem(dim=dim, a=0, n0=None, n=200000)
+dim = 2
+problem = banana_model.get_problem(dim=dim, a=80, n0=None, n=150000)
 n, data_dim = problem.data.shape
 true_posterior = problem.true_posterior
 
 epsilon = 4
 delta = 0.1 / n
 params = dp_penalty.PenaltyParams(
-    # tau = 0.1,
-    # prop_sigma = np.array((0.008, 0.007)) * 1,
-    # r_clip_bound = 3,
-    # ocu = False,
-    # grw = False
-
-    tau = 0.06,
-    prop_sigma = np.hstack((np.array((8, 7)), np.repeat(5, 48))) * 0.00013,
+    tau = 0.15,
+    prop_sigma = np.array((0.008, 0.007)) * 1,
     r_clip_bound = 3,
-    ocu = False,
-    grw = False
+    ocu = True,
+    grw = True
+
+    # tau = 0.2,
+    # prop_sigma = np.hstack((np.array((20, 7)), np.repeat(5, dim - 2))) * 0.00024,
+    # r_clip_bound = 3,
+    # ocu = True,
+    # grw = True
 )
 
 

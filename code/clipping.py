@@ -16,7 +16,8 @@ class MCMCResult:
         self.accepts = accepts
         self.diff_accepts = diff_accepts
 
-def rwmh(model, data, iters, prop_sigma, clip_bound, theta0):
+def rwmh(problem, iters, prop_sigma, clip_bound, theta0):
+    data = problem.data
     dim = theta0.shape[0]
     chain = np.zeros((iters + 1, dim))
     chain[0] = theta0
@@ -25,14 +26,14 @@ def rwmh(model, data, iters, prop_sigma, clip_bound, theta0):
     orig_ratios = np.zeros(iters + 1)
     accepts = 0
     diff_accepts = np.zeros(iters + 1)
-    llc = model.log_likelihood_no_sum(theta0, data)
+    llc = problem.log_likelihood_no_sum(theta0, data)
     for i in range(iters):
         current = chain[i, :]
         prop = stats.norm.rvs(size=dim, loc=current, scale=prop_sigma)
 
-        lpc = model.log_prior(current)
-        lpp = model.log_prior(prop)
-        llp = model.log_likelihood_no_sum(prop, data)
+        lpc = problem.log_prior(current)
+        lpp = problem.log_prior(prop)
+        llp = problem.log_likelihood_no_sum(prop, data)
 
         ratio = llp - llc
         orig_ratio = ratio
@@ -59,7 +60,8 @@ def rwmh(model, data, iters, prop_sigma, clip_bound, theta0):
             print("Iteration: {}".format(i + 1))
     return MCMCResult(chain, clipped, clip_diff, orig_ratios, accepts, diff_accepts)
 
-def hmc(model, data, iters, eta, L, mass, clip_bound, theta0):
+def hmc(problem, iters, eta, L, mass, clip_bound, theta0):
+    data = problem.data
     dim = theta0.shape[0]
     chain = np.zeros((iters + 1, dim))
     chain[0] = theta0
@@ -70,10 +72,10 @@ def hmc(model, data, iters, eta, L, mass, clip_bound, theta0):
     diff_accepts = np.zeros(iters + 1)
 
     def grad_fun(theta):
-        return np.sum(model.log_likelihood_grads(theta, data), axis=0) + model.log_prior_grad(theta)
+        return np.sum(problem.log_likelihood_grads(theta, data), axis=0) + problem.log_prior_grad(theta)
 
     grad = grad_fun(theta0)
-    llc = model.log_likelihood_no_sum(theta0, data)
+    llc = problem.log_likelihood_no_sum(theta0, data)
     for i in range(iters):
         current = chain[i, :]
         p = stats.norm.rvs(size=dim) * np.sqrt(mass)
@@ -87,7 +89,7 @@ def hmc(model, data, iters, eta, L, mass, clip_bound, theta0):
             grad_new = grad_fun(prop)
             p += 0.5 * eta * grad_new
 
-        llp = model.log_likelihood_no_sum(prop, data)
+        llp = problem.log_likelihood_no_sum(prop, data)
         r = llp - llc 
         r_orig = r
         clip = clip_bound * np.sqrt(np.sum(current - prop)**2)
@@ -95,8 +97,8 @@ def hmc(model, data, iters, eta, L, mass, clip_bound, theta0):
         r = np.clip(r, -clip, clip)
         clip_diff[i + 1] = np.sum(r_orig - r)
 
-        lpc = model.log_prior(current)
-        lpp = model.log_prior(prop)
+        lpc = problem.log_prior(current)
+        lpp = problem.log_prior(prop)
 
         d_kin = 0.5 * (np.sum(p_orig**2 / mass) - np.sum(p**2 / mass))
         dH = np.sum(r) + d_kin + lpp - lpc 
@@ -117,12 +119,17 @@ def hmc(model, data, iters, eta, L, mass, clip_bound, theta0):
             print("Iteration: {}".format(i + 1))
     return MCMCResult(chain, clipped, clip_diff, orig_ratios, accepts, diff_accepts)
 
+dim = 10
+n = 100000
+
+def run_chain(init, algo, **args):
+    return algo(theta0=init, problem=get_problem(), **args)
+def get_problem():
+    return banana_model.get_problem(dim=dim, a=20, n0=None, n=n)
 if __name__ == "__main__":
     np.random.seed(43726482)
-    dim = 10
-    banana = banana_model.BananaModel(dim=dim)
-    data = banana.generate_test_data()
-    n, data_dim = data.shape
+
+    problem = get_problem()
 
     clip_bound = 10
     theta0 = np.zeros(dim)
@@ -136,12 +143,18 @@ if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
     with multiprocessing.Pool() as pool:
         # results = [rwmh(banana, data, 2000, 0.01, clip_bound, init) for init in inits]
-        results = list(pool.map(functools.partial(
-            rwmh, banana, data, 3000, 0.01, clip_bound
-        ), inits))
-            
         # results = list(pool.map(functools.partial(
-        #     hmc, banana, data, 500, 0.001, 15, mass, clip_bound
+        #     rwmh, problem, 3000, 0.001, clip_bound
+        # ), inits))
+        results = list(pool.map(
+            functools.partial(
+                run_chain, algo=rwmh, iters=3000,
+                prop_sigma=np.hstack((np.array((0.015, 0.015)), np.repeat(0.002, dim - 2))),
+                clip_bound=clip_bound
+            ), inits
+        ))
+        # results = list(map(functools.partial(
+        #     hmc, problem, 500, 0.001, 15, mass, clip_bound
         # ), inits))
     result = results[0]
     total_chain = np.stack([result.final_chain for result in results])
@@ -152,10 +165,10 @@ if __name__ == "__main__":
     print("Acceptance: {}".format(result.accepts / iters))
     print("Clipping: {}".format(np.sum(result.clipped) / iters / n))
     print("Different decisions: {}".format(np.sum(result.diff_accepts)))
-    posterior = banana.generate_posterior_samples(1000, data, 1)
+    posterior = problem.true_posterior
     print("MMD: {}".format(mmd.mmd(result.final_chain, posterior)))
-    alt_posterior = banana.generate_posterior_samples(1000, data, 1)
-    print("Base MMD: {}".format(mmd.mmd(alt_posterior, posterior)))
+    # alt_posterior = banana.generate_posterior_samples(1000, data, 1)
+    # print("Base MMD: {}".format(mmd.mmd(alt_posterior, posterior)))
 
     fig, axes = plt.subplots(dim)
     for res in results:
@@ -163,20 +176,19 @@ if __name__ == "__main__":
             axes[i].plot(res.chain[:, i])
     plt.show()
 
-    fig, axes = plt.subplots()
-    posterior = banana.generate_posterior_samples(10000, data, 1)
-    axes.scatter(posterior[:,0], posterior[:,1], alpha=0.1)
-    axes.scatter(result.final_chain[:, 0], result.final_chain[:, 1])
-    plt.show()
+    # fig, axes = plt.subplots()
+    # posterior = banana.generate_posterior_samples(10000, data, 1)
+    # axes.scatter(posterior[:,0], posterior[:,1], alpha=0.1)
+    # axes.scatter(result.final_chain[:, 0], result.final_chain[:, 1])
+    # plt.show()
 
-    fig, axes = plt.subplots(1, 2)
-    inds = np.arange(iters + 1)[result.diff_accepts == 1]
-    for i in inds:
-        axes[0].axvline(i, color="red")
-    axes[0].plot(result.clip_diff)
+    # fig, axes = plt.subplots(1, 2)
+    # inds = np.arange(iters + 1)[result.diff_accepts == 1]
+    # for i in inds:
+    #     axes[0].axvline(i, color="red")
+    # axes[0].plot(result.clip_diff)
 
-    for i in inds:
-        axes[1].axvline(i, color="red")
-    axes[1].plot(result.orig_ratios)
-    plt.show()
-
+    # for i in inds:
+    #     axes[1].axvline(i, color="red")
+    # axes[1].plot(result.orig_ratios)
+    # plt.show()

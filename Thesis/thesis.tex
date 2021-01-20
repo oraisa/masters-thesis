@@ -1949,7 +1949,7 @@ to handle samples of different sizes.
 
 The first experiment evaluates the effect of clipping log likelihood ratios.
 Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
-distribution as the proposal distributions} 
+distribution as the proposal distributions.}
 algorithms were run on 2 and 10 dimensional banana models. RWMH did not 
 converge in reasonable time in 10 dimensions so it was excluded from these results.
 DP was not used so that error from the extra noise would not affect the results.
@@ -1960,7 +1960,7 @@ The banana model used hyperparameter values \(a = 20\), \(b = m = 0\),
 In both experiments, 500 samples from HMC and 3000 samples from RWMH were taken
 and the latter half\footnote{As the start of an MCMC chain depends heavily on the 
 starting point, samples at the start should be discarded as they are not representative 
-of the target distribution} of them were
+of the target distribution.} of them were
 compared to 2000 samples from the true posterior. The reference posterior sample 
 was also compared to other samples from the posterior to obtain a baseline 
 
@@ -1987,9 +1987,6 @@ less than 10\%, clipping is likely undetectable without a large sample.
         The black lines show the MMDs ten different samples of the true posterior
         compared to the reference sample. All of the lines are close the each 
         other and appear as a single line.
-        Random walk 
-        Metropolis-Hastings was not included with the 10-dimensional experiment 
-        as it was unable to converge and provide meaningful results there.
     }
     \label{clip_effect_fig}
 \end{figure}
@@ -2001,12 +1998,41 @@ less than 10\%, clipping is likely undetectable without a large sample.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figures/banana_mmd.pdf}
-  % \caption{
-  %   MMD as a function of \(\epsilon\) for the different MCMC algorithms,
-  %   with both tempering and a low number of dimensions (2) and a high number
-  %   of dimensions (10).
-  % }
+  \caption{
+    MMD as a function of \(\epsilon\) for the different MCMC algorithms,
+    with both tempering and a low number of dimensions (2) and a high number
+    of dimensions (10).
+  }
+  \label{banana_mmd_fig}
+
 \end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/banana_clipping.pdf}
+  % \caption{
+
+  % }
+  \label{banana_clipping_fig}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/banana_extra.pdf}
+  % \caption{
+
+  % }
+  \label{banana_extra_mmd_fig}
+\end{figure}
+
+% \begin{figure}
+%   \centering
+%   \includegraphics[width=\textwidth]{figures/banana_extra_clipping.pdf}
+%   % \caption{
+
+%   % }
+%   \label{banana_extra_clipping_fig}
+% \end{figure}
 
 \chapter{Conclusions}
 % STEP 5:

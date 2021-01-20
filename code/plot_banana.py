@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import jax.random
 import numpy as np
 import pandas as pd
@@ -21,16 +19,25 @@ df = pd.read_csv(
     ]
 )
 
+algorithm_names = {
+    "hmc": "HMC", "dpps": "DP Penalty", "dppa": "DP Penalty Advanced",
+    "mdpps": "Minibatch DP Penalty", "mdppa": "Minibatch DP Penalty Advanced",
+    "barker": "Barker"
+}
+hue_order_short = ["hmc", "dpps", "dppa", "mdpps", "mdppa", "barker"]
+hue_order = [algorithm_names[algo] for algo in hue_order_short]
+extra_hue_order = hue_order[0:3]
+df["Algorithm"] = df["Algorithm"].map(algorithm_names)
+
 key = jax.random.PRNGKey(46237)
 keys = jax.random.split(key, 10)
 
-df2 = df[df["dim"] == 2]
-df2_nt = df2[~df2["tempering"]]
-df2_t = df2[df2["tempering"]]
-
-df10 = df[df["dim"] == 10]
-df10_nt = df10[~df10["tempering"]]
-df10_t = df10[df10["tempering"]]
+df_easy_2d = df[df["experiment"] == "easy-2d"]
+df_easy_10d = df[df["experiment"] == "easy-10d"]
+df_tempered_2d = df[df["experiment"] == "tempered-2d"]
+df_tempered_10d = df[df["experiment"] == "tempered-10d"]
+df_gauss_30d = df[df["experiment"] == "gauss-30d"]
+df_hard_2d = df[df["experiment"] == "hard-2d"]
 
 # banana2 = banana_model.BananaModel(dim=2# )
 # data2 = banana2.generate_test_data()
@@ -45,72 +52,77 @@ df10_t = df10[df10["tempering"]]
 # mmds10= [mmd.mmd(banana10.generate_posterior_samples(1000, data10, 1, keys[i]), posterior10) for i in range(1, len(keys))]
 # mmds10 = np.array(mmds10)
 
-print(df2_nt)
-fig, axes = plt.subplots(2, 2, figsize=(20, 10))
-axes[0, 0].set_title("d = 2, non-tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df2_nt, ax=axes[0, 0])
+fig, axes = plt.subplots(4, 1, figsize=(10, 13))
+axes[0].set_title("d = 2, non-tempered")
+sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_easy_2d, ax=axes[0])
+axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[0].set_ylim(0, 0.9)
 
-axes[0, 1].set_title("d = 2, tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df2_t, ax=axes[0, 1])
+axes[1].set_title("d = 2, tempered")
+sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_tempered_2d, ax=axes[1])
+axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[1].set_ylim(0, 0.9)
 
-axes[1, 0].set_title("d = 10, non-tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df10_nt, ax=axes[1, 0])
+axes[2].set_title("d = 10, non-tempered")
+sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_easy_10d, ax=axes[2])
+axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[2].set_ylim(0, 0.9)
 
-axes[1, 1].set_title("d = 10, tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df10_t, ax=axes[1, 1])
+axes[3].set_title("d = 10, tempered")
+sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_tempered_10d, ax=axes[3])
+axes[3].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[3].set_ylim(0, 0.9)
 
 plt.tight_layout()
 plt.savefig("../Thesis/figures/banana_mmd.pdf")
-plt.show()
+# plt.show()
 
-fig, axes = plt.subplots(2, 2, figsize=(10, 5))
-axes[0, 0].set_title("d = 2, non-tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df2_nt, ax=axes[0, 0])
+fig, axes = plt.subplots(4, 1, figsize=(10, 13))
+axes[0].set_title("d = 2, non-tempered")
+sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_easy_2d, ax=axes[0])
+axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[0].set_ylim(0)
 
-axes[0, 1].set_title("d = 2, tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df2_t, ax=axes[0, 1])
+axes[1].set_title("d = 2, tempered")
+sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_tempered_2d, ax=axes[1])
+axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[1].set_ylim(0)
 
-axes[1, 0].set_title("d = 10, non-tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df10_nt, ax=axes[1, 0])
+axes[2].set_title("d = 10, non-tempered")
+sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_easy_10d, ax=axes[2])
+axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[2].set_ylim(0)
 
-axes[1, 1].set_title("d = 10, tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df10_t, ax=axes[1, 1])
+axes[3].set_title("d = 10, tempered")
+sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_tempered_10d, ax=axes[3])
+axes[3].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[3].set_ylim(0)
 
 plt.tight_layout()
 plt.savefig("../Thesis/figures/banana_clipping.pdf")
-plt.show()
-
-# sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", data=df2_nt, ax=axes[1])
-# sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", data=df2_nt, ax=axes[2])
-#
-# for mmd in mmds2:
-#     axes.axhline(mmd, linestyle="dashed", color="black")
-
-# fig, axes = plt.subplots(1, 1, figsize=(10, 5))
-# sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df2_t, ax=axes)
 # plt.show()
 
-# fig, axes = plt.subplots(1, 1, figsize=(10, 5))
-# sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df10_nt, ax=axes)
-# plt.show()
+fig, axes = plt.subplots(4, 1, figsize=(10, 13))
+axes[0].set_title("d = 30, Gaussian")
+sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=extra_hue_order, data=df_gauss_30d, ax=axes[0])
+axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[0].set_ylim(0, 0.9)
 
-# fig, axes = plt.subplots(1, 1, figsize=(10, 5))
-# sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", data=df10_t, ax=axes)
-# plt.show()
-# sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", data=df2, ax=axes[1, 0])
-# for mmd in mmds2:
-#     axes[1, 0].axhline(mmd, linestyle="dashed", color="black")
+axes[1].set_title("d = 2, hard banana")
+sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=extra_hue_order, data=df_hard_2d, ax=axes[1])
+axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[1].set_ylim(0, 0.9)
 
-# sns.stripplot(x="Clip Bound", y="MMD", hue="Algorithm", data=df10, ax=axes[0, 1])
-# for mmd in mmds10:
-#     axes[0, 1].axhline(mmd, linestyle="dashed", color="black")
+axes[2].set_title("d = 30, Gaussian")
+sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=extra_hue_order, data=df_gauss_30d, ax=axes[2])
+axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[2].set_ylim(0)
 
-# sns.scatterplot(x="Clipping", y="MMD", hue="Algorithm", data=df10, ax=axes[1, 1])
-# for mmd in mmds10:
-#     axes[1, 1].axhline(mmd, linestyle="dashed", color="black")
+axes[3].set_title("d = 2, hard banana")
+sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=extra_hue_order, data=df_hard_2d, ax=axes[3])
+axes[3].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+axes[3].set_ylim(0)
 
-# axes[0, 0].set_title("d = 2")
-# axes[0, 1].set_title("d = 10")
-# plt.tight_layout()
-# plt.savefig("../Thesis/figures/banana.pdf")
+plt.tight_layout()
+plt.savefig("../Thesis/figures/banana_extra.pdf")
 # plt.show()
