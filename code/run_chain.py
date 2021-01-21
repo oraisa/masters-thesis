@@ -25,12 +25,6 @@ parser.add_argument("index", type=int)
 parser.add_argument("output", type=str)
 args = parser.parse_args()
 
-np.random.seed(
-    (int((
-        args.algorithm + args.experiment + str(args.epsilon)
-    ).encode("utf8").hex(), 16) + args.index) % 2**32
-)
-
 algorithms = {
     "dpps": dp_penalty.dp_penalty,
     "dppa": dp_penalty.dp_penalty,
@@ -49,7 +43,17 @@ experiments = {
 }
 exp = experiments[args.experiment]
 problem = banana_model.get_problem(exp.dim, exp.n0, exp.a, exp.n)
+
+# Set the seed for the starting points only based on index
+np.random.seed(53274257 + args.index)
 problem.theta0 += np.random.normal(scale=0.02, size=problem.dim)
+
+# Set the seed for the algorithm to be different for each algorithm
+np.random.seed(
+    (int((
+        args.algorithm + args.experiment + str(args.epsilon)
+    ).encode("utf8").hex(), 16) + args.index) % 2**32
+)
 
 posterior = problem.true_posterior
 dim = problem.dim
