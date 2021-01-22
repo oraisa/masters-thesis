@@ -3,18 +3,32 @@ import pandas as pd
 import argparse
 import mmd
 import banana_model
+import gauss_model
 import dp_penalty
 import dp_penalty_minibatch
 import hmc
 import dp_barker
 import params
 
-class Experiment:
-    def __init__(self, dim, n0, a, n):
+class BananaExperiment:
+    def __init__(self, dim, n0, a, n, start_stdev):
         self.dim = dim
         self.n0 = n0
         self.a = a
         self.n = n
+        self.start_stdev = start_stdev
+
+    def get_problem(self):
+        return banana_model.get_problem(self.dim, self.n0, self.a, self.n)
+
+class GaussExperiment:
+    def __init__(self, dim, n, start_stdev):
+        self.dim = dim
+        self.n = n
+        self.start_stdev = start_stdev
+
+    def get_problem(self):
+        return gauss_model.get_problem(self.dim, self.n)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("algorithm", type=str)
@@ -34,19 +48,20 @@ algorithms = {
     "hmc": hmc.hmc
 }
 experiments = {
-    "easy-2d": Experiment(dim=2, n0=None, a=20, n=100000),
-    "hard-2d": Experiment(dim=2, n0=None, a=40, n=100000),
-    "easy-10d": Experiment(dim=10, n0=None, a=20, n=200000),
-    "tempered-2d": Experiment(dim=2, n0=1000, a=5, n=100000),
-    "tempered-10d": Experiment(dim=10, n0=1000, a=5, n=200000),
-    "gauss-30d": Experiment(dim=30, n0=None, a=0, n=200000)
+    "easy-2d": BananaExperiment(dim=2, n0=None, a=20, n=100000, start_stdev=0.02),
+    "hard-2d": BananaExperiment(dim=2, n0=None, a=40, n=100000, start_stdev=0.02),
+    "easy-10d": BananaExperiment(dim=10, n0=None, a=20, n=200000, start_stdev=0.02),
+    "tempered-2d": BananaExperiment(dim=2, n0=1000, a=5, n=100000, start_stdev=0.02),
+    "tempered-10d": BananaExperiment(dim=10, n0=1000, a=5, n=200000, start_stdev=0.02),
+    "gauss-30d": BananaExperiment(dim=30, n0=None, a=0, n=200000, start_stdev=0.02),
+    "hard-gauss-6d": GaussExperiment(dim=6, n=200000, start_stdev=0.005)
 }
 exp = experiments[args.experiment]
-problem = banana_model.get_problem(exp.dim, exp.n0, exp.a, exp.n)
+problem = exp.get_problem()
 
 # Set the seed for the starting points only based on index
 np.random.seed(53274257 + args.index)
-problem.theta0 += np.random.normal(scale=0.02, size=problem.dim)
+problem.theta0 += np.random.normal(scale=exp.start_stdev, size=problem.dim)
 
 # Set the seed for the algorithm to be different for each algorithm
 np.random.seed(

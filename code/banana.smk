@@ -2,7 +2,7 @@ epsilons = [1, 2, 3, 4, 5, 6]
 inds = range(15)
 experiments = [
     "easy-2d", "easy-10d", "tempered-2d", "tempered-10d",
-    "hard-2d", "gauss-30d"
+    "hard-2d", "gauss-30d", "hard-gauss-6d"
 ]
 algorithms = [
     "hmc", "dppa", "dpps", "mdppa", "mdpps", "barker"
@@ -50,4 +50,6 @@ rule figures:
         "../Thesis/figures/banana_mmd.pdf",
         "../Thesis/figures/banana_clipping.pdf",
         "../Thesis/figures/banana_extra.pdf",
+        "../Thesis/figures/banana_extra_clipping.pdf",
+        "../Thesis/figures/banana_grad_clipping.pdf",
     shell: "python {input.py} {input.results}"

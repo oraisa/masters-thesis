@@ -1,35 +1,40 @@
 #!/usr/bin/env python3
 import numpy as np
-import scipy.stats as stats
 import matplotlib.pyplot as plt
 import banana_model
+import gauss_model
 import circle
-import mmd
 import dp_penalty
-import util
 
 # np.random.seed(53527482)
 
-dim = 2
-problem = banana_model.get_problem(dim=dim, a=80, n0=None, n=150000)
+dim = 6
+# problem = banana_model.get_problem(dim=dim, a=0, n0=None, n=200000)
+problem = gauss_model.get_problem(dim=dim, n=200000)
 n, data_dim = problem.data.shape
 true_posterior = problem.true_posterior
 
 epsilon = 4
 delta = 0.1 / n
 params = dp_penalty.PenaltyParams(
-    tau = 0.15,
-    prop_sigma = np.array((0.008, 0.007)) * 1,
-    r_clip_bound = 3,
-    ocu = True,
-    grw = True
-
-    # tau = 0.2,
-    # prop_sigma = np.hstack((np.array((20, 7)), np.repeat(5, dim - 2))) * 0.00024,
+    # tau = 0.15,
+    # prop_sigma = np.array((0.008, 0.007)) * 1,
     # r_clip_bound = 3,
     # ocu = True,
     # grw = True
+
+    # tau = 0.07,
+    # prop_sigma = np.repeat(0.0002, dim),
+    # r_clip_bound = 25,
+    # ocu = False,
+    # grw = False
+    tau = 0.07,
+    prop_sigma = np.repeat(0.0002, dim),
+    r_clip_bound = 25,
+    ocu = True,
+    grw = True
 )
+# problem.theta0 = np.array((0.01, 2.99))
 
 
 res = dp_penalty.dp_penalty(problem, epsilon, delta, params)
