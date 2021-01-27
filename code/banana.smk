@@ -2,7 +2,7 @@ epsilons = [1, 2, 3, 4, 5, 6]
 inds = range(15)
 experiments = [
     "easy-2d", "easy-10d", "tempered-2d", "tempered-10d",
-    "hard-2d", "gauss-30d", "hard-gauss-6d"
+    "hard-2d", "gauss-30d", "hard-gauss-6d", "hard-gauss-2d"
 ]
 algorithms = [
     "hmc", "dppa", "dpps", "mdppa", "mdpps", "barker"
@@ -10,7 +10,6 @@ algorithms = [
 
 result_dir = "results/banana/"
 param_dir = "params/"
-chain_shell_string = "python {input} {wildcards.exp} {wildcards.eps} {wildcards.i} {output}"
 
 # rule all:
 #     input: expand(param_dir + "{algo}_{exp}.py", algo=algorithms, exp=experiments)

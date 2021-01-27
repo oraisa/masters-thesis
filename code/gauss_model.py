@@ -5,6 +5,7 @@ import jax.scipy.linalg as linalg
 import jax
 import util
 import matplotlib.pyplot as plt
+jax.config.update("jax_enable_x64", True)
 
 @jax.jit
 def log_prior(theta, sigma0):
@@ -31,7 +32,7 @@ class GaussModel:
         for i in range(int(self.dim / 2)):
             self.cov = jax.ops.index_update(
                 self.cov, jax.ops.index[2*i:2*(i+1), 2*i:2*(i+1)],
-                np.array(((1, 0.99), (0.99, 1))) / (i+1)
+                np.array(((1, 0.999), (0.999, 1))) / (i+1)
             )
 
         self.L = np.linalg.cholesky(self.cov)

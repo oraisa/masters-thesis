@@ -38,6 +38,7 @@ df_tempered_2d = df[df["experiment"] == "tempered-2d"]
 df_tempered_10d = df[df["experiment"] == "tempered-10d"]
 df_gauss_30d = df[df["experiment"] == "gauss-30d"]
 df_gauss_hard_6d = df[df["experiment"] == "hard-gauss-6d"]
+df_gauss_hard_2d = df[df["experiment"] == "hard-gauss-2d"]
 df_hard_2d = df[df["experiment"] == "hard-2d"]
 
 # banana2 = banana_model.BananaModel(dim=2# )
@@ -52,129 +53,59 @@ df_hard_2d = df[df["experiment"] == "hard-2d"]
 # posterior10 = banana10.generate_posterior_samples(2000, data10, 1, keys[0])
 # mmds10= [mmd.mmd(banana10.generate_posterior_samples(1000, data10, 1, keys[i]), posterior10) for i in range(1, len(keys))]
 # mmds10 = np.array(mmds10)
+#
+def plot_data(y, hue_order, datasets, titles, ylim, filename, legend_outside=True):
+    h, w = titles.shape
+    fig, axes = plt.subplots(h, w, figsize=(10, 13), squeeze=False)
+    for j in range(w):
+        for i in range(h):
+            if datasets[i][j] is not None:
+                axes[i, j].set_title(titles[i, j])
+                sns.boxplot(
+                    x="Epsilon", y=y, hue="Algorithm", hue_order=hue_order,
+                    data=datasets[i][j], ax=axes[i, j]
+                )
+                axes[i, j].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+                axes[i, j].set_ylim(ylim)
+    plt.tight_layout()
+    plt.savefig(filename)
+    # plt.show()
 
-fig, axes = plt.subplots(4, 1, figsize=(10, 13))
-axes[0].set_title("d = 2, non-tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_easy_2d, ax=axes[0])
-axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[0].set_ylim(0, 0.9)
+def plot_mmd_clip_acceptance(hue_order, datasets, titles, mmd_file, clip_file, acc_file):
+    plot_data("MMD", hue_order, datasets, titles, (0, 0.9), mmd_file)
+    plot_data("Clipping", hue_order, datasets, titles, 0, clip_file)
+    plot_data("Acceptance", hue_order, datasets, titles, 0, acc_file)
 
-axes[1].set_title("d = 2, tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_tempered_2d, ax=axes[1])
-axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[1].set_ylim(0, 0.9)
-
-axes[2].set_title("d = 10, non-tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_easy_10d, ax=axes[2])
-axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[2].set_ylim(0, 0.9)
-
-axes[3].set_title("d = 10, tempered")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=hue_order, data=df_tempered_10d, ax=axes[3])
-axes[3].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[3].set_ylim(0, 0.9)
-
-plt.tight_layout()
-plt.savefig("../Thesis/figures/banana_mmd.pdf")
-# plt.show()
-
-fig, axes = plt.subplots(4, 1, figsize=(10, 13))
-axes[0].set_title("d = 2, non-tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_easy_2d, ax=axes[0])
-axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[0].set_ylim(0)
-
-axes[1].set_title("d = 2, tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_tempered_2d, ax=axes[1])
-axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[1].set_ylim(0)
-
-axes[2].set_title("d = 10, non-tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_easy_10d, ax=axes[2])
-axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[2].set_ylim(0)
-
-axes[3].set_title("d = 10, tempered")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df_tempered_10d, ax=axes[3])
-axes[3].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[3].set_ylim(0)
-
-plt.tight_layout()
-plt.savefig("../Thesis/figures/banana_clipping.pdf")
-# plt.show()
-
-fig, axes = plt.subplots(3, 1, figsize=(10, 13))
-axes[0].set_title("d = 30, Gaussian")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=extra_hue_order, data=df_gauss_30d, ax=axes[0])
-axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[0].set_ylim(0, 0.9)
-
-axes[1].set_title("d = 2, hard banana")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=extra_hue_order, data=df_hard_2d, ax=axes[1])
-axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[1].set_ylim(0, 0.9)
-
-axes[2].set_title("d = 6, hard Gaussian")
-sns.boxplot(x="Epsilon", y="MMD", hue="Algorithm", hue_order=extra_hue_order, data=df_gauss_hard_6d, ax=axes[2])
-axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[2].set_ylim(0, 0.9)
-
-plt.tight_layout()
-plt.savefig("../Thesis/figures/banana_extra.pdf")
-# plt.show()
-
-fig, axes = plt.subplots(3, 1, figsize=(10, 13))
-axes[0].set_title("d = 30, Gaussian")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=extra_hue_order, data=df_gauss_30d, ax=axes[0])
-axes[0].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[0].set_ylim(0)
-
-axes[1].set_title("d = 2, hard banana")
-sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=extra_hue_order, data=df_hard_2d, ax=axes[1])
-axes[1].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[1].set_ylim(0)
-
-axes[2].set_title("d = 6, hard Gaussian")
-sns.boxplot(
-    x="Epsilon", y="Clipping", hue="Algorithm", hue_order=extra_hue_order,
-    data=df_gauss_hard_6d, ax=axes[2]
+plot_mmd_clip_acceptance(
+    hue_order, [[df_easy_2d], [df_tempered_2d], [df_easy_10d], [df_tempered_10d]],
+    np.array(
+        ("d = 2, non-tempered", "d = 2, tempered",
+         "d = 10, non-tempered", "d = 10, tempered")
+    ).reshape((4, 1)),
+    "../Thesis/figures/banana_mmd.pdf",
+    "../Thesis/figures/banana_clipping.pdf",
+    "../Thesis/figures/banana_acceptance.pdf"
 )
-axes[2].legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-axes[2].set_ylim(0)
 
-plt.tight_layout()
-plt.savefig("../Thesis/figures/banana_extra_clipping.pdf")
-# plt.show()
+plot_mmd_clip_acceptance(
+    extra_hue_order, [[df_gauss_30d], [df_hard_2d], [df_gauss_hard_2d]],
+    np.array(("d = 30, Gaussian", "d = 2, hard banana", "d = 2, correlated Gaussian")).reshape((3, 1)),
+    "../Thesis/figures/banana_extra.pdf",
+    "../Thesis/figures/banana_extra_clipping.pdf",
+    "../Thesis/figures/banana_extra_acceptance.pdf"
+)
 
-fig, axes = plt.subplots(4, 2, figsize=(10, 13))
-axes[0, 0].set_title("d = 2, non-tempered")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_easy_2d, ax=axes[0, 0])
-axes[0, 0].set_ylim(0, 0.5)
-
-axes[0, 1].set_title("d = 2, tempered")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_tempered_2d, ax=axes[0, 1])
-axes[0, 1].set_ylim(0, 0.5)
-
-axes[1, 0].set_title("d = 10, non-tempered")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_easy_10d, ax=axes[1, 0])
-axes[1, 0].set_ylim(0, 0.5)
-
-axes[1, 1].set_title("d = 10, tempered")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_tempered_10d, ax=axes[1, 1])
-axes[1, 1].set_ylim(0, 0.5)
-
-axes[2, 0].set_title("d = 30, Gaussian")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_gauss_30d, ax=axes[2, 0])
-axes[2, 0].set_ylim(0, 0.5)
-
-axes[2, 1].set_title("d = 6, hard Gaussian")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_gauss_hard_6d, ax=axes[2, 1])
-axes[2, 1].set_ylim(0, 0.5)
-
-axes[3, 0].set_title("d = 2, hard banana")
-sns.boxplot(x="Epsilon", y="Grad Clipping", hue="Algorithm", hue_order=["HMC"], data=df_hard_2d, ax=axes[3, 0])
-axes[3, 0].set_ylim(0, 0.5)
-
-plt.tight_layout()
-plt.savefig("../Thesis/figures/banana_grad_clipping.pdf")
-#plt.show()
+plot_data(
+    "Grad Clipping", ["HMC"],
+    [
+        [df_easy_2d, df_tempered_2d], [df_easy_10d, df_tempered_10d],
+        [df_gauss_30d, df_gauss_hard_2d], [df_hard_2d, None]
+    ],
+    np.array((
+        ("d = 2, non-tempered", "d = 2, tempered"), ("d = 10, non-tempered", "d = 10, tempered"),
+        ("d = 30, Gaussian", "d = 2, correlated Gaussian"),
+        ("d = 2, hard banana", None)
+    )),
+    (0, 0.5), "../Thesis/figures/banana_grad_clipping.pdf",
+    legend_outside=False
+)

@@ -4,6 +4,7 @@ import jax.scipy.stats as stats
 import matplotlib.pyplot as plt
 import numpy.random as npr
 import util
+jax.config.update("jax_enable_x64", True)
 
 @jax.jit
 def log_prior(theta, a, b, m, tau0):
