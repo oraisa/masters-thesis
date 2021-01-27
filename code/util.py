@@ -3,13 +3,17 @@ import jax.numpy as np
 import mmd
 
 class Problem:
-    def __init__(self, log_likelihood_per_sample, log_prior, data, temp_scale, theta0, true_posterior):
+    def __init__(
+            self, log_likelihood_per_sample, log_prior, data, temp_scale,
+            theta0, true_posterior, true_mean=None
+    ):
         """Log likelihood per sample should have signature (theta, sample) -> float"""
         self.log_likelihood_per_sample = log_likelihood_per_sample
         self.log_prior = log_prior
         self.data = data
         self.temp_scale = temp_scale
         self.true_posterior = true_posterior
+        self.true_mean = true_mean if true_mean is not None else np.mean(true_posterior, axis=0)
         self.theta0 = theta0
         self.dim = theta0.size
         # self.tempering = temp_scale != 1
@@ -54,6 +58,10 @@ class MCMCResult:
                 self.mean_error = mmd.mean_error(self.final_chain, posterior)
                 self.cov_error = mmd.cov_error(self.final_chain, posterior)
                 self.mmd = mmd.mmd(self.final_chain, posterior)
+            if problem.true_mean is not None:
+                self.mean_error = np.sqrt(np.sum((np.mean(self.final_chain, axis=0) - problem.true_mean)**2))
+                self.cov_error = np.nan
+                self.mmd = np.nan
         else:
             self.acceptance = np.nan
             self.mean_error = np.nan

@@ -12,7 +12,7 @@ def log_likelihood_per_sample(theta, r):
 def problem():
     return util.Problem(
         log_likelihood_per_sample, lambda x: 0.0, generate_data(),
-        1, np.array((0.0, 1.0)), None
+        1, np.array((0.0, 1.0)), None, np.zeros(2)
     )
 
 def generate_data():
@@ -20,9 +20,6 @@ def generate_data():
     key, subkey = random.split(key)
     R = random.normal(subkey, shape=(100000, 1)) + 3
     return R
-
-# log_likelihood_grads = jax.jit(jax.vmap(jax.grad(log_likelihood_per_sample, 0), in_axes=(None, 0)))
-# log_likelihood_grads_clipped = util.clip_grad_fun(log_likelihood_grads)
 
 def plot_density(problem, ax):
     def circle_dens(x, y, R):

@@ -2,3 +2,25 @@ rule banana_density_plot:
     input: "banana_model.py"
     output: "../Thesis/figures/banana_density.pdf"
     shell: "python banana_model.py"
+
+param_dir = "params/"
+result_dir = "results/circle/"
+
+rule circle_chain:
+    input:
+        # py = "run_chain.py",
+        par = param_dir + "{algo}_{exp}.py"
+    params:
+        py = "run_chain.py",
+        par_mod = "{algo}_{exp}"
+    output: result_dir + "{algo}_{exp}_{eps}_{i}.csv"
+    shell: "python {params.py} {wildcards.algo} {params.par_mod} {wildcards.exp} {wildcards.eps} {wildcards.i} {output}"
+
+rule circle_results:
+    input:
+        chains = expand(
+            result_dir + "{algo}_circle_2_{i}.csv",
+            i=range(10), algo=["hmc", "dpps"]
+        )
+    output: result_dir + "results.csv"
+    shell: "cat {input} > {output}"

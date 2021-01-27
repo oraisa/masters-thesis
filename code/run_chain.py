@@ -4,6 +4,7 @@ import argparse
 import mmd
 import banana_model
 import gauss_model
+import circle
 import dp_penalty
 import dp_penalty_minibatch
 import hmc
@@ -30,6 +31,13 @@ class GaussExperiment:
     def get_problem(self):
         return gauss_model.get_problem(self.dim, self.n)
 
+class CircleExperiment:
+    def __init__(self):
+        self.start_stdev = 0.1
+
+    def get_problem(self):
+        return circle.problem()
+
 parser = argparse.ArgumentParser()
 parser.add_argument("algorithm", type=str)
 parser.add_argument("params", type=str)
@@ -54,7 +62,9 @@ experiments = {
     "tempered-2d": BananaExperiment(dim=2, n0=1000, a=5, n=100000, start_stdev=0.02),
     "tempered-10d": BananaExperiment(dim=10, n0=1000, a=5, n=200000, start_stdev=0.02),
     "gauss-30d": BananaExperiment(dim=30, n0=None, a=0, n=200000, start_stdev=0.02),
-    "hard-gauss-6d": GaussExperiment(dim=6, n=200000, start_stdev=0.005)
+    "hard-gauss-6d": GaussExperiment(dim=6, n=200000, start_stdev=0.005),
+    "hard-gauss-2d": GaussExperiment(dim=2, n=200000, start_stdev=0.005),
+    "circle": CircleExperiment()
 }
 exp = experiments[args.experiment]
 problem = exp.get_problem()
