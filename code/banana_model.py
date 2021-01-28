@@ -135,7 +135,7 @@ if __name__ == "__main__":
     T = 1000 / 100000
     npr.seed(463728)
 
-    banana = BananaModel(a=50)
+    banana = BananaModel(a=250)
     X = banana.generate_test_data()
 
     fig, ax = plt.subplots()

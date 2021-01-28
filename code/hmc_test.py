@@ -5,9 +5,9 @@ import banana_model
 import gauss_model
 import hmc
 
-dim = 6
-# problem = banana_model.get_problem(dim=dim, a=0, n0=None, n=200000)
-problem = gauss_model.get_problem(dim, 200000)
+dim = 2
+problem = banana_model.get_problem(dim=dim, a=20, n0=1000, n=100000)
+# problem = gauss_model.get_problem(dim, 200000)
 n, data_dim = problem.data.shape
 posterior = problem.true_posterior
 
@@ -15,21 +15,21 @@ epsilon = 4
 delta = 0.1 / n
 
 params = hmc.HMCParams(
-    # tau = 0.08,
-    # tau_g = 0.35,
-    # L = 20,
-    # eta = 0.00030,
-    # mass = np.array((0.5, 1)),
-    # r_clip = 2.1,
-    # grad_clip = 2.5,
+    tau = 0.2,
+    tau_g = 0.6,
+    L = 10,
+    eta = 0.01,
+    mass = 1,
+    r_clip = 2.5,
+    grad_clip = 2.0,
 
-    tau = 0.05,
-    tau_g = 0.20,
-    L = 5,
-    eta = 0.00004,
-    mass = 1,#np.hstack((np.array((0.1, 1)), np.repeat(2, 28))),
-    r_clip = 20,
-    grad_clip = 25.0,
+    # tau = 0.05,
+    # tau_g = 0.20,
+    # L = 8,
+    # eta = 0.00007,
+    # mass = 1,#np.hstack((np.array((0.1, 1)), np.repeat(2, 28))),
+    # r_clip = 30,
+    # grad_clip = 29.0,
 )
 # problem.theta0 = np.array((0.01, 2.99))
 # problem.theta0 = np.array((-0.03, 2.95))

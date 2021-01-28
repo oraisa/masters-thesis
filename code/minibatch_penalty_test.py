@@ -6,18 +6,18 @@ import mmd
 import dp_penalty_minibatch
 import util
 
-np.random.seed(53726482)
+# np.random.seed(53726482)
 
-dim = 2
-problem = banana_model.get_problem(dim=dim, a=5, n0=1000, n=100000)
+dim = 10
+problem = banana_model.get_problem(dim=dim, a=20, n0=None, n=200000)
 n, data_dim = problem.data.shape
 
 epsilon = 4
 delta = 0.1 / n
 params = dp_penalty_minibatch.MinibatchPenaltyParams(
-    tau = 0.9,
-    prop_sigma = np.array((0.008, 0.007)) * 10,
-    r_clip_bound = 1,
+    tau = 0.6,
+    prop_sigma = np.repeat(8 * 0.00006, 10),
+    r_clip_bound = 3.5,
     batch_size = 1000,
     ocu = True,
     grw = True

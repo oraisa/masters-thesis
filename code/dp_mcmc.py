@@ -5,16 +5,14 @@ import matplotlib.pyplot as plt
 
 np.random.seed(4673228)
 dim = 10
-problem = banana_model.get_problem(dim=dim, a=5, n0=1000, n=200000)
+problem = banana_model.get_problem(dim=dim, a=20, n0=None, n=200000)
 n, data_dim = problem.data.shape
 
 epsilon = 4
 delta = 0.1 / n
 
 params = dp_barker.BarkerParams(
-    # prop_sigma = np.array((0.008, 0.007)) * 0.1,
-    # batch_size = 1300
-    prop_sigma = np.array((8, 7, 5, 5, 5, 5, 5, 5, 5, 5)) * 0.005,
+    prop_sigma = np.repeat(8 * 0.0001, 10),
     batch_size = 2600
 )
 

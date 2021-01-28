@@ -2,9 +2,9 @@
 import numpy as np
 import dp_penalty
 params = dp_penalty.PenaltyParams(
-        tau = 0.08,
-        prop_sigma = np.array((0.008, 0.007, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001)) * 13,
-        r_clip_bound = 2,
-        ocu = False,
-        grw = False
+    tau = 0.18,
+    prop_sigma = np.repeat(0.02, 10),
+    r_clip_bound = 3,
+    ocu = False,
+    grw = False
 )

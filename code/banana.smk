@@ -1,8 +1,8 @@
 epsilons = [1, 2, 3, 4, 5, 6]
-inds = range(15)
+inds = range(20)
 experiments = [
     "easy-2d", "easy-10d", "tempered-2d", "tempered-10d",
-    "hard-2d", "gauss-30d", "hard-gauss-6d", "hard-gauss-2d"
+    "hard-2d", "gauss-30d", "hard-gauss-2d"
 ]
 algorithms = [
     "hmc", "dppa", "dpps", "mdppa", "mdpps", "barker"
