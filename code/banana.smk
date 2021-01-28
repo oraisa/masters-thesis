@@ -39,7 +39,9 @@ rule results:
             algo=algorithms[0:3], exp=experiments, i=inds, eps=epsilons
         )
     output: result_dir + "results.csv"
-    shell: "cat {input} > {output}"
+    # shell: "cat {input} > {output}"
+    # cat-ing too many files seems to fail
+    shell: "cat " + result_dir + "*.csv > {output}"
 
 rule figures:
     input:
