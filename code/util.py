@@ -58,8 +58,16 @@ class MCMCResult:
                 self.mean_error = mmd.mean_error(self.final_chain, posterior)
                 self.cov_error = mmd.cov_error(self.final_chain, posterior)
                 self.mmd = mmd.mmd(self.final_chain, posterior)
-            if problem.true_mean is not None:
-                self.mean_error = np.sqrt(np.sum((np.mean(self.final_chain, axis=0) - problem.true_mean)**2))
+            else:
+                if problem.true_mean is not None:
+                    self.mean_error = np.sqrt(
+                        np.sum(
+                            (np.mean(self.final_chain, axis=0)
+                             - problem.true_mean)**2
+                        )
+                    )
+                else:
+                    self.mean_error = np.nan
                 self.cov_error = np.nan
                 self.mmd = np.nan
         else:

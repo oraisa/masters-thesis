@@ -57,10 +57,10 @@ algorithms = {
 }
 experiments = {
     "easy-2d": BananaExperiment(dim=2, n0=None, a=20, n=100000, start_stdev=0.02),
-    "hard-2d": BananaExperiment(dim=2, n0=None, a=40, n=100000, start_stdev=0.02),
+    "hard-2d": BananaExperiment(dim=2, n0=None, a=350, n=150000, start_stdev=0.02),
     "easy-10d": BananaExperiment(dim=10, n0=None, a=20, n=200000, start_stdev=0.02),
-    "tempered-2d": BananaExperiment(dim=2, n0=1000, a=5, n=100000, start_stdev=0.02),
-    "tempered-10d": BananaExperiment(dim=10, n0=1000, a=5, n=200000, start_stdev=0.02),
+    "tempered-2d": BananaExperiment(dim=2, n0=1000, a=20, n=100000, start_stdev=0.02),
+    "tempered-10d": BananaExperiment(dim=10, n0=1000, a=20, n=200000, start_stdev=0.02),
     "gauss-30d": BananaExperiment(dim=30, n0=None, a=0, n=200000, start_stdev=0.02),
     "hard-gauss-6d": GaussExperiment(dim=6, n=200000, start_stdev=0.005),
     "hard-gauss-2d": GaussExperiment(dim=2, n=200000, start_stdev=0.005),

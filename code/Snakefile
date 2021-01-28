@@ -19,8 +19,17 @@ rule circle_chain:
 rule circle_results:
     input:
         chains = expand(
-            result_dir + "{algo}_circle_2_{i}.csv",
-            i=range(10), algo=["hmc", "dpps"]
+            result_dir + "{algo}_circle_{eps}_{i}.csv",
+            i=range(20), algo=["hmc", "dpps", "dppa"], eps=[0.5, 0.75, 1]
         )
     output: result_dir + "results.csv"
     shell: "cat {input} > {output}"
+
+rule circle_figures:
+    input:
+        py = "plot_circle.py",
+        results = result_dir + "results.csv"
+    output:
+        "../Thesis/figures/circle.pdf"
+    shell:
+        "python {input.py} {input.results}"

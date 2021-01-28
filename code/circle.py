@@ -3,6 +3,7 @@ import jax.numpy as np
 import jax.random as random
 import matplotlib.pyplot as plt
 import util
+jax.config.update("jax_enable_x64", True)
 
 def log_likelihood_per_sample(theta, r):
     x = theta[0]
