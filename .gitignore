@@ -138,6 +138,10 @@ dmypy.json
 *.out 
 *.synctex.gz 
 *.toc
+*.bcf
+*.run.xml
+.auctex_auto/*
+_region_.*
 
 DS-MS-Template.zip
 DS-MS-Template/*
