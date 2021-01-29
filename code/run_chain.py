@@ -2,41 +2,12 @@ import numpy as np
 import pandas as pd
 import argparse
 import mmd
-import banana_model
-import gauss_model
-import circle
+from experiments import experiments
 import dp_penalty
 import dp_penalty_minibatch
 import hmc
 import dp_barker
 import params
-
-class BananaExperiment:
-    def __init__(self, dim, n0, a, n, start_stdev):
-        self.dim = dim
-        self.n0 = n0
-        self.a = a
-        self.n = n
-        self.start_stdev = start_stdev
-
-    def get_problem(self):
-        return banana_model.get_problem(self.dim, self.n0, self.a, self.n)
-
-class GaussExperiment:
-    def __init__(self, dim, n, start_stdev):
-        self.dim = dim
-        self.n = n
-        self.start_stdev = start_stdev
-
-    def get_problem(self):
-        return gauss_model.get_problem(self.dim, self.n)
-
-class CircleExperiment:
-    def __init__(self):
-        self.start_stdev = 0.1
-
-    def get_problem(self):
-        return circle.problem()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("algorithm", type=str)
@@ -55,17 +26,7 @@ algorithms = {
     "barker": dp_barker.dp_barker,
     "hmc": hmc.hmc
 }
-experiments = {
-    "easy-2d": BananaExperiment(dim=2, n0=None, a=20, n=100000, start_stdev=0.02),
-    "hard-2d": BananaExperiment(dim=2, n0=None, a=350, n=150000, start_stdev=0.02),
-    "easy-10d": BananaExperiment(dim=10, n0=None, a=20, n=200000, start_stdev=0.02),
-    "tempered-2d": BananaExperiment(dim=2, n0=1000, a=20, n=100000, start_stdev=0.02),
-    "tempered-10d": BananaExperiment(dim=10, n0=1000, a=20, n=200000, start_stdev=0.02),
-    "gauss-30d": BananaExperiment(dim=30, n0=None, a=0, n=200000, start_stdev=0.02),
-    "hard-gauss-6d": GaussExperiment(dim=6, n=200000, start_stdev=0.005),
-    "hard-gauss-2d": GaussExperiment(dim=2, n=200000, start_stdev=0.005),
-    "circle": CircleExperiment()
-}
+
 exp = experiments[args.experiment]
 problem = exp.get_problem()
 

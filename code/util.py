@@ -1,11 +1,12 @@
 import jax 
 import jax.numpy as np
+import scipy.optimize as optim
 import mmd
 
 class Problem:
     def __init__(
             self, log_likelihood_per_sample, log_prior, data, temp_scale,
-            theta0, true_posterior, true_mean=None
+            theta0, true_posterior, plot_density_func, true_mean=None
     ):
         """Log likelihood per sample should have signature (theta, sample) -> float"""
         self.log_likelihood_per_sample = log_likelihood_per_sample
@@ -16,6 +17,7 @@ class Problem:
         self.true_mean = true_mean if true_mean is not None else np.mean(true_posterior, axis=0)
         self.theta0 = theta0
         self.dim = theta0.size
+        self.plot_density_func = plot_density_func
         # self.tempering = temp_scale != 1
 
         self.log_likelihood_no_sum = jax.jit(jax.vmap(self.log_likelihood_per_sample, in_axes=(None, 0)))
@@ -28,6 +30,8 @@ class Problem:
 
         self.log_prior_grad = jax.jit(jax.grad(self.log_prior))
 
+    def plot_density(self, ax):
+        self.plot_density_func(self, ax)
 
 def clip_grad_fun(grad_fun):
     def return_fun(clip, *args):

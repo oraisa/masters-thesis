@@ -1,7 +1,12 @@
-rule banana_density_plot:
-    input: "banana_model.py"
-    output: "../Thesis/figures/banana_density.pdf"
-    shell: "python banana_model.py"
+rule posterior_density_plots:
+    input: "plot_posteriors.py"
+    output: "../Thesis/figures/posterior_plots.pdf"
+    shell: "python {input}"
+
+rule model_params_table:
+    input: "experiments.py"
+    output: "../Thesis/model_params_table.tex"
+    shell: "python {input}"
 
 param_dir = "params/"
 result_dir = "results/circle/"

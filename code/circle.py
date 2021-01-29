@@ -13,7 +13,7 @@ def log_likelihood_per_sample(theta, r):
 def problem():
     return util.Problem(
         log_likelihood_per_sample, lambda x: 0.0, generate_data(),
-        1, np.array((0.0, 1.0)), None, np.zeros(2)
+        1, np.array((0.0, 1.0)), None, plot_density, np.zeros(2)
     )
 
 def generate_data():
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     problem = problem()
 
     fig, ax = plt.subplots()
-    plot_density(problem, ax)
+    problem.plot_density(ax)
     plt.show()
 
 

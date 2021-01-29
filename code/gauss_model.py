@@ -48,30 +48,49 @@ class GaussModel:
         key = jax.random.PRNGKey(46283648)
         return jax.random.multivariate_normal(key, self.true_mean, self.cov, (n,))
 
-    def generate_true_posterior(self, samples, data):
+    def compute_posterior_params(self, data):
         n, d = data.shape
-        key = jax.random.PRNGKey(8646546)
-
         sigma0_mat = np.eye(self.dim) * self.sigma0
         term1 = sigma0_mat @ np.linalg.inv(sigma0_mat + self.cov / n)
         mu_post = term1 @ np.mean(data, axis=0).reshape((-1, 1))
         cov_post = term1 @ self.cov / n
-        return jax.random.multivariate_normal(key, mu_post.reshape(-1,), cov_post, (samples,))
+        return (mu_post.reshape(-1,), cov_post)
+
+    def generate_true_posterior(self, samples, data):
+        key = jax.random.PRNGKey(8646546)
+        mu_post, cov_post = self.compute_posterior_params(data)
+
+        return jax.random.multivariate_normal(key, mu_post, cov_post, (samples,))
+
+    def plot_posterior(self, ax, data):
+        mu_post, cov_post = self.compute_posterior_params(data)
+        xs = np.linspace(-0.01, 0.01, 1000) + mu_post[0]
+        ys = np.linspace(-0.01, 0.01, 1000) + mu_post[1]
+        X, Y = np.meshgrid(xs, ys)
+        Z = jax.vmap(jax.vmap(lambda x: stats.multivariate_normal.pdf(x, mean=mu_post, cov=cov_post),
+            in_axes=1
+        ), in_axes=2)(np.stack((X, Y)))
+        ax.contour(X, Y, Z)
 
 def get_problem(dim, n):
     model = GaussModel(dim)
     data = model.generate_data(n)
     problem = util.Problem(
         model.log_likelihood_per_sample, model.log_prior,
-        data, 1, model.true_mean, model.generate_true_posterior(1000, data)
+        data, 1, model.true_mean, model.generate_true_posterior(1000, data),
+        lambda problem, ax: model.plot_posterior(ax, problem.data)
     )
     return problem
 
 if __name__ == "__main__":
-    dim = 6
+    dim = 2
     model = GaussModel(dim)
     data = model.generate_data(100000)
     posterior = model.generate_true_posterior(1000, data)
+    fig, ax = plt.subplots()
+    model.plot_posterior(ax, data)
+    plt.show()
+
     plt.scatter(posterior[:, 0], posterior[:, 1])
     plt.show()
     for i in range(dim):

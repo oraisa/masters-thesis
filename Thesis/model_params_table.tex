@@ -1,0 +1,25 @@
+\begin{table}
+\centering
+\caption{
+            Model parameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
+            For missing $n_0$, \(T = 1\). Start deviation is the standard deviation
+            of the random starting point in the DP experiments. \(a\) is the
+            parameter determining how curved the banana distribution is,
+            with \(a = 0\) corresponding to a Gaussian distribution.
+            }
+\label{model_params_table}
+\begin{tabular}{lrrrrr}
+\toprule
+                    Name &  Dimension &       n &   $n_0$ &  Start Deviation &      a \\
+\midrule
+      Easy banana, d = 2 &          2 &  100000 &         &            0.020 &   20.0 \\
+     Easy banana, d = 10 &         10 &  200000 &         &            0.020 &   20.0 \\
+  Tempered banana, d = 2 &          2 &  100000 &  1000.0 &            0.020 &   20.0 \\
+ Tempered banana, d = 10 &         10 &  200000 &  1000.0 &            0.020 &   20.0 \\
+  High dimensional Gauss &         30 &  200000 &         &            0.020 &    0.0 \\
+             Hard banana &          2 &  150000 &         &            0.020 &  350.0 \\
+        Correlated Gauss &          2 &  200000 &         &            0.005 &    0.0 \\
+                  Circle &          2 &  100000 &         &            0.100 &        \\
+\bottomrule
+\end{tabular}
+\end{table}

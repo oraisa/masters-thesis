@@ -82,7 +82,10 @@ class BananaModel:
         theta0 = jax.ops.index_update(theta0, 1, 3)
         return util.Problem(
             self.log_likelihood_per_sample, self.log_prior, data,
-            temp_scale, theta0, true_posterior
+            temp_scale, theta0, true_posterior,
+            lambda problem, ax: self.plot_posterior(
+                problem.data, ax, problem.temp_scale, 1 / np.sqrt(problem.temp_scale)
+            )
         )
 
     def banana_density(self, theta1, theta2, mu1, mu2, sigma1, sigma2, a, b, m):
@@ -139,7 +142,7 @@ if __name__ == "__main__":
     X = banana.generate_test_data()
 
     fig, ax = plt.subplots()
-    banana.scatterplot_posterior(X, ax, 1)
+    banana.scatterplot_posterior(X, ax[0], 1)
     banana.plot_posterior(X, ax, 1)
     plt.savefig("../Thesis/figures/banana_density.pdf")
     plt.show()
