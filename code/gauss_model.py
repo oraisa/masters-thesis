@@ -50,6 +50,8 @@ class GaussModel:
 
     def compute_posterior_params(self, data):
         n, d = data.shape
+        # See Bayesian Data Analysis, section 3.5
+        # or https://stats.stackexchange.com/q/28744
         sigma0_mat = np.eye(self.dim) * self.sigma0
         term1 = sigma0_mat @ np.linalg.inv(sigma0_mat + self.cov / n)
         mu_post = term1 @ np.mean(data, axis=0).reshape((-1, 1))
