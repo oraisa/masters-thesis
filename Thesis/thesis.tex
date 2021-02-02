@@ -423,193 +423,6 @@ algorithm used for Bayesian inference.
     }
 \end{algorithm}
 
-\section{The Banana Distribution}
-
-The banana distribution~\cite{TPK14} is a banana-shaped probability 
-distribution that is a challenging target for MCMC algorithms. For this reason it has 
-been used to test MCMC algorithms in the literature~\cite{TPK14}. 
-
-\begin{definition}
-    Let \(X\) have a \(d\)-variate Gaussian distribution with
-    mean \(\mu\) and covariance matrix \(\Sigma\). Let
-    \[
-        g(x) = (x_1, x_2 - a(x_1 - m)^2 - b, x_3, \dotsc, x_d),
-    \]
-    with \(a, b, m \in \R\).
-    The banana distribution with parameters \(\mu, \Sigma, a, b\) and \(m\)
-    is the distribution of \(g(X)\). It is denoted by 
-    \(\ban(\mu, \Sigma, a, b, m)\).
-\end{definition}
-
-In the literature, the banana distribution is simply used as the target to 
-sample from, and is not the posterior in a Bayesian inference 
-problem~\cite{TPK14}. To test differentially private MCMC algorithms, the 
-target distribution must be the posterior of some inference problem, as 
-otherwise there is no data to protect with differential privacy.
-Theorem~\ref{banana_posterior_theorem} gives a suitable inference problem 
-for testing DP MCMC algorithms.
-Figure~\ref{banana_density_fig} shows the posterior of a 2-dimensional model.
-
-\begin{theorem}\label{banana_posterior_theorem}
-    Let
-    \begin{align*}
-        \theta = (\theta_1,\dotsc, \theta_d) &\sim
-        \ban(0, \sigma_0^2I, a, b, m) \\
-        X_1 &\sim \caln(\theta_1, \sigma_1^2) \\
-        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2)\\
-        X_3 &\sim \caln(\theta_3, \sigma_3^2) \\
-            &\vdots \\
-        X_d &\sim \caln(\theta_d, \sigma_d^2) \\
-    \end{align*}
-    Given data \(x_1,\dotsc, x_d\in \R^n\) and
-    denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
-    the posterior of \(\theta\) tempered with \(T\) is the banana distribution
-    \(\ban(\mu, \Sigma, a, b, m)\)
-    with
-    \[
-        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\}
-    \]
-    \[
-        \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
-        \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
-    \]
-    \[
-        \Sigma = \diag\left(
-            \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
-            \frac{1}{Tn\tau_d + \tau_0}
-        \right).
-    \]
-\end{theorem}
-\begin{proof}
-    Because
-    \[
-    g^{-1}(y) = (y_1, y_2 + a(y_1 - m)^2 + b, y_3\dotsc, y_d)
-    \]
-    and the Jacobian determinant of \(g^{-1}\) is \(1\),
-    for a positive-definite \(\Sigma\) the banana distribution has
-    density proportional to
-    \[
-    \exp\left(-\frac{1}{2}(g^{-1}(x) - \mu)^T\Sigma^{-1}(g^{-1}(x) - \mu)\right)
-    \]
-    With \(\Sigma = \diag(\sigma_1^2, \sigma_2^2)\) the density is proportional 
-    to
-    \[
-    \exp
-    \left(-\frac{1}{2}\left(\left(\frac{x_1 - \mu_1}{\sigma_1}\right)^2
-    + \left(\frac{x_2 + a(x_1 - m)^2 + b - \mu_2}{\sigma_2}\right)^2
-    + \sum_{i=3}^d\left(\frac{x_i - \mu_i}{\sigma_i}\right)^2\right)\right)
-    \]
-
-    Denote \(u = \theta_2 + a(\theta_1 - m)^2 + b\).
-    The tempered posterior of \(\theta\) is
-    \begin{align*}
-        p(\theta\mid X) &\propto p(X\mid \theta)^Tp(\theta)
-        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
-        \prod_{i=3}^d p(X_i\mid \theta_i)^T p(\theta)
-        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
-        \prod_{i=3}^d p(X_i\mid \theta_i)^T
-        \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2
-        \sum_{i=3}^d \tau_0\theta_i^2\right)\right)
-        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
-        \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&\cdot \prod_{i=3}^d p(X_i\mid \theta_i)^T
-        \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
-    \end{align*}
-
-    Considering the upper and lower part of the last expression separately
-    \begin{align*}
-        &p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
-        \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&\propto \left(\prod_{i=1}^n \exp
-        \left(-\frac{(x_{i1} - \theta_1)^2\tau_1}{2}\right)\right)^T
-        \cdot\left(\prod_{i=1}^n \exp\left(-\frac{(x_{i2} - \theta_2
-        - a(\theta_1 - m)^2 - b)^2\tau_2}{2}\right)\right)^T
-        \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
-        (x_{i1} - \theta_1)^2
-        + T\tau_2\sum_{i=1}^n(x_{i2} - u)^2
-        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
-        (x_{i1} - \bar{x}_1)^2 + T\tau_1n(\bar{x}_1 - \theta_1)^2
-        \\&+ T\tau_2\sum_{i=1}^n (x_{i2}  - \bar{x}_2)^2 + T\tau_2n(\bar{x}_2 - u)^2
-        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
-        \\&\propto\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n(\bar{x}_1 - \theta_1)^2
-        + T\tau_2n(\bar{x}_2 - u)^2
-        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n\bar{x}_1^2
-        - 2T\tau_1n\bar{x}_1\theta_1 + nT\tau_1\theta_1^2 + \tau_0\theta_1^2
-        \\&+ T\tau_2n\bar{x}_2^2 - 2T\tau_2n\bar{x}_2u + nT\tau_2u^2
-        + \tau_0 u^2\Big)\Bigg)
-        \\&\propto\exp\Bigg(-\frac{1}{2}\Big((Tn\tau_1 + \tau_0)\theta_1^2
-        - 2T\tau_1n\bar{x}_1\theta_1
-        + (Tn\tau_2 + \tau_0)u^2 - 2T\tau_2n\bar{x}_2u \Big)\Bigg)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(
-        (Tn\tau_1 + \tau_0)\left(\theta_1^2
-        - \frac{2T\tau_1n\bar{x}_1\theta_1}{Tn\tau_1 + \tau_0} \right)
-        + (Tn\tau_2 + \tau_0)\left(u^2 - \frac{2T\tau_2n\bar{x}_2u}
-        {Tn\tau_2 + \tau_0}\right) \Big)\Bigg)
-        \\&\propto\exp\Bigg(-\frac{1}{2}\Big(
-        (Tn\tau_1 + \tau_0)\left(\theta_1
-        - \frac{T\tau_1n\bar{x}_1}{Tn\tau_1 + \tau_0} \right)^2
-        + (Tn\tau_2 + \tau_0)\left(u - \frac{T\tau_2n\bar{x}_2}
-        {Tn\tau_2 + \tau_0}\right)^2 \Big)\Bigg)
-    \end{align*}
-    and 
-    \begin{align*}
-        &\prod_{i=3}^d p(X_i\mid \theta_i)^T
-        \cdot \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
-      \\&\propto \exp\left(-\frac{1}{2}T\sum_{j=3}^d\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
-      - \frac{1}{2}\sum_{j=3}^d\tau_0\theta_j^2\right)
-      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
-      + \tau_0\theta_j^2\right)\right)
-      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \bar{x}_j)^2
-      + T\tau_j n(\bar{x}_j - \theta_j)^2 + \tau_0\theta_j^2\right)\right)
-      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j n(\bar{x}_j - \theta_j)^2 
-      + \tau_0\theta_j^2\right)\right)
-      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
-      -2T\tau_j n\bar{x}_j\theta_j + T\tau_jn\theta_j^2
-      + \tau_0\theta_j^2\right)\right)
-      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
-      (Tn\tau_j + \tau_0)\theta_j^2 
-      - 2Tn\tau_j\bar{x}_j\theta_j + \frac{(Tn\tau_j\bar{x}_j)^2}{Tn\tau_j + \tau_0}\right)\right)
-      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d (Tn\tau_j + \tau_0)\left(\theta_j 
-      - \frac{Tn\tau_1\bar{x}_i}{Tn\tau_j + \tau_0}\right)^2\right)
-    \end{align*}
-    Multiplying the resulting expression above gives a density proportional 
-    to the banana distribution.
-    As \(p(\theta\mid X)\) is proportional to the density of a
-    banana distribution, the posterior is the banana distribution
-    \(\ban(\mu, \Sigma, a, b, m)\)
-    with
-    \[
-        \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
-        \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
-    \]
-    \[
-        \Sigma = \diag\left(
-            \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
-            \frac{1}{Tn\tau_d + \tau_0}
-        \right).
-    \]
-    % with parameters \(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0}\),
-    % \(\frac{Tn\tau_2\bar{x}_2}{Tn\tau_2 + \tau_0}\), \(Tn\tau_1 + \tau_0\),
-    % \(Tn\tau_2 + \tau_0\), \(a\) and \(b\).
-\end{proof}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\textwidth]{figures/banana_density}
-    \caption{
-        Density of the banana model posterior with \(a = 20\), \(b = m = 0\), 
-        \(\sigma_1^2 = 20\), \(\sigma_2^2 = 2.5\) and \(\sigma_0^2 = 1000\).
-        The blue points are 1000 samples from the posterior.
-    }
-    \label{banana_density_fig}
-\end{figure}
 
 \chapter{Differentially Private MCMC}
 
@@ -1894,9 +1707,153 @@ DP HMC releases the log likelihood ratio \(k\) times and the gradient
 \subsection{Releasing Summary Statistics Privately}
 \subsection{MCMC with synthetic data}
 
-\chapter{Experiments}
+\chapter{Evaluated Models}
 
-\section{Maximum Mean Discrepancy}
+To compare the performance of the DP MCMC algorithms, they were run on
+several models. This chapter introduces these models in Sections~\ref{gauss_model},
+\ref{banana_section} and \ref{circle_section}. Finally, the main performance
+metric used in the experiments is introduced in Section~\ref{mmd_section}.
+The results and the specifics of the used models are discussed in
+Chapter~\ref{experiment_chapter}.
+
+\section{The Gaussian Model}\label{gauss_model}
+
+The simplest model used for the experiments is the Gaussian model with
+known covariance. The likelihood and prior for \(n\) points of \(d\)-dimensional
+data \(X \in \R^{n\times d}\) and parameters \(\theta\in \R^{d}\) are
+\begin{align*}
+  \theta &\sim \caln_{d}(\mu_{0}, \Sigma_{0}) \\
+  X_{i} &\sim \caln_{d}(\theta, \Sigma)
+\end{align*}
+where \(X_{i}\) is a row of \(X\), \(\Sigma\) is the known covariance,
+and \(\mu_{0}\) and \(\Sigma_{0}\) are the prior hyperparameters.
+The posterior of this model is another \(d\)-dimensional Gaussian distribution
+with parameters expressible in closed form~\cite[Section 3.5]{BDA},
+so it is easy to sample from the posterior.
+
+\section{The Banana Distribution}\label{banana_section}
+
+The banana distribution~\cite{TPK14} is a banana-shaped probability
+distribution that is a challenging target for MCMC algorithms. For this reason it has
+been used to test MCMC algorithms in the literature~\cite{TPK14}.
+
+\begin{definition}
+    Let \(X\) have a \(d\)-variate Gaussian distribution with
+    mean \(\mu\) and covariance matrix \(\Sigma\). Let
+    \[
+        g(x) = (x_1, x_2 - a(x_1 - m)^2 - b, x_3, \dotsc, x_d),
+    \]
+    with \(a, b, m \in \R\).
+    The banana distribution with parameters \(\mu, \Sigma, a, b\) and \(m\)
+    is the distribution of \(g(X)\). It is denoted by
+    \(\ban(\mu, \Sigma, a, b, m)\).
+\end{definition}
+
+In the literature, the banana distribution is simply used as the target to
+sample from, and is not the posterior in a Bayesian inference
+problem~\cite{TPK14}. To test differentially private MCMC algorithms, the
+target distribution must be the posterior of some inference problem, as
+otherwise there is no data to protect with differential privacy.
+Theorem~\ref{banana_posterior_theorem} gives a suitable inference problem
+for testing DP MCMC algorithms.
+
+\begin{theorem}\label{banana_posterior_theorem}
+    Let
+    \begin{align*}
+        \theta = (\theta_1,\dotsc, \theta_d) &\sim
+        \ban(0, \sigma_0^2I, a, b, m) \\
+        X_1 &\sim \caln(\theta_1, \sigma_1^2) \\
+        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2)\\
+        X_3 &\sim \caln(\theta_3, \sigma_3^2) \\
+            &\vdots \\
+        X_d &\sim \caln(\theta_d, \sigma_d^2) \\
+    \end{align*}
+    Given data \(x_1,\dotsc, x_d\in \R^n\) and
+    denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
+    the posterior of \(\theta\) tempered with \(T\) is the banana distribution
+    \(\ban(\mu, \Sigma, a, b, m)\)
+    with
+    \[
+        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\}
+    \]
+    \[
+        \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
+        \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
+    \]
+    \[
+        \Sigma = \diag\left(
+            \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
+            \frac{1}{Tn\tau_d + \tau_0}
+        \right).
+    \]
+\end{theorem}
+\begin{proof}
+  See Appendix~\ref{banana_posterior_theorem_proof}.
+\end{proof}
+\newcounter{banana_posterior_theorem_number}
+\setcounter{banana_posterior_theorem_number}{\value{theorem}}
+
+The Gaussian distribution is a special case of the banana distribution,
+as setting \(a = 0\) makes \(g\) the identity function. Similarly, setting
+\(a = 0\) turns the Bayesian banana model into a Gaussian model.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/posterior_plots}
+  \caption{
+    Contour plots of the posterior densities of the 2-dimensional models.
+  }
+\end{figure}
+
+\section{Circle Model}\label{circle_section}
+
+Random walk MH algorithms may struggle with posteriors which are concentrated
+on long, but thin regions. Having a large proposal variance causes the algorithm
+to frequently jump out of the region of high probability, but lowering the
+variance to stay in the region causes the chain to take a very long time to move
+around in the region. An example of such a posterior is the circular posterior
+described in this section.
+
+The circle posterior is obtained from a model where the log likelihood is
+\[
+    \ln p(r\mid x, y) = -a(x^2 + y^2 - r^2)^2
+\]
+where \(r\in \R\) is an observed data point and \((x, y)\in \R^{2}\) are the
+parameters.
+The likelihood is circular in the \((x, y)\)-plane, as it only depends on the
+squared distance of the point \((x, y)\) from the origin. By choosing a flat
+prior, \(p(x, y) = 1\) for all \((x, y)\in \R^{2}\), the posterior will be
+proportional to the likelihood, meaning that the posterior will also be circular.
+
+As the prior does not integrate to 1, it is not a proper probability density,
+so Bayes' theorem does not guarantee that the posterior integrates to a finite
+value. In this case, for a single data point \(r\),
+\begin{align*}
+  \int_{\R^{2}}p(r\mid x, y)dxdy
+  &= \int_{\R^{2}}e^{-a(x^{2} + y^{2} - r^{2})^{2}}dxdy
+  \\&= \int_{0}^{2\pi}d\phi \int_{0}^{\infty}dt
+  \cdot te^{-a(t^{2}(\cos^{2} \phi + \sin^{2} \phi) - r^{2})^{2}}
+  \\&= \int_{0}^{2\pi}d\phi \int_{0}^{\infty}dt
+  \cdot te^{-a(t^{2} - r^{2})^{2}}
+  \\&= \int_{0}^{2\pi}d\phi \int_{0}^{\infty}du\cdot e^{-a(u - r^{2})^{2}}
+  \\&< \infty.
+\end{align*}
+as the inner integral is over an unnormalised Gaussian density and
+the outer integral is over an interval. For multiple data points, the
+integral of the likelihood is
+\[
+  \int_{\R^{2}}\prod_{i}^{n}p(r_{i}\mid x,y)dxdy
+  \leq \prod_{i}^{n}\left(\int_{\R^{2}}p(r_{i}\mid x,y)^{n}dxdy\right)^{\frac{1}{n}}
+  < \infty,
+\]
+where the first inequality is Hölder's inequality applied \(n - 1\) times,
+and the second follows from the single data point case, as
+\(p(r\mid x,y)^{n} = e^{-an(x^{2} + y^{2} - r^{2})^{2}}\).
+As the likelihood integrates to a
+finite value, it can be considered an unnormalised density and sampled from
+with MCMC.
+
+\section{Maximum Mean Discrepancy}\label{mmd_section}
 
 The convergence of non-DP MCMC algorithms is typically assessed using 
 \(\hat{R}\)~\cite{BDA}, which measures how well multiple chains started from 
@@ -1944,6 +1901,8 @@ from both samples with replacement and setting \(\sigma\) to be the median
 between distances of points of the subsamples. This is following the procedure of 
 Gretton et.\ al.~\cite{GrettonBRSS12}, with the addition of the subsampling step 
 to handle samples of different sizes.
+
+\chapter{Experiments}\label{experiment_chapter}
 
 \section{The Effects of Clipping}\label{clipping_experiments}
 
@@ -2010,19 +1969,48 @@ less than 10\%, clipping is likely undetectable without a large sample.
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figures/banana_clipping.pdf}
-  % \caption{
-
-  % }
+  \caption{
+    Clipping for the easy and tempered banana experiments.
+  }
   \label{banana_clipping_fig}
 \end{figure}
 
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figures/banana_extra.pdf}
-  % \caption{
-
-  % }
+  \caption{
+    MMD for the 30-dimensional Gaussian, hard banana and highly correlated
+    2-dimensional Gaussian.
+  }
   \label{banana_extra_mmd_fig}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/banana_extra_clipping}
+  \caption{
+    Clipping for 30-dimensional Gaussian, hard banana and highly correlated
+    2-dimensional Gaussian.
+  }
+  \label{banana_extra_clipping_fig}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/banana_grad_clipping}
+  \caption{
+    Gradient clipping for DP HMC.
+  }
+  \label{banana_grad_clipping_fig}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/circle}
+  \caption{
+    Circle mean error on the left and clipping on the right.
+  }
+  \label{circle_fig}
 \end{figure}
 
 \chapter{Conclusions}
@@ -2039,17 +2027,174 @@ less than 10\%, clipping is likely undetectable without a large sample.
 \bibliographystyle{alpha} % numbering alphabetic order
 \bibliography{../references.bib}
 
-% \begin{appendices}
-% \myappendixtitle
-%
-% \chapter{Code example\label{appendix:code}}
-% Program code can be added as appendix:
-% \begin{verbatim}
-% #!/bin/bash          
-% text="Hello World!"
-% echo $text
-% \end{verbatim}
-%
-% \end{appendices}
+\begin{appendices}
+\myappendixtitle
+
+\chapter{Proof of Theorem~\ref{banana_posterior_theorem}}\label{banana_posterior_theorem_proof}
+
+\newcounter{temp_counter}
+\setcounter{temp_counter}{\value{theorem}}
+\setcounter{theorem}{\value{banana_posterior_theorem_number}}
+\addtocounter{theorem}{-1}
+\begin{theorem}
+    Let
+    \begin{align*}
+        \theta = (\theta_1,\dotsc, \theta_d) &\sim
+        \ban(0, \sigma_0^2I, a, b, m) \\
+        X_1 &\sim \caln(\theta_1, \sigma_1^2) \\
+        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2)\\
+        X_3 &\sim \caln(\theta_3, \sigma_3^2) \\
+            &\vdots \\
+        X_d &\sim \caln(\theta_d, \sigma_d^2) \\
+    \end{align*}
+    Given data \(x_1,\dotsc, x_d\in \R^n\) and
+    denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
+    the posterior of \(\theta\) tempered with \(T\) is the banana distribution
+    \(\ban(\mu, \Sigma, a, b, m)\)
+    with
+    \[
+        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\}
+    \]
+    \[
+        \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
+        \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
+    \]
+    \[
+        \Sigma = \diag\left(
+            \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
+            \frac{1}{Tn\tau_d + \tau_0}
+        \right).
+    \]
+\end{theorem}
+\begin{proof}
+    Because
+    \[
+    g^{-1}(y) = (y_1, y_2 + a(y_1 - m)^2 + b, y_3\dotsc, y_d)
+    \]
+    and the Jacobian determinant of \(g^{-1}\) is \(1\),
+    for a positive-definite \(\Sigma\) the banana distribution has
+    density proportional to
+    \[
+    \exp\left(-\frac{1}{2}(g^{-1}(x) - \mu)^T\Sigma^{-1}(g^{-1}(x) - \mu)\right)
+    \]
+    With \(\Sigma = \diag(\sigma_1^2, \sigma_2^2)\) the density is proportional
+    to
+    \[
+    \exp
+    \left(-\frac{1}{2}\left(\left(\frac{x_1 - \mu_1}{\sigma_1}\right)^2
+    + \left(\frac{x_2 + a(x_1 - m)^2 + b - \mu_2}{\sigma_2}\right)^2
+    + \sum_{i=3}^d\left(\frac{x_i - \mu_i}{\sigma_i}\right)^2\right)\right)
+    \]
+
+    Denote \(u = \theta_2 + a(\theta_1 - m)^2 + b\).
+    The tempered posterior of \(\theta\) is
+    \begin{align*}
+        p(\theta\mid X) &\propto p(X\mid \theta)^Tp(\theta)
+        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
+        \prod_{i=3}^d p(X_i\mid \theta_i)^T p(\theta)
+        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
+        \prod_{i=3}^d p(X_i\mid \theta_i)^T
+        \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2
+        \sum_{i=3}^d \tau_0\theta_i^2\right)\right)
+        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
+        \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
+        \\&\cdot \prod_{i=3}^d p(X_i\mid \theta_i)^T
+        \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
+    \end{align*}
+
+    Considering the upper and lower part of the last expression separately
+    \begin{align*}
+        &p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
+        \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
+        \\&\propto \left(\prod_{i=1}^n \exp
+        \left(-\frac{(x_{i1} - \theta_1)^2\tau_1}{2}\right)\right)^T
+        \cdot\left(\prod_{i=1}^n \exp\left(-\frac{(x_{i2} - \theta_2
+        - a(\theta_1 - m)^2 - b)^2\tau_2}{2}\right)\right)^T
+        \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
+        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
+        (x_{i1} - \theta_1)^2
+        + T\tau_2\sum_{i=1}^n(x_{i2} - u)^2
+        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
+        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
+        (x_{i1} - \bar{x}_1)^2 + T\tau_1n(\bar{x}_1 - \theta_1)^2
+        \\&+ T\tau_2\sum_{i=1}^n (x_{i2}  - \bar{x}_2)^2 + T\tau_2n(\bar{x}_2 - u)^2
+        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
+        \\&\propto\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n(\bar{x}_1 - \theta_1)^2
+        + T\tau_2n(\bar{x}_2 - u)^2
+        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
+        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n\bar{x}_1^2
+        - 2T\tau_1n\bar{x}_1\theta_1 + nT\tau_1\theta_1^2 + \tau_0\theta_1^2
+        \\&+ T\tau_2n\bar{x}_2^2 - 2T\tau_2n\bar{x}_2u + nT\tau_2u^2
+        + \tau_0 u^2\Big)\Bigg)
+        \\&\propto\exp\Bigg(-\frac{1}{2}\Big((Tn\tau_1 + \tau_0)\theta_1^2
+        - 2T\tau_1n\bar{x}_1\theta_1
+        + (Tn\tau_2 + \tau_0)u^2 - 2T\tau_2n\bar{x}_2u \Big)\Bigg)
+        \\&=\exp\Bigg(-\frac{1}{2}\Big(
+        (Tn\tau_1 + \tau_0)\left(\theta_1^2
+        - \frac{2T\tau_1n\bar{x}_1\theta_1}{Tn\tau_1 + \tau_0} \right)
+        + (Tn\tau_2 + \tau_0)\left(u^2 - \frac{2T\tau_2n\bar{x}_2u}
+        {Tn\tau_2 + \tau_0}\right) \Big)\Bigg)
+        \\&\propto\exp\Bigg(-\frac{1}{2}\Big(
+        (Tn\tau_1 + \tau_0)\left(\theta_1
+        - \frac{T\tau_1n\bar{x}_1}{Tn\tau_1 + \tau_0} \right)^2
+        + (Tn\tau_2 + \tau_0)\left(u - \frac{T\tau_2n\bar{x}_2}
+        {Tn\tau_2 + \tau_0}\right)^2 \Big)\Bigg)
+    \end{align*}
+    and
+    \begin{align*}
+        &\prod_{i=3}^d p(X_i\mid \theta_i)^T
+        \cdot \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
+      \\&\propto \exp\left(-\frac{1}{2}T\sum_{j=3}^d\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
+      - \frac{1}{2}\sum_{j=3}^d\tau_0\theta_j^2\right)
+      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
+      + \tau_0\theta_j^2\right)\right)
+      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \bar{x}_j)^2
+      + T\tau_j n(\bar{x}_j - \theta_j)^2 + \tau_0\theta_j^2\right)\right)
+      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j n(\bar{x}_j - \theta_j)^2
+      + \tau_0\theta_j^2\right)\right)
+      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
+      -2T\tau_j n\bar{x}_j\theta_j + T\tau_jn\theta_j^2
+      + \tau_0\theta_j^2\right)\right)
+      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
+      (Tn\tau_j + \tau_0)\theta_j^2
+      - 2Tn\tau_j\bar{x}_j\theta_j + \frac{(Tn\tau_j\bar{x}_j)^2}{Tn\tau_j + \tau_0}\right)\right)
+      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d (Tn\tau_j + \tau_0)\left(\theta_j
+      - \frac{Tn\tau_1\bar{x}_i}{Tn\tau_j + \tau_0}\right)^2\right)
+    \end{align*}
+    Multiplying the resulting expression above gives a density proportional
+    to the banana distribution.
+    As \(p(\theta\mid X)\) is proportional to the density of a
+    banana distribution, the posterior is the banana distribution
+    \(\ban(\mu, \Sigma, a, b, m)\)
+    with
+    \[
+        \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
+        \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
+    \]
+    \[
+        \Sigma = \diag\left(
+            \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
+            \frac{1}{Tn\tau_d + \tau_0}
+        \right).
+    \]
+    % with parameters \(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0}\),
+    % \(\frac{Tn\tau_2\bar{x}_2}{Tn\tau_2 + \tau_0}\), \(Tn\tau_1 + \tau_0\),
+    % \(Tn\tau_2 + \tau_0\), \(a\) and \(b\).
+\end{proof}
+\setcounter{theorem}{\value{temp_counter}}
+
+\chapter{Code example\label{appendix:code}}
+Program code can be added as appendix:
+\begin{verbatim}
+#!/bin/bash
+text="Hello World!"
+echo $text
+\end{verbatim}
+
+\end{appendices}
 
 \end{document}
