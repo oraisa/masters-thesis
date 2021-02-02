@@ -140,7 +140,7 @@ dmypy.json
 *.toc
 *.bcf
 *.run.xml
-.auctex_auto/*
+.auctex-auto/*
 _region_.*
 
 DS-MS-Template.zip
