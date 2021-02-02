@@ -25,7 +25,7 @@ hue_order_short = ["hmc", "dpps"]
 hue_order = [algorithm_names[algo] for algo in hue_order_short]
 df["Algorithm"] = df["Algorithm"].map(algorithm_names)
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 13))
+fig, axes = plt.subplots(1, 2, figsize=(10, 6))
 fig.suptitle("Circle")
 
 sns.boxplot(x="Epsilon", y="Mean Error", hue="Algorithm", hue_order=hue_order, data=df, ax=axes[0])
@@ -33,9 +33,4 @@ axes[0].set_ylim(0)
 sns.boxplot(x="Epsilon", y="Clipping", hue="Algorithm", hue_order=hue_order, data=df, ax=axes[1])
 axes[1].set_ylim(0)
 plt.savefig("../Thesis/figures/circle.pdf")
-plt.show()
-
-# anim = mcmc_animation.MCMCAnimation(hmc_res.chain, hmc_res.leapfrog_chain)
-# circle.plot_density(problem, anim.ax)
-# anim.save("hmc_circle.mp4")
-# anim.show()
+# plt.show()

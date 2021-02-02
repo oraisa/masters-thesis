@@ -144,7 +144,6 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     banana.scatterplot_posterior(X, ax[0], 1)
     banana.plot_posterior(X, ax, 1)
-    plt.savefig("../Thesis/figures/banana_density.pdf")
     plt.show()
 
     banana = BananaModel(a=5)
@@ -152,7 +151,6 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     banana.scatterplot_posterior(X, ax, T)
     banana.plot_posterior(X, ax, T, 10)
-    plt.savefig("../Thesis/figures/banana_tempered_density.pdf")
     plt.show()
 
     post = banana.generate_posterior_samples(10000, X, 1)
