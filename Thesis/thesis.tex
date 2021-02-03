@@ -19,6 +19,7 @@
 \usepackage[footnotesize,bf]{caption} % For more control over figure captions
 \usepackage{blindtext}
 \usepackage{titlesec}
+\usepackage{booktabs}
 \usepackage[titletoc]{appendix}
 \usepackage[ruled, vlined]{algorithm2e}
 
@@ -1853,6 +1854,33 @@ As the likelihood integrates to a
 finite value, it can be considered an unnormalised density and sampled from
 with MCMC.
 
+Obtaining samples from the true posterior with the circle model is not
+as easy as with the banana and Gaussian models, so using MMD, the metric
+introduced in Section~\ref{mmd_section} to evaluate
+the performance of an MCMC algorithm on the circle is nontrivial. However,
+as the mean of the circle is in its center, and the samples from an MCMC
+algorithm are likely to lie on the circle, the distance of the mean of the
+sample from the origin indicates how evenly the samples a distributed throughout
+the circle.
+
+It remains to show that the mean of the circle is actually the origin. It turns
+out that this is fairly simple. For the mean of the \(x\)-coordinate
+\begin{align*}
+  E_{x} &= \int_{\R}dx\cdot x\int_{\R} dy p(r\mid x, y)
+  \\&= \int_{-\infty}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
+  \\&= \int_{0}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
+  + \int_{-\infty}^{0}dx\cdot x\int_{-\infty}^{\infty}dy
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
+  \\&= \int_{0}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
+  - \int_{0}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
+  \\&= 0.
+\end{align*}
+The mean of the \(y\)-coordinate is calculated similarly.
+
 \section{Maximum Mean Discrepancy}\label{mmd_section}
 
 The convergence of non-DP MCMC algorithms is typically assessed using 
@@ -1896,7 +1924,7 @@ The choice of the \(\sigma\) parameter of \(k\) affects the way MMD evaluates
 different kinds of differences in \(p\) and \(q\). For some preliminary experiments
 in this thesis, \(\sigma\) was chosen to be 1, which penalised error in the 
 mean much more than errors in higher moments in the experiments. 
-The \(\sigma\) used for the final experiments chosen by picking 50 subsamples 
+The \(\sigma\) used for the final experiments is chosen by picking 50 subsamples
 from both samples with replacement and setting \(\sigma\) to be the median 
 between distances of points of the subsamples. This is following the procedure of 
 Gretton et.\ al.~\cite{GrettonBRSS12}, with the addition of the subsampling step 
@@ -1904,13 +1932,37 @@ to handle samples of different sizes.
 
 \chapter{Experiments}\label{experiment_chapter}
 
+This chapter contains the experiments performed on both non-DP and DP MCMC
+algorithms. Section~\ref{experiment_setup} details the specific model parameters
+and other technical details of the experiments. Section~\ref{clipping_experiments}
+examines the effect clipping log likelihood ratios, which is necessary for
+DP MCMC algorithms, but may adversely affect their convergence.
+Section~\ref{dp_mcmc_comparison} compares the different DP MCMC algorithms
+on several models.
+
+\section{Experimental Setup}\label{experiment_setup}
+
+Eight models were used in the experiments. The parameters are shown in
+Table~\ref{model_params_table}. All experiments ran 20 chains for each value
+of \(\epsilon\) for DP MCMC experiments, or clip bound for clipping experiments,
+for each algorithm included. Each of the
+20 chains had a different starting point, but the starting points did
+not vary across algorithms, or values of \(\epsilon\) or clip bound.
+
+The first half of the obtained samples were discarded as they may not represent
+the true posterior, which is standard practice with MCMC~\cite{BDA}. The
+latter half was compared to a reference sample obtained from the true posterior,
+except in the circle experiment, where the mean of the sample was compared to
+the true posterior mean of \((0,0)\).
+
+\include{model_params_table}
+
 \section{The Effects of Clipping}\label{clipping_experiments}
 
 The first experiment evaluates the effect of clipping log likelihood ratios.
 Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
 distribution as the proposal distributions.}
-algorithms were run on 2 and 10 dimensional banana models. RWMH did not 
-converge in reasonable time in 10 dimensions so it was excluded from these results.
+algorithms were run on 2 and 10 dimensional banana models.
 DP was not used so that error from the extra noise would not affect the results.
 
 The banana model used hyperparameter values \(a = 20\), \(b = m = 0\), 
@@ -1949,10 +2001,8 @@ less than 10\%, clipping is likely undetectable without a large sample.
     }
     \label{clip_effect_fig}
 \end{figure}
-% \section{Accuracy of CLT With Subsampling}
 
-\section{Illustrating HMC}
-\section{Banana Distribution}
+\section{Banana Distribution}\label{dp_mcmc_comparison}
 
 \begin{figure}
   \centering
