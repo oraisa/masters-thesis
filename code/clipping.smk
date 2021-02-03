@@ -1,5 +1,5 @@
 clip_bounds = [0.5, 1, 2, 4, 6, 8, 10, 1000]
-inds = range(10)
+inds = range(20)
 dims = [2, 10]
 
 result_dir = "results/clipping/"
