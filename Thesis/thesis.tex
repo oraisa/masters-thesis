@@ -1798,13 +1798,6 @@ The Gaussian distribution is a special case of the banana distribution,
 as setting \(a = 0\) makes \(g\) the identity function. Similarly, setting
 \(a = 0\) turns the Bayesian banana model into a Gaussian model.
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{figures/posterior_plots}
-  \caption{
-    Contour plots of the posterior densities of the 2-dimensional models.
-  }
-\end{figure}
 
 \section{Circle Model}\label{circle_section}
 
@@ -1943,7 +1936,21 @@ on several models.
 \section{Experimental Setup}\label{experiment_setup}
 
 Eight models were used in the experiments. The parameters are shown in
-Table~\ref{model_params_table}. All experiments ran 20 chains for each value
+Table~\ref{model_params_table} and contour plots of the
+2-dimensional models are shown in Figure~\ref{posterior_plots_fig}.
+All banana models had \(b = m = 0\). The likelihood variance of the banana
+and 30-dimensional Gaussian
+models was \(\sigma_{1} = 20\), \(\sigma_{2} = 2.5\) and \(\sigma_{i} = 1\)
+for \(i > 2\). The likelihood covariance for the correlated Gaussian model
+was
+\[
+\begin{bmatrix}
+  1 & 0.999 \\
+  0.999 & 1
+\end{bmatrix}.
+\]
+
+All experiments ran 20 chains for each value
 of \(\epsilon\) for DP MCMC experiments, or clip bound for clipping experiments,
 for each algorithm included. Each of the
 20 chains had a different starting point, but the starting points did
@@ -1957,6 +1964,15 @@ the true posterior mean of \((0,0)\).
 
 \include{model_params_table}
 
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/posterior_plots}
+  \caption{
+    Contour plots of the posterior densities of the 2-dimensional models.
+  }
+  \label{posterior_plots_fig}
+\end{figure}
+
 \section{The Effects of Clipping}\label{clipping_experiments}
 
 The first experiment evaluates the effect of clipping log likelihood ratios.
@@ -1965,15 +1981,12 @@ distribution as the proposal distributions.}
 algorithms were run on 2 and 10 dimensional banana models.
 DP was not used so that error from the extra noise would not affect the results.
 
-The banana model used hyperparameter values \(a = 20\), \(b = m = 0\), 
-\(\sigma_1^2 = 20\), \(\sigma_2^2 = 2.5\), \(\sigma_3^2 = \dotsb = \sigma_{10}^2 = 1\),
-\(\sigma_0^2 = 1000\) and \(n = 100000\).
-In both experiments, 500 samples from HMC and 3000 samples from RWMH were taken
-and the latter half\footnote{As the start of an MCMC chain depends heavily on the 
-starting point, samples at the start should be discarded as they are not representative 
-of the target distribution.} of them were
+For both 2 and 10 dimensions, 500 samples from HMC and 3000 samples from
+RWMH were taken and the latter half of them were
 compared to 2000 samples from the true posterior. The reference posterior sample 
-was also compared to other samples from the posterior to obtain a baseline 
+was also compared to other samples from the posterior to obtain a baseline.
+The sample sizes and other parameters of the algorithms were tuned so that
+the algorithms converged without clipping.
 
 Figure~\ref{clip_effect_fig} shows the results of the clipping experiment.
 The top left and bottom left panels show MMD as a function of the clip bound 
@@ -2002,7 +2015,7 @@ less than 10\%, clipping is likely undetectable without a large sample.
     \label{clip_effect_fig}
 \end{figure}
 
-\section{Banana Distribution}\label{dp_mcmc_comparison}
+\section{Comparison of DP MCMC Algorithms}\label{dp_mcmc_comparison}
 
 \begin{figure}
   \centering

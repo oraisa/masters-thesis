@@ -8,18 +8,18 @@
             with \(a = 0\) corresponding to a Gaussian distribution.
             }
 \label{model_params_table}
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrrrr}
 \toprule
-                    Name &  Dimension &       n &   $n_0$ &  Start Deviation &      a \\
+                    Name &  Dim &       n &  $n_0$ &  Start Deviation &     a &  $\sigma^2_0$ \\
 \midrule
-      Easy banana, d = 2 &          2 &  100000 &         &            0.020 &   20.0 \\
-     Easy banana, d = 10 &         10 &  200000 &         &            0.020 &   20.0 \\
-  Tempered banana, d = 2 &          2 &  100000 &  1000.0 &            0.020 &   20.0 \\
- Tempered banana, d = 10 &         10 &  200000 &  1000.0 &            0.020 &   20.0 \\
-  High dimensional Gauss &         30 &  200000 &         &            0.020 &    0.0 \\
-             Hard banana &          2 &  150000 &         &            0.020 &  350.0 \\
-        Correlated Gauss &          2 &  200000 &         &            0.005 &    0.0 \\
-                  Circle &          2 &  100000 &         &            0.100 &        \\
+      Flat banana, d = 2 &    2 &  100000 &        &             0.02 &    20 &          1000 \\
+     Flat banana, d = 10 &   10 &  200000 &        &             0.02 &    20 &          1000 \\
+  Tempered banana, d = 2 &    2 &  100000 &   1000 &             0.02 &    20 &          1000 \\
+ Tempered banana, d = 10 &   10 &  200000 &   1000 &             0.02 &    20 &          1000 \\
+  High dimensional Gauss &   30 &  200000 &        &             0.02 &     0 &          1000 \\
+           Narrow banana &    2 &  150000 &        &             0.02 &   350 &          1000 \\
+        Correlated Gauss &    2 &  200000 &        &            0.005 &     0 &           100 \\
+                  Circle &    2 &  100000 &        &              0.1 & 1e-05 &               \\
 \bottomrule
 \end{tabular}
 \end{table}
