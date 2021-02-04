@@ -440,7 +440,7 @@ the correct distribution. In the same year, Heikkilä et.\ al.~\cite{HeikkilaJDH
 developed another DP MCMC algorithm, called DP Barker, which uses subsampling 
 to amplify privacy.
 
-\section{DP Penalty}
+\section{DP Penalty}\label{dp_penalty_section}
 
 In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
 Metropolis-Hastings called the penalty 
@@ -545,22 +545,24 @@ acceptance decision frequently. As a tradeoff, picking a large \(L\) will increa
 the variance of the Gaussian noise and slow down convergence through it.
 
 Yildirim and Ermis~\cite{YildirimE19} propose two potential ways to improve the 
-performance of the penalty algorithm. The first improvement is only proposing 
+performance of the penalty algorithm. The first improvement, called
+\emph{one component updates} (OCU) in this thesis, is only proposing
 changes in one dimension in a multidimensional problem. This decreases 
 \(||\theta - \theta'||_2\), which means that it decreases the noise variance.
 
-The second improvement is called \emph{guided random walk} (GRW)~\cite{YildirimE19}.
-In GRW, proposals change only one dimension, as above. Additionally, a direction 
+The second improvement is called \emph{guided walk Metropolis Hastings}
+(GRMH)~\cite{YildirimE19}.
+In GRMH, proposals change only one dimension, as above. Additionally, a direction
 is associated with each dimension, and proposals are only made the current 
 direction of the chosen dimension. After an accepted proposal, the direction is 
 kept the same, but after a reject it is switched. This means that the chain can
 move towards areas of higher probability faster because, after some initial 
 proposals are rejected, the directions for each dimension point towards the 
-area of high probability, so all proposals are towards it. Without GRW, most 
+area of high probability, so all proposals are towards it. Without GRMH, most
 proposals would move the chain away from the area of high probability, and 
 would likely be rejected.
 
-\section{DP Barker}
+\section{DP Barker}\label{dp_barker_section}
 
 The DP Barker algorithm of Heikkilä et.\ al.~\cite{HeikkilaJDH19} is based on 
 the Barker acceptance test~\cite{Barker65} instead of the Metropolis-Hastings test.
@@ -703,11 +705,7 @@ significantly less clipping than a nontempered likelihood.
     }
 \end{algorithm}
 
-\section{Comparing DP Penalty and DP Barker}
-
-\chapter{Variations of the Penalty Algorithm}
-
-\section{The Penalty Algorithm with Subsampling}
+\section{The Penalty Algorithm with Subsampling}\label{dp_minibatch_penalty_section}
 
 In the DP Barker algorithm, the log likelihood ratio is computed using only 
 a subsample of the dataset to amplify privacy. Subsampling can also be used 
@@ -870,355 +868,11 @@ DP penalty unsuitable for problems with large datasets, unless tempering is
 used. Like with DP Barker, using tempering \(T = \frac{n_0}{n}\) cancels \(n\)
 out of the noise variance.
 
-% \section{DP Metropolis-Adjusted Langevin Algorithm}
-%
-% Metropolis adjusted Langevin algorithm (MALA)~\cite{Roberts1998} 
-% is Metropolis-Hastings with the proposal distribution 
-% \[
-%     q(\theta' \mid \theta, X) = \caln\left(\theta + \frac{1}{2}\sigma^2_p
-%     \nabla \ln p(X\mid \theta), \sigma^2_p I\right)
-% \]
-% The gradient in the proposal is meant to guide the random walk to regions 
-% of high probability. Because of it, MALA can achieve a higher acceptance rate 
-% than standards random walk MH, and requires fewer iterations to 
-% converge~\cite{Roberts1998}.
-%
-% MALA can be made DP with using the penalty algorithm. Because MALA is just 
-% the MH algorithm with a particular proposal, the penalty algorithm using the 
-% MALA proposal will converge to the correct distribution. Proving any DP bound 
-% for MALA requires computing the sensitivities of the different data-dependent 
-% values that the algorithm computes.
-%
-% Like random walk MH, the acceptance probability for non-DP MALA is
-% \[
-%     p = \min\left\{1, \exp(\lambda(X, \theta, \theta'))\right\},
-% \]
-% with 
-% \[
-%     \lambda(X, \theta, \theta') 
-%     = \sum_{x\in X} \ln\frac{p(x\mid \theta')}{p(x\mid \theta)} 
-%     + \ln \frac{q(\theta\mid \theta', X)} {q(\theta'\mid \theta, X)}
-%     + \ln \frac{p(\theta')}{p(\theta)}.
-% \]
-%
-% For DP MALA, the penalty correction is applied, and the acceptance probability is
-% \[
-%     p = \min\left\{\exp\left(\lambda^*(X, \theta, \theta')
-%     - \frac{1}{2}\sigma^2(\theta, \theta')\right)\right\}
-% \]
-% where \(\lambda^*(X, \theta, \theta') \sim \caln(\lambda(X, \theta, \theta'), 
-% \sigma^2(\theta, \theta'))\) and \(\sigma^2\) is symmetric in \(\theta\) and 
-% \(\theta'\).
-%
-% \begin{algorithm}[H]
-%     \SetAlgoLined 
-%     \For{\(1 \leq i \leq k\)}{
-%         sample \(\theta'\) from 
-%         \(\calm_g(\theta_{i-1} + \frac{1}{2}\sigma_p^2\nabla \ln p(X\mid \theta_{i-1}))\)\\
-%         sample \(\lambda^*\) from \(\calm_l(\lambda)\)\\
-%         \(p = \min\left\{1, \exp\left(\lambda^* - \frac{1}{2}\sigma^2\right)\right\}\)\\
-%         \(\theta_i = \begin{cases}
-%             \theta^* & \text{ with probability } p \\
-%             \theta_{i-1} & \text{ otherwise }
-%         \end{cases}\)
-%     }
-%     \caption{DP MALA
-%     }
-% \end{algorithm}
-%
-% On each iteration, the proposal \(\theta'\) is sampled from a Gaussian 
-% mechanism \(\calm_g(\theta + \frac{1}{2}\sigma^2_p\nabla \ln p(X\mid \theta))\)
-% with variance \(a\sigma_p^2\).
-% Then \(\lambda^*(X, \theta, \theta')\) is sampled from a 
-% Gaussian mechanism \(\calm_l(\lambda(X, \theta, \theta'))\) with variance 
-% \(\sigma^2\). The reason for using variance \(a\sigma^2_p\) for the proposal 
-% instead of \(\sigma^2_p\) that non-DP MALA uses is to allow better adjustment 
-% of the privacy cost of the proposal.
-%
-% \begin{lemma}\label{dp_mala_gradient}
-%     \(\calm_g\) is \(\rho_g\)-zCDP with 
-%     \[
-%         \rho_g(\theta) = \frac{\sigma_p^2 c_g^2}{8a}
-%     \]
-%     where 
-%     \[
-%         c_g \geq \Delta_2 \nabla \ln p(X\mid \theta)
-%     \]
-% \end{lemma}
-% \begin{proof}
-%     The sensitivity of 
-%     \[
-%         \frac{1}{2}\sigma_p^2 \nabla \ln p(X\mid \theta)
-%     \]
-%     is 
-%     \[
-%         \frac{1}{2}\sigma_p^2 \nabla \Delta_2 \nabla \ln p(X\mid \theta)
-%     \]
-%     The zCDP bound follows from Theorem~\ref{gauss-DP-bounds}.
-% \end{proof}
-%
-% \(c_g\) cannot depend on \(\theta\) as the privacy cost of each iteration in 
-% a composition must be determinable ahead of time to apply 
-% Theorem~\ref{composition-theorem}.
-%
-% \begin{lemma}\label{dp_mala_likelihood_bound}
-%     \(\calm_l\) is \(\rho_l\)-zCDP with 
-%     \[
-%         \rho_l = \frac{1}{2\tau},
-%     \]
-%     when 
-%     \[
-%         c_l(\theta, \theta') = \Delta_2^2 \lambda(X, \theta, \theta'),
-%     \]
-%     and
-%     \[
-%         \sigma^2(\theta, \theta') = \tau c^2_l(\theta, \theta').
-%     \]
-% \end{lemma}
-% \begin{proof}
-%     By Theorem~\ref{gauss-DP-bounds}, \(\calm_l\) is \(\rho\)-zCDP with
-%     \[
-%         \rho_l = \frac{c_l^2(\theta, \theta')}{2\sigma^2(\theta, \theta')}.
-%     \]
-%     The claim follows from plugging in \(\sigma(\theta, \theta')\).
-% \end{proof}
-%
-% \begin{theorem}\label{dp_mala_zcdp_bound}
-%     With given ADP bounds \(\epsilon\) and \(\delta\),
-%     DP MALA can be run for 
-%     \[
-%         k = \left\lfloor \frac{\rho}{\rho_g + \rho_l} \right\rfloor
-%     \]
-%     iterations, where \(\rho_g\) is from Lemma~\ref{dp_mala_gradient},
-%     \(\rho_l\) is from Lemma~\ref{dp_mala_likelihood_bound}, and
-%     \[
-%         \rho = \left(\sqrt{\log \frac{1}{\delta} + \epsilon} 
-%         - \sqrt{\log \frac{1}{\delta}}\right)^2
-%     \]
-% \end{theorem}
-% \begin{proof}
-%     A single iteration is \((\rho_l + \rho_g)\)-zCDP. The claim then follows from 
-%     Theorems~\ref{other_dp_to_adp} and~\ref{composition-theorem}.
-% \end{proof}
-%
-% The zCDP bounds of DP MALA can be computed with Theorem~\ref{dp_mala_zcdp_bound}
-% if the sensitivities \(c_g\) and \(c_l\) are known. As in DP penalty, they are 
-% specific the likelihood, but they can be forced with clipping. Clipping the 
-% gradients does not affect the distribution the algorithm converges to, but can 
-% diminish the amount of utility the algorithm can get from the gradients.
-% Clipping the likelihood does change the invariant distribution, but if the clipping 
-% is limited the algorithm should remain accurate.
-%
-% Clipping the gradients of each individual iteration results in
-% \begin{align*}
-%     ||\nabla \log p(X\mid \theta) - \nabla \log p(X'\mid \theta)||_2
-%     &= ||\nabla \log p(x\mid \theta) - \nabla \log p(x'\mid \theta)||_2
-%     \leq 2L_g
-% \end{align*}
-% so 
-% \[
-%     c_g(\theta) = 2L_g
-% \]
-% and 
-% \[
-%     \rho_g = \frac{\sigma_p^2L_g^2}{2a}.
-% \]
-%
-% \(c_l\) consists of two term that depend on the data, the 
-% log likelihood term 
-% \[
-%     \sum_{i=1}^n \ln \frac{p(x_i\mid \theta')}{p(x_i\mid \theta)}
-% \]
-% and the log proposal ratio
-% \[
-%     \ln \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
-% \]
-%
-% The log likelihood term is the same that appears in DP penalty, and can be 
-% bound in the same way. If it is clipped such that
-% \(\left|\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right| \leq L||\theta - \theta'||_2\)
-% then
-% \[
-%     \Delta\left(\sum_{x_in X}\log \frac{p(x\mid \theta')}{p(x\mid \theta)}\right)
-%     \leq 2L||\theta - \theta'||_2.
-% \]
-%
-% The log proposal term does not appear in DP penalty, because it uses a symmetric 
-% proposal where the term is always 0. In DP MALA, the proposal is not symmetric, 
-% and depends on the data through \(\nabla \ln p(X\mid \theta)\), so the term 
-% must be included in the sensitivity calculation.
-%
-% Let \(d\) be the dimensionality of \(\theta\). Then
-% \[
-%     q(\theta\mid \theta', X) = \prod_{i=1}^d
-%     \frac{1}{\sqrt{2\pi a\sigma_p^2}}\exp\left(
-%     \frac{(\theta_i - \theta_i' - \frac{1}{2}\sigma_p^2
-%     \frac{\partial}{\partial \theta'_i} \log p(X, \theta'))^2}
-%     {2a\sigma_p^2}\right)
-% \]
-% \begin{align*}
-%     \log \frac{q(\theta\mid \theta', X)}{q(\theta'\mid \theta, X)}
-%     &= \sum_{i=1}^d \left(C +
-%     \frac{(\theta_i - \theta'_i
-%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2}
-%     {2a\sigma_p^2}\right)
-%     - \sum_{i=1}^d \left(C +
-%     \frac{(\theta_i' - \theta_i 
-%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2}
-%     {2a\sigma_p^2}\right)
-%   \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
-%     (\theta_i - \theta'_i
-%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i'} \log p(X\mid \theta'))^2
-%     - (\theta_i' - \theta_i 
-%     - \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i} \log p(X\mid \theta))^2
-%     \right)
-%   \\&=\frac{1}{2a\sigma_p^2} \sum_{i=1}^d \left(
-%     (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
-%     - (\theta_i' - \theta_i - G_i(X\mid \theta))^2\right)
-% \end{align*}
-%
-% Let 
-% \[
-%     G_i(X\mid \theta) = \frac{1}{2}\sigma_p^2\frac{\partial}{\partial \theta_i}
-%     \log p(X\mid \theta)
-% \]
-% As 
-% \[
-%     \log p(X\mid \theta) = \sum_{x\in X}\log p(x\mid \theta)
-% \]
-% if \(X\) and \(X'\) only differ in one row, those being \(x\) and \(x'\),
-% then
-% \begin{align*}
-%     G_i(X\mid \theta) - G_i(X'\mid \theta) 
-%     &= \frac{1}{2}\sigma_p^2\sum_{j=1}^n \frac{\partial}{\partial \theta_i}
-%     (\log p(x_j\mid \theta) - \log p(x'_j\mid \theta))
-%   \\&= \frac{1}{2}\sigma_p^2 \frac{\partial}{\partial \theta_i}
-%     (\log p(x\mid \theta) - \log p(x'\mid \theta))
-%   \\&= G_i(x\mid \theta) - G_i(x'\mid \theta)
-% \end{align*}
-% Let \(X^*\) be the equal part of \(X\) and \(X'\). Then 
-% \[
-% G_i(X\mid \theta) = G_i(X^*\mid \theta) + G_i(x\mid \theta)
-% \]
-% and 
-% \[
-%     G_i(X'\mid \theta) = G_i(X^*\mid \theta) + G_i(x'\mid \theta)
-% \]
-%
-% Additionally
-% \[
-%     (a + b)^2 - (a + c)^2 = 2a(b - c) + b^2 - c^2
-% \]
-% for any \(a, b, c\in \R\).
-%
-% Let 
-% \[
-% \Delta(X) = \left|\log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)} 
-% - \log \frac{q(\theta\mid \theta',X)}{q(\theta'\mid \theta,X)}\right|
-% \]
-% \begin{align*}
-%     \Delta(X) 
-%     &=
-%     \frac{1}{2a\sigma_p^2}
-%     \Bigg|\sum_{i=1}^d (\theta_i - \theta'_i - G_i(X\mid \theta'))^2
-%     - (\theta'_i - \theta_i - G_i(X\mid \theta))^2
-%   \\&- (\theta_i - \theta'_i - G_i(X'\mid \theta'))^2
-%     + (\theta'_i - \theta_i - G_i(X'\mid \theta))^2\Bigg|
-%   \\&=
-%     \frac{1}{2a\sigma_p^2}
-%     \Bigg|\sum_{i=1}^d \Big(
-%     (\theta_i - \theta'_i)^2 - 2(\theta_i - \theta'_i)G_i(X\mid \theta')
-%     + G_i(X\mid \theta')^2
-%   \\&- (\theta'_i - \theta_i)^2 + 2(\theta'_i - \theta_i)G_i(X\mid \theta)
-%     - G_i(X\mid \theta)^2
-%   \\&- (\theta_i - \theta_i')^2 + 2(\theta_i - \theta'_i)G_i(X'\mid \theta')
-%     - G_i(X'\mid \theta')^2
-%   \\&+ (\theta'_i - \theta_i)^2 - 2(\theta'_i - \theta_i)G_i(X'\mid \theta)
-%     + G_i(X'\mid \theta)^2\Big)\Bigg|
-%   \\&=
-%     \frac{1}{2a\sigma_p^2}
-%     \Bigg|\sum_{i=1}^d \Big(
-%     2(\theta'_i - \theta_i)(G_i(X\mid \theta) - G_i(X'\mid \theta))
-%     + 2(\theta_i - \theta'_i)(G_i(X'\mid \theta') - G_i(X\mid \theta'))
-%   \\&+ G_i(X\mid \theta')^2
-%     - G_i(X\mid \theta)^2
-%     - G_i(X'\mid \theta')^2
-%     + G_i(X'\mid \theta)^2\Big)\Bigg|
-%   \\&=
-%     \frac{1}{2a\sigma_p^2}
-%     \Bigg|\sum_{i=1}^d \Big(
-%     2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
-%     + G_i(x\mid \theta') - G_i(x'\mid \theta'))
-%   \\&+(G_i(X^*\mid \theta') + G_i(x\mid \theta'))^2
-%     - (G_i(X^*\mid \theta') + G_i(x'\mid \theta'))^2
-%   \\&+ (G_i(X^*\mid \theta) + G_i(x'\mid \theta))^2
-%     - (G_i(X^*\mid \theta) + G_i(x\mid \theta))^2\Big)\Bigg|
-%   \\&=
-%     \frac{1}{2a\sigma_p^2}
-%     \Bigg|\sum_{i=1}^d \Big(
-%     2(\theta'_i - \theta_i)(G_i(x\mid \theta) - G_i(x'\mid \theta) 
-%     + G_i(x\mid \theta') - G_i(x'\mid \theta'))
-%   \\&+ 2G_i(X^*\mid \theta')(G_i(x\mid \theta') - G_i(x'\mid \theta'))
-%   + G_i(x\mid \theta')^2 - G_i(x'\mid \theta')^2
-%   \\&+ 2G_i(X^*\mid \theta)(G_i(x'\mid \theta) - G_i(x\mid \theta))
-%   + G_i(x'\mid \theta)^2 - G_i(x\mid \theta)^2\Big)\Bigg|
-%   \\&\leq \frac{1}{2a\sigma_p^2}\Bigg(
-%   2\left|(\theta' - \theta)^T(G(x\mid \theta) - G(x'\mid \theta) 
-%   + G(x\mid \theta') - G(x'\mid \theta'))\right|
-%   \\&+ 2\left|G(X^*\mid \theta')^T(G(x\mid \theta') - G(x'\mid \theta'))\right|
-%   + 2\left|G(X^*\mid \theta)^T(G(x'\mid \theta) - G(x\mid \theta))\right|
-%   \\&+ |||G(x\mid \theta')||_2^2 - ||G(x'\mid \theta')||_2^2
-%   + ||G(x'\mid \theta)||_2^2 - ||G(x\mid \theta)||_2^2|
-%   \Bigg)
-% \end{align*}
-% Continued:
-% \begin{align*}
-%     \Delta(X)
-%     &\leq \frac{1}{2a}
-%   \left|(\theta' - \theta)^T(\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
-%   + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta'))\right|
-%   \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta')^T(\nabla \log p(x\mid \theta') 
-%   - \nabla \log p(x'\mid \theta'))\right|
-%   \\&+ \frac{\sigma_p^2}{4a}\left|\nabla \log p(X^*\mid \theta)^T(\nabla \log p(x'\mid \theta) 
-%   - \nabla \log p(x\mid \theta))\right|
-%   \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
-%   - ||\nabla \log p(x'\mid \theta')||_2^2
-%   + ||\nabla \log p(x'\mid \theta)||_2^2 
-%   - ||\nabla \log p(x\mid \theta)||_2^2\Big|
-%   \\&\leq \frac{1}{2a}
-%   ||\theta' - \theta||_2||\nabla\log p(x\mid \theta) - \nabla \log p(x'\mid \theta) 
-%   + \nabla\log p(x\mid \theta') - \nabla\log p(x'\mid \theta')||_2
-%   \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta')||_2||\nabla \log p(x\mid \theta') 
-%   - \nabla \log p(x'\mid \theta')||_2
-%   \\&+ \frac{\sigma_p^2}{4a}||\nabla \log p(X^*\mid \theta)||_2||\nabla \log p(x'\mid \theta) 
-%   - \nabla \log p(x\mid \theta)||_2
-%   \\&+ \frac{\sigma_p^2}{8a}\Big| ||\nabla \log p(x\mid \theta')||_2^2 
-%   - ||\nabla \log p(x'\mid \theta')||_2^2
-%   + ||\nabla \log p(x'\mid \theta)||_2^2 
-%   - ||\nabla \log p(x\mid \theta)||_2^2\Big|
-%   \\&\leq \frac{2}{a}L_g||\theta' - \theta||_2 + \frac{\sigma_p^2}{a}(n-1)L_g^2
-%   + \frac{\sigma_p^2L_g^2}{2a}
-% \end{align*}
-% with bound \(||\nabla \log p(x\mid \theta)||_2 \leq L_g\).
-% There may be possibility for improving the bound with additional information on
-% \(\nabla \log p(x\mid \theta) - \nabla \log p(x\mid \theta')\).
-%
-% Together with the bound on the log likelihood ration this implies that 
-% \[
-%     \Delta \lambda(X, \theta, \theta') 
-%     \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
-%     + \frac{\sigma_p^2}{a}(n - 1)L_g^2 + \frac{1}{2a}\sigma_p^2L_g^2 
-% \]
-%
-% If there is an additional bound \(||\log p(X\mid \theta)||_2 \leq L_S\), then
-% \(||\log p(X^*\mid \theta)||_2 \leq L_S + L_g\) and 
-% \[
-%     \Delta \lambda(X, \theta, \theta')
-%     \leq 2L||\theta - \theta'||_2 + \frac{2}{a}L_g||\theta - \theta'||_2 
-%     + \frac{\sigma_p^2}{a}(L_S + L_g) L_g + \frac{1}{2a}\sigma_p^2L_g^2 
-% \]
-% With large \(n\) this results in a much tighter sensitivity bound than the 
-% previous bound.
+The proposed variations of the penalty algorithm, one component updates and guided
+walk MH, are also applicable with subsampling. The sensitivity reduction from
+OCU may be especially useful as the variance sensitivity contains the square of
+the distance between the current and proposed parameter values, so reducing the
+distance by updating only a single component can greatly reduce the added noise.
 
 \chapter{Differentially Private Hamiltonian Monte Carlo}
 
@@ -1698,16 +1352,6 @@ DP HMC releases the log likelihood ratio \(k\) times and the gradient
   \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{kL + 1}{2\sigma_{g}'^{2}}.
 \]
 
-\chapter{Limitations and Alternatives of DP MCMC}
-
-\section{Dataset Size}
-
-\section{Alternatives to DP MCMC}
-
-\subsection{DP Variational Inference}
-\subsection{Releasing Summary Statistics Privately}
-\subsection{MCMC with synthetic data}
-
 \chapter{Evaluated Models}
 
 To compare the performance of the DP MCMC algorithms, they were run on
@@ -1964,7 +1608,7 @@ the true posterior mean of \((0,0)\).
 
 \include{model_params_table}
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \includegraphics[width=\textwidth]{figures/posterior_plots}
   \caption{
@@ -2008,7 +1652,7 @@ less than 10\%, clipping is likely undetectable without a large sample.
         the bottom row shows MMD as a function of the fraction of log likelihoods 
         that were clipped. The left columns used a 2-dimensional posterior 
         while the right columns had a 10-dimensional posterior. 
-        The black lines show the MMDs ten different samples of the true posterior
+        The black lines show the MMDs of ten different samples of the true posterior
         compared to the reference sample. All of the lines are close the each 
         other and appear as a single line.
     }
@@ -2017,26 +1661,51 @@ less than 10\%, clipping is likely undetectable without a large sample.
 
 \section{Comparison of DP MCMC Algorithms}\label{dp_mcmc_comparison}
 
+The experiments this section compare the DP MCMC algorithms discussed in this
+thesis. The compared algorithms are the DP penalty algorithm with and without
+guided walk MH and one component updates~\cite{YildirimE19}
+(Section~\ref{dp_penalty_section}), the DP Barker algorithm~\cite{HeikkilaJDH19}
+(Section~\ref{dp_barker_section}), the penalty algorithm with subsampling, again
+with and without GWMH and OCU (Section~\ref{dp_minibatch_penalty_section}) and
+DP HMC (Section~\ref{dp_hmc_section}).
+
+The hyperparameters of the algorithms
+were tuned by running the algorithms with \(\epsilon = 4\) and examining the
+results, trying to find hyperparameters that minimise MMD. Clip bounds were
+tuned so that less than 10\% of the log likelihood ratios were clipped,
+as the results of Section~\ref{clipping_experiments} show minimal effect on
+MMD at that point.
+
+Figure~\ref{banana_mmd_fig} shows the MMD for each algorithm as a function of
+\(\epsilon\) for the flat and tempered banana models with 2 and 10 dimensions.
+In the non-tempered models, the minibatch algorithms are not are not very useful,
+with the exception of DP Barker in 10 dimensions. Of the non-minibatch algorithms,
+with tempering HMC beats the penalty algorithms, but without tempering this is
+reversed.
+
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figures/banana_mmd.pdf}
   \caption{
     MMD as a function of \(\epsilon\) for the different MCMC algorithms,
-    with both tempering and a low number of dimensions (2) and a high number
-    of dimensions (10).
+    on flat and tempered banana models with both a low number of dimensions (2)
+    and a high number of dimensions (10).
   }
   \label{banana_mmd_fig}
 
 \end{figure}
 
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{figures/banana_clipping.pdf}
-  \caption{
-    Clipping for the easy and tempered banana experiments.
-  }
-  \label{banana_clipping_fig}
-\end{figure}
+Figure~\ref{banana_extra_mmd_fig} shows MMDs for the more complicated models,
+the 30-dimensional Gaussian, the narrow banana and the highly correlated Gaussian.
+The minibatch algorithms were not included as the previous experiment indicates
+that they perform poorly without tempering.
+In the 30-dimensional Gaussian, DP penalty with OCU and GWMH beats the other
+two algorithms, with DP HMC narrowly beating DP penalty. In the narrow
+banana all algorithms are approximately equal, until \(\epsilon = 4\) where
+DP penalty0 OCU+GWMH has huge variance in MMD, and in the higher values of
+\(\epsilon\) where it performs extremely poorly. In the highly correlated
+Gaussian experiment, the penalty algorithms perform equally, and HMC beats
+both of them.
 
 \begin{figure}
   \centering
@@ -2048,6 +1717,26 @@ less than 10\%, clipping is likely undetectable without a large sample.
   \label{banana_extra_mmd_fig}
 \end{figure}
 
+Figure~\ref{banana_clipping_fig} shows the fraction of log likelihood ratios
+that were clipped for each epsilon and algorithm. Almost all runs had
+less than 10\% clipping, with the exception of DP Barker, as adjusting its
+clip bound is not possible.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/banana_clipping.pdf}
+  \caption{
+    Clipping for the easy and tempered banana experiments.
+  }
+  \label{banana_clipping_fig}
+\end{figure}
+
+Figure~\ref{banana_extra_clipping_fig} shows clipping for the harder models.
+Again, almost all runs have less than 10\% clipping, with the exception of
+DP penalty OCU+GWMH on the narrow banana, where the high amount of clipping
+could explain the poor performance of the algorithm with larger values
+of \(\epsilon\).
+
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figures/banana_extra_clipping}
@@ -2058,6 +1747,16 @@ less than 10\%, clipping is likely undetectable without a large sample.
   \label{banana_extra_clipping_fig}
 \end{figure}
 
+Figure~\ref{banana_grad_clipping_fig} shows the fraction of clipped
+gradients for DP HMC. Clipping gradients does not affect the asymptotic
+convergence of DP HMC, but it may lower the acceptance rate and thus
+the performance of the algorithm. As raising the clip bound to lower
+gradient clipping increases the noise added to gradient, thus also lowering
+the acceptance rate, it is not clear what an appropriate level of gradient
+clipping would be. The observed levels of clipping are fairly constant across
+values of \(\epsilon\), but vary in the models, and in the narrow banana model,
+there is very large variance in clipping.
+
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{figures/banana_grad_clipping}
@@ -2066,6 +1765,14 @@ less than 10\%, clipping is likely undetectable without a large sample.
   }
   \label{banana_grad_clipping_fig}
 \end{figure}
+
+Figure~\ref{circle_fig} shows the results for the circle model. The distance
+of the sample mean from the true mean (the origin) were used instead of MMD,
+as computing MMD requires a sample from the posterior, which is not trivial
+to obtain for the circle model. Both algorithms perform well on average, with
+HMC slightly beating DP penalty on \(\epsilon = 0.5\). Clipping is again low
+for both algorithms, and HMC has a fairly large variance in clipping between
+different runs.
 
 \begin{figure}
   \centering
@@ -2244,19 +1951,8 @@ less than 10\%, clipping is likely undetectable without a large sample.
             \frac{1}{Tn\tau_d + \tau_0}
         \right).
     \]
-    % with parameters \(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0}\),
-    % \(\frac{Tn\tau_2\bar{x}_2}{Tn\tau_2 + \tau_0}\), \(Tn\tau_1 + \tau_0\),
-    % \(Tn\tau_2 + \tau_0\), \(a\) and \(b\).
 \end{proof}
 \setcounter{theorem}{\value{temp_counter}}
-
-\chapter{Code example\label{appendix:code}}
-Program code can be added as appendix:
-\begin{verbatim}
-#!/bin/bash
-text="Hello World!"
-echo $text
-\end{verbatim}
 
 \end{appendices}
 

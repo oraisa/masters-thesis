@@ -20,9 +20,9 @@ df = pd.read_csv(
 )
 
 algorithm_names = {
-    "hmc": "HMC", "dpps": "DP Penalty", "dppa": "DP Penalty Advanced",
-    "mdpps": "Minibatch DP Penalty", "mdppa": "Minibatch DP Penalty Advanced",
-    "barker": "Barker"
+    "hmc": "DP HMC", "dpps": "DP Penalty", "dppa": "DP Penalty OCU+GWMH",
+    "mdpps": "Minibatch DP Penalty", "mdppa": "Minibatch DP Penalty OCU+GWMH",
+    "barker": "DP Barker"
 }
 hue_order_short = ["hmc", "dpps", "dppa", "mdpps", "mdppa", "barker"]
 hue_order = [algorithm_names[algo] for algo in hue_order_short]
@@ -89,14 +89,14 @@ plot_mmd_clip_acceptance(
 
 plot_mmd_clip_acceptance(
     extra_hue_order, [[df_gauss_30d], [df_hard_2d], [df_gauss_hard_2d]],
-    np.array(("d = 30, Gaussian", "d = 2, hard banana", "d = 2, correlated Gaussian")).reshape((3, 1)),
+    np.array(("d = 30, Gaussian", "d = 2, narrow banana", "d = 2, correlated Gaussian")).reshape((3, 1)),
     "../Thesis/figures/banana_extra.pdf",
     "../Thesis/figures/banana_extra_clipping.pdf",
     "../Thesis/figures/banana_extra_acceptance.pdf"
 )
 
 plot_data(
-    "Grad Clipping", ["HMC"],
+    "Grad Clipping", ["DP HMC"],
     [
         [df_easy_2d, df_tempered_2d], [df_easy_10d, df_tempered_10d],
         [df_gauss_30d, df_gauss_hard_2d], [df_hard_2d, None]
@@ -104,7 +104,7 @@ plot_data(
     np.array((
         ("d = 2, non-tempered", "d = 2, tempered"), ("d = 10, non-tempered", "d = 10, tempered"),
         ("d = 30, Gaussian", "d = 2, correlated Gaussian"),
-        ("d = 2, hard banana", None)
+        ("d = 2, narrow banana", None)
     )),
     (0, 0.5), "../Thesis/figures/banana_grad_clipping.pdf",
     legend_outside=False
