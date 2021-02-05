@@ -3,6 +3,7 @@ import numpy.random
 import scipy.stats as stats
 from scipy.special import binom
 import numpy.linalg
+import fourier_accountant as fa
 import util
 
 class MinibatchPenaltyParams:
@@ -54,6 +55,27 @@ def maximize_iterations(epsilon, delta, n, b, tau, max_alpha=200):
             max_iters = iters
     return max(0, max_iters)
 
+def adp_delta(iters, epsilon, tau, n, b):
+    return fa.get_delta_S(target_eps=epsilon, sigma=np.sqrt(tau), q=b/n, ncomp=int(iters))
+
+def adp_iters(epsilon, delta, tau, n, b):
+    low_iters = 1#maximize_iterations(epsilon, delta, n, b, tau)
+    up_iters = low_iters
+    while adp_delta(up_iters, epsilon, tau, n, b) < delta:
+        up_iters *= 2
+    while int(up_iters) - int(low_iters) > 1:
+        new_iters = (low_iters + up_iters) / 2
+        new_delta = adp_delta(new_iters, epsilon, tau, n, b)
+        if new_delta > delta:
+            up_iters = new_iters
+        else:
+            low_iters = new_iters
+
+    if adp_delta(int(up_iters), epsilon, tau, n, b) < delta:
+        return int(up_iters)
+    else:
+        return int(low_iters)
+
 def d(current, proposal):
     return np.sqrt(np.sum((current - proposal)**2))
 
@@ -66,7 +88,7 @@ def c(current, proposal, n, b, temp_scale, clip_bound):
 def sigma(current, proposal, tau, n, b, temp_scale, clip_bound):
     return np.sqrt(tau) * c(current, proposal, n, b, temp_scale, clip_bound)
 
-def dp_penalty_minibatch(problem, epsilon, delta, params, verbose=True):
+def dp_penalty_minibatch(problem, epsilon, delta, params, verbose=True, use_fa=True):
     one_component = params.ocu
     if params.grw:
         one_component = True # Guided random walk requires one component updates
@@ -78,7 +100,11 @@ def dp_penalty_minibatch(problem, epsilon, delta, params, verbose=True):
     dim = beta_0.size
     n, data_dim = data.shape
 
-    T = maximize_iterations(epsilon, delta, n, params.batch_size, params.tau)
+    if use_fa:
+        T = adp_iters(epsilon, delta, params.tau, n, params.batch_size)
+    else:
+        T = maximize_iterations(epsilon, delta, n, params.batch_size, params.tau)
+
     if verbose:
         print("Max iterations: {}".format(T))
     if params.grw:

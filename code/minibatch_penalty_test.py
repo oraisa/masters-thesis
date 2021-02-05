@@ -8,19 +8,19 @@ import util
 
 # np.random.seed(53726482)
 
-dim = 10
-problem = banana_model.get_problem(dim=dim, a=20, n0=None, n=200000)
+dim = 2
+problem = banana_model.get_problem(dim=dim, a=20, n0=1000, n=200000)
 n, data_dim = problem.data.shape
 
 epsilon = 4
 delta = 0.1 / n
 params = dp_penalty_minibatch.MinibatchPenaltyParams(
     tau = 0.6,
-    prop_sigma = np.repeat(8 * 0.00006, 10),
+    prop_sigma = np.repeat(8 * 0.00006, 2),
     r_clip_bound = 3.5,
     batch_size = 1000,
-    ocu = True,
-    grw = True
+    ocu = False,
+    grw = False
 
     # tau = 0.6,
     # prop_sigma = np.array((8, 7, 5, 5, 5, 5, 5, 5, 5, 5)) * 0.00006,
