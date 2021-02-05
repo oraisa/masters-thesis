@@ -37,7 +37,7 @@
 \author{Ossi Räisä}
 \date{\today}
 \prof{Associate Professor Antti Honkela}
-\censors{Associate Professor Antti Honkela}{Dr. Antti Koskela}{}
+\censors{Associate Professor Antti Honkela}{Doctor Antti Koskela}{}
 \keywords{Differential Privacy, Markov Chain Monte Carlo}
 \depositeplace{}
 \additionalinformation{}
@@ -806,7 +806,7 @@ The sensitivity of \(\sigma_b^2\) must be bounded separately.
     into the last expression proves the claim.
 \end{proof}
 
-\begin{theorem}
+\begin{theorem}\label{dp_penalty_minibatch_theorem}
     Let
     \[
         \Delta_\lambda = \frac{2nTL}{|B|}||\theta - \theta'||_2,
@@ -1286,6 +1286,38 @@ DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
     \label{dp_hmc_algo}
 \end{algorithm}
 
+Like the DP penalty algorithm, DP HMC is a composition of Gaussian mechanisms,
+and its privacy bounds can be computed through Theorems~\ref{composition-theorem}
+and \ref{gauss-DP-bounds} for zCDP.
+% Computing the ADP bound directly with
+% Theorem \ref{gauss-DP-bounds} is not possible because the gradients and
+% log likelihood ratios have different sensitivities and noise levels. However,
+% the proof of Theorem~\ref{gauss-DP-bounds}~\cite{Sommer2019} is straightforward
+% to extend to this case.
+
+\begin{theorem}\label{dp_hmc_theorem_zcdp}
+  Let \(\epsilon \geq 0\), \(0 \leq \delta < 1\), \(\tau_{g} > 0\), \(\tau_{l} > 0\),
+  \(b_{g} > 0\), \(b_{l} > 0\),
+  \[\sigma_l(\theta, \theta') = 2\tau_l\sqrt{n}b_l||\theta - \theta'||_2,\]
+  \[\sigma_g = 2\tau_g\sqrt{n}b_g,\]
+  \[
+    \rho = \left(\sqrt{\epsilon - \ln \delta} - \sqrt{-\ln \delta}\right)^2,
+  \]
+  \[
+    \rho_l = \frac{1}{2\tau_l^2n},
+  \]
+  \[
+    \rho_g = \frac{1}{2\tau_g^2n},
+  \]
+  Then DP HMC can be run for
+  \[
+    k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
+  \]
+  iterations using \(\sigma_{l}\) as log likelihood ratio noise variance,
+  \(\sigma_{g}\) as gradient noise variance, clipping log likelihood ratios
+  with \(b_{l}\) and clipping gradients by \(b_{g}\).
+\end{theorem}
+\begin{proof}
 Each iteration of the outer for-loop computes the gradient \(L\) times and
 the log likelihood ratio once. The gradient is also computed once before the
 outer for-loop. Releasing a single gradient has zCDP privacy
@@ -1309,14 +1341,41 @@ is
 \[
     k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
 \]
+\end{proof}
 
-zCDP based privacy accounting is loose, to the above bound could be improved 
-by using the tight bound for the Gaussian mechanism. Because DP HMC has both
+zCDP based privacy accounting is loose, so the above bound could be improved
+by using the tight bound for the Gaussian mechanism from
+Theorem~\ref{gauss-DP-bounds}. Because DP HMC has both
 different sensitivities and different noise variances between the log likelihood
 ratios and gradients, Theorem~\ref{gauss-DP-bounds} is not directly applicable.
-However, the bound of Theorem~\ref{gauss-DP-bounds} is extendable to differing variances
-between composition.
+However, the bound of Theorem~\ref{gauss-DP-bounds} does generalise to differing
+variances between composition.
 
+\begin{theorem}\label{dp_hmc_theorem_adp}
+  Let \(\epsilon \geq 0\), \(0 \leq \delta < 1\), \(\tau_{l} > 0\),
+  \(\tau_{g} > 0\), \(b_{l} > 0\), \(b_{g} > 0\),
+  \[
+    \sigma_{l}'^{2} = \tau_{l}^{2}n,
+  \]
+  \[
+    \sigma_{g}'^{2} = \tau_{g}^{2}n.
+  \]
+  Then running DP HMC for \(k\) iterations with \(L\) leapfrog steps,
+  using \(2b_{l}\sigma_{l}'^{2}||\theta - \theta'||_{2}\) as the log likelihood ratio
+  noise variance, \(2b_{g}\sigma_{g}'^{2}\) as the gradient noise variance
+  and \(b_{l}\) and \(b_{g}\) as the log likelihood and gradient clip bounds
+  is \((\epsilon, \delta(\epsilon))\)-ADP where
+  \[
+    \delta(\epsilon) = \frac{1}{2}\left(
+      \erfc\left(\frac{\epsilon - \mu}{2\sqrt{\mu}}\right)
+      - e^{\epsilon}\erfc\left(\frac{\epsilon + \mu}{2\sqrt{\mu}}\right)\right)
+  \]
+  and
+  \[
+    \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{kL + 1}{2\sigma_{g}'^{2}}.
+  \]
+\end{theorem}
+\begin{proof}
 Sommer et. al.~\cite{Sommer2019} prove the ADP bound of Theorem~\ref{gauss-DP-bounds} with
 the \emph{privacy loss distribution} (PLD) of the Gaussian mechanism. First, they
 show that the PLD of the Gaussian mechanism with sensitivity \(\Delta\) and variance
@@ -1350,7 +1409,9 @@ DP HMC releases the log likelihood ratio \(k\) times and the gradient
 \(\caln(\mu, 2\mu)\) with
 \[
   \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{kL + 1}{2\sigma_{g}'^{2}}.
+  \qedhere
 \]
+\end{proof}
 
 \chapter{Evaluated Models}
 
@@ -1668,6 +1729,16 @@ guided walk MH and one component updates~\cite{YildirimE19}
 (Section~\ref{dp_barker_section}), the penalty algorithm with subsampling, again
 with and without GWMH and OCU (Section~\ref{dp_minibatch_penalty_section}) and
 DP HMC (Section~\ref{dp_hmc_section}).
+
+The \(\delta\) for all experiments is \(\frac{0.1}{n}\), and \(\epsilon\) is
+varied.
+All algorithms used the best privacy accounting methods discussed in this thesis.
+For both variants of DP penalty and DP HMC, these are the PLD based
+Theorems~\ref{DP_penalty_theorem_adp} and \ref{dp_hmc_theorem_adp}.
+DP penalty with subsampling uses Theorem~\ref{dp_penalty_minibatch_theorem}
+and DP Barker uses Theorem~\ref{dp_barker_theorem}. The RDP based theorems
+for the minibatch algorithms are not tight for the ADP bounds that were used,
+so their results could be improved by using an accounting method for ADP.
 
 The hyperparameters of the algorithms
 were tuned by running the algorithms with \(\epsilon = 4\) and examining the
