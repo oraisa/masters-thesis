@@ -126,6 +126,11 @@
 
 \chapter{Background}
 
+This chapter covers the basics of differential privacy, Bayesian inference
+and Markov chain Monte Carlo algorithms needed in the later chapters. To keep
+the introduction brief, only directly needed concepts are covered, and much
+of the motivation behind the subjects is left out.
+
 \section{Differential Privacy}\label{DP_background}
 
 Differential privacy~\cite{DwR14} is a property of an algorithm that quantifies the 
@@ -444,8 +449,9 @@ to amplify privacy.
 
 In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
 Metropolis-Hastings called the penalty 
-algorithm, where only a noisy approximation of \(\lambda\) is known. They 
-developed the algorithm for simulations in physics where computing \(\lambda\)
+algorithm, where only a noisy approximation of \(\lambda\) is known. The
+original algorithm was
+developed for simulations in physics where computing \(\lambda\)
 requires computing energies of complex systems, which can only be approximated.
 The penalty algorithm modifies the acceptance probability to account for the 
 noise added to \(\lambda\) and still converges to the correct distribution if 
@@ -463,7 +469,8 @@ The corrected acceptance probability for Gaussian noise with variance
 Theorem~\ref{DP_penalty_theorem_zcdp} gives the number of iterations DP penalty 
 can be run for when the privacy cost is computed through zCDP, which is 
 what Yildirim and Ermis prove in their paper~\cite{YildirimE19}. A tighter, but 
-harder to use, bound can be reached without using zCDP. This is given by 
+harder to use, bound can be reached by using the ADP bound of
+Theorem~\ref{gauss-DP-bounds}, without using zCDP. This is given by
 Theorem~\ref{DP_penalty_theorem_adp}.
 
 \begin{theorem}\label{DP_penalty_theorem_zcdp}
@@ -536,7 +543,8 @@ for all \(D_j, \theta\) and \(\theta'\) then
 \[
     c(\theta, \theta') \leq 2L||\theta - \theta'||_2
 \]
-The former bound is true in some model, such as logistic regression. In other 
+The former bound is true in some models, such as logistic
+regression~\cite{YildirimE19}. In other
 models it can be forced by clipping the log likelihood ratios to the interval 
 \([-L||\theta - \theta'||_2, L||\theta - \theta'||_2]\). This will remove the 
 guarantee of eventually converging to the correct posterior, but if \(L\) is 
@@ -551,8 +559,8 @@ changes in one dimension in a multidimensional problem. This decreases
 \(||\theta - \theta'||_2\), which means that it decreases the noise variance.
 
 The second improvement is called \emph{guided walk Metropolis Hastings}
-(GRMH)~\cite{YildirimE19}.
-In GRMH, proposals change only one dimension, as above. Additionally, a direction
+(GWMH)~\cite{YildirimE19}.
+In GWMH, proposals change only one dimension, as above. Additionally, a direction
 is associated with each dimension, and proposals are only made the current 
 direction of the chosen dimension. After an accepted proposal, the direction is 
 kept the same, but after a reject it is switched. This means that the chain can
@@ -861,6 +869,27 @@ The sensitivity of \(\sigma_b^2\) must be bounded separately.
     when run for \(k\) iterations for integer \(\alpha \geq 2\).
 \end{proof}
 
+Theorem~\ref{dp_penalty_minibatch_theorem} does not give tight bounds for ADP,
+as it is based on RDP. Computing tight ADP bounds for the minibatch penalty
+algorithm requires an analogue of the ADP bound of Theorem~\ref{gauss-DP-bounds}
+for the Gaussian mechanism with subsampling. An analytical and tight ADP bound for
+the subsampled Gaussian mechanism is not known, but the \emph{Fourier accountant}
+of Koskela et.\ al.~\cite{KJH20} can approximate the tight bound with a very small
+error.
+
+The Fourier accountant takes the subsampling ratio \(q\) and noise variance,
+and computes the ADP bounds of the subsampled Gaussian mechanism with sensitivity
+1. For the minibatch penalty algorithm, the released value
+\(\lambda - \frac{1}{2}\sigma_{b}^{2}\) has sensitivity \(c(\theta, \theta')\),
+and noise variance \(\tau c^{2}(\theta, \theta')\), but if the released value is
+normalised to have sensitivity 1, the noise variance becomes \(\tau\), which makes
+the Fourier accountant easy to apply to the minibatch penalty algorithm.
+
+The DP Barker algorithm, like minibatch penalty, uses RDP to compute privacy
+bounds. Using the Fourier accountant with DP Barker may be possible, but it is
+not as simple as with minibatch penalty, as DP Barker does not consider
+releasing the sample variance \(\sigma_{b}^{2}\) directly.
+
 The appearance of \(n\) as a multiplier of \(\Delta_\lambda\) and 
 \(n^2\) as a multiplier of \(\Delta_\sigma\) causes the noise variance to increase 
 with \(n\), without a corresponding decrease in \(\epsilon'\). This makes subsampled 
@@ -886,10 +915,10 @@ Bayesian inference.
 
 HMC simulates the trajectory of a moving particle in a way 
 that allows it to draw samples from a target distribution~\cite{neal2012mcmc}. 
-With perfect simulation 
+With perfect simulation,
 an acceptance test would not be needed, but exact simulation of the moving particle 
-is typically not possible so a Metropolis-Hastings acceptance test is used
-for proposal generated by the simulation. Despite imperfections, the simulation can generate long jumps 
+is typically not possible, so a Metropolis-Hastings acceptance test is used
+for proposals generated by the simulation. Despite imperfections, the simulation can generate long jumps
 that stay in areas of high probability, giving HMC a higher acceptance rate 
 that Metropolis-Hastings using a Gaussian distribution as the proposal, at the 
 cost of higher computational requirements.
@@ -925,7 +954,7 @@ Given \(H(\theta, p) = U(\theta) + \frac{p^{T}p}{2m}\), Hamilton's equations bec
 These equations define a function \(T_t\) taking an initial state 
 \((\theta, p)\) of the particle to the state \(T(\theta, p)\) after time \(t\).
 Solving \(T_t\) analytically is usually not possible, but \(T_t\) can be 
-approximately simulated by the leapfrog method. The leapfrog method sequentially 
+approximately simulated by the \emph{leapfrog method}. The leapfrog method sequentially
 updates an estimate \((\theta_i, p_i)\) of the state in steps \(L\) of \(\eta\) 
 as follows:
 \begin{align*}
@@ -989,8 +1018,7 @@ where the first equality follows from the change of variables formula.
 
 The leapfrog method does not conserve the Hamiltonian exactly, but it 
 preserves volumes and is reversible exactly~\cite{neal2012mcmc}. 
-These properties of the leapfrog 
-method are important for its use as a proposal mechanism for MCMC.
+These properties are important for its use as a proposal mechanism for MCMC.
 
 The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
 \[
@@ -1037,7 +1065,7 @@ that the acceptance probability mainly depends on \(\eta\).
 
 HMC only uses the model log likelihood, and thus the data, through \(U\).
 \(U\) is used in two ways. Firstly, its value is used in the acceptance test,
-and secondly, its gradients are used in to obtain proposals. Adding appropriate
+and secondly, its gradients are used to obtain proposals. Adding appropriate
 amounts of noise to both accesses would make HMC private, but the addition of
 noise may break some of the properties required for the algorithm's correctness.
 
@@ -1054,14 +1082,14 @@ of the Hamiltonians in the acceptance probability is
   + \frac{1}{2}(p^{T}M^{-1}p - p'^{T}M^{-1}p').
 \]
 As with the penalty algorithm, the sensitivity of the log likelihood ratios must
-be bounded. If a bound does not exist, clipping must be used, nullifies the asymptotic
+be bounded. If a bound does not exist, clipping must be used, nullifying the asymptotic
 converge guarantee of the algorithm. However, in Section~\ref{clipping_experiments}
 it is shown that
 clipping low numbers of gradients does not affect convergence in practice.
 
 Releasing the gradients privately requires a trade-off. The leapfrog method remains
 reversible with noisy and potentially clipped gradients, as is shows in the following,
-but they no longer simulate the correct Hamiltonian dynamics~\cite{CFG14}. This does not affect
+but it no longer simulate the correct Hamiltonian dynamics~\cite{CFG14}. This does not affect
 asymptotic convergence, but it can potentially lower acceptance rates.
 The dynamics can be corrected by adding a friction term to the equations of
 motion of the simulation~\cite{CFG14}, but this removes volume preservation of the simulation,
@@ -1242,9 +1270,6 @@ to
 \]
 which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
 
-DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
-
-%TODO: the gradient does not have to be computed L + 1 times at every iteration
 \begin{algorithm}[H]
     \SetAlgoLined
     \(G_{1,0} = \mathrm{grad}(\theta_{0}, b_g)\)\\
@@ -1286,6 +1311,7 @@ DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
     \label{dp_hmc_algo}
 \end{algorithm}
 
+DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
 Like the DP penalty algorithm, DP HMC is a composition of Gaussian mechanisms,
 and its privacy bounds can be computed through Theorems~\ref{composition-theorem}
 and \ref{gauss-DP-bounds} for zCDP.
@@ -1313,8 +1339,8 @@ and \ref{gauss-DP-bounds} for zCDP.
   \[
     k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
   \]
-  iterations using \(\sigma_{l}\) as log likelihood ratio noise variance,
-  \(\sigma_{g}\) as gradient noise variance, clipping log likelihood ratios
+  iterations using \(\sigma_{l}^{2}\) as log likelihood ratio noise variance,
+  \(\sigma_{g}^{2}\) as gradient noise variance, clipping log likelihood ratios
   with \(b_{l}\) and clipping gradients by \(b_{g}\).
 \end{theorem}
 \begin{proof}
@@ -1340,6 +1366,7 @@ This means that the number of iteration that the algorithm is allowed to run for
 is 
 \[
     k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
+    \qedhere
 \]
 \end{proof}
 
@@ -1667,6 +1694,14 @@ latter half was compared to a reference sample obtained from the true posterior,
 except in the circle experiment, where the mean of the sample was compared to
 the true posterior mean of \((0,0)\).
 
+Publicly available implementations of DP Barker
+\footnote{\url{https://github.com/DPBayes/DP-MCMC-NeurIPS2019}}
+and the Fourier accountant
+\footnote{\url{https://github.com/DPBayes/PLD-Accountant}} were
+used, and the rest of the algorithms were implemented by the author.
+The code for running the experiments is freely available.
+\footnote{\url{https://github.com/oraisa/masters-thesis}}
+
 \include{model_params_table}
 
 \begin{figure}[h]
@@ -1735,7 +1770,7 @@ varied.
 All algorithms used the best privacy accounting methods discussed in this thesis.
 For both variants of DP penalty and DP HMC, these are the PLD based
 Theorems~\ref{DP_penalty_theorem_adp} and \ref{dp_hmc_theorem_adp}.
-DP penalty with subsampling uses Theorem~\ref{dp_penalty_minibatch_theorem}
+DP penalty with subsampling uses the Fourier accountant~\cite{KJH20}
 and DP Barker uses Theorem~\ref{dp_barker_theorem}. The RDP based theorems
 for the minibatch algorithms are not tight for the ADP bounds that were used,
 so their results could be improved by using an accounting method for ADP.
@@ -2021,6 +2056,7 @@ different runs.
             \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
             \frac{1}{Tn\tau_d + \tau_0}
         \right).
+        \qedhere
     \]
 \end{proof}
 \setcounter{theorem}{\value{temp_counter}}
