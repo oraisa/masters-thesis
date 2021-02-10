@@ -87,6 +87,7 @@
 \newcommand{\kl}{D_{\mathrm{KL}}}
 \newcommand{\dmid}{\mid\mid}
 \newcommand{\var}{\mathrm{Var}}
+\newcommand{\dx}{\mathrm{d}}
 \newcommand{\calm}{{\mathcal{M}}}
 \newcommand{\calx}{{\mathcal{X}}}
 \newcommand{\calu}{{\mathcal{U}}}
@@ -132,21 +133,26 @@ the introduction brief, only directly needed concepts are covered, and much
 of the motivation behind the subjects is left out.
 
 \section{Differential Privacy}\label{DP_background}
-
-Differential privacy~\cite{DwR14} is a property of an algorithm that quantifies the 
+\emph{Differential privacy} (DP)~\cite{DwR14} is a property of
+an algorithm that quantifies the
 amount of information about private data an adversary can gain from the 
 publication of the algorithm's output.
 The most commonly used definition uses two real numbers, 
 \(\epsilon\) and \(\delta\), to quantify the information gain, or, from the 
 perspective of a data subject, the privacy loss of the algorithm.
+DP algorithms must necessarily\footnote{Unless the algorithm does not
+actually use the private data.} include randomness to mask influence of the
+private data, so all of the considered algorithms in this thesis are randomised.
+DP randomised algorithms are also called \emph{mechanisms} in this thesis, and in the
+DP literature.
 
-The most common definition is called \((\epsilon, \delta)\)-DP, approximate DP 
-or ADP~\cite{DwR14}.
+The most common definition is called \((\epsilon, \delta)\)-approximate
+differential privacy (ADP)~\cite{DwR14}.
 The case where \(\delta = 0\) is called \(\epsilon\)-DP or 
 pure DP.
 
 \begin{definition}\label{ADP-definition}
-    An algorithm \(\calm\colon \calx \to \calu\) is \((\epsilon, \delta)\)-ADP if 
+    A mechanism \(\calm\colon \calx \to \calu\) is \((\epsilon, \delta)\)-ADP if
     for all neighbouring inputs \(x\in \calx\) and \(x'\in \calx\) and 
     all measurable sets \(S \subset \calu\)
     \[
@@ -171,7 +177,10 @@ to compute \((\epsilon, \delta)\)-bounds for ADP. This thesis uses two of them:
 Rényi-DP (RDP)~\cite{Mironov17} and 
 zero-concentrated differential privacy (zCDP)~\cite{BuS16}. Both are based 
 on Rényi divergence~\cite{Mironov17}, which is a particular way of 
-measuring the difference between random variables.
+measuring the distance\footnote{
+  Statistical divergences are commonly called distances, even though they
+  typically are not metrics.
+} between random variables.
 
 \begin{definition}
     For random variables with density or probability mass functions 
@@ -179,7 +188,7 @@ measuring the difference between random variables.
     \(1 < \alpha < \infty\) is
     \[
         D_\alpha(P\dmid Q) = \frac{1}{\alpha - 1}\ln E_{x\sim Q}
-        \left(\frac{P(x)^\alpha}{Q(y)^\alpha}\right).
+        \left(\frac{P(x)^\alpha}{Q(x)^\alpha}\right).
     \]
     Orders \(\alpha = 1\) and \(\alpha = \infty\) are defined 
     by continuity:
@@ -192,11 +201,11 @@ measuring the difference between random variables.
 \end{definition}
 
 Both Rényi-DP and zCDP can be expressed as bounds on the 
-Rényi divergence between the outputs of an algorithm with 
+Rényi divergence between the outputs of a randomised algorithm with
 neighbouring inputs:
 
 \begin{definition}
-    An algorithm \(\calm\) is \((\alpha, \epsilon)\)-Rényi DP 
+    A mechanism \(\calm\) is \((\alpha, \epsilon)\)-Rényi DP
     if for all \(x \sim x'\)
     \[
         D_\alpha(\calm(x)\dmid \calm(x')) \leq \epsilon.
@@ -218,21 +227,21 @@ Rényi-DP and zCDP bounds can be converted to ADP bounds~\cite{Mironov17, BuS16}
 \end{theorem}
 
 A very useful property of all of these definitions is composition~\cite{DwR14}: 
-if algorithms \(\calm\) and \(\calm'\) are DP, the algorithm first computing 
+if mechanisms \(\calm\) and \(\calm'\) are DP, the mechanism first computing
 \(\calm\) and then \(\calm'\), outputting both results, 
 is also DP, although with worse bounds.
-More precisely
+More precisely:
 
-\begin{definition}
+\begin{definition}\label{composition_definition}
     Let \(\calm\colon \calx \to \calu\) and 
-    \(\calm'\colon \calx\times \calu \to \calu'\) be algorithms.
-    Their composition is the algorithm outputting 
+    \(\calm'\colon \calx\times \calu \to \calu'\) be mechanisms.
+    Their composition is the mechanism outputting
     \((\calm(x), \calm'(x, \calm(x)))\) for input \(x\).
 \end{definition}
 
 \begin{theorem}\label{composition-theorem}
     Let \(\calm\colon \calx \to \calu\) and 
-    \(\calm\colon \calx\times \calu \to \calu'\) be algorithms. Then 
+    \(\calm\colon \calx\times \calu \to \calu'\) be mechanisms. Then
     \begin{enumerate}
         \item 
             If \(\calm\) is \((\epsilon, \delta)\)-ADP and 
@@ -256,47 +265,60 @@ of the previous steps, not only on the private data. There are also other compos
 theorems for ADP that trade increased \(\delta\) for decreased \(\epsilon\)
 or vice-versa, but this thesis does not apply them directly.
 
-As any algorithm that does not use private data in any way is 
+As any randomised algorithm that does not use private data in any way is
 \((0, 0)\)-ADP, 0-zCDP and \((\alpha, 0)\)-RDP with all \(\alpha\), 
 Theorem~\ref{composition-theorem} has the following corollary, called 
 post-processing immunity:
 
 \begin{theorem}
-    Let \(\calm\colon \calx\to \calu\) be an ADP, RDP or zCDP algorithm with 
-    some privacy parameters. Let \(f\colon \calu\to \calu'\) be any algorithm 
-    not using the private data. Then the composition of \(\calm\) and \(f\)
-    is ADP, RDP or zCDP with the same privacy parameters.
+  Let \(\calm\colon \calx\to \calu\) be an \((\epsilon, \delta)\)-ADP,
+  \((\alpha, \epsilon)\)-RDP or \(\rho\)-zCDP mechanism.
+  Let \(f\colon \calu\to \calu'\) be any randomised algorithm
+  not using the private data. Then the composition of \(\calm\) and \(f\)
+  is \((\epsilon, \delta)\)-ADP, \((\alpha, \epsilon)\)-RDP or \(\rho\)-zCDP.
 \end{theorem}
 
-There are many different DP algorithms that are commonly used, which are also
-called mechanisms~\cite{DwR14}. This thesis only requires one of the most commonly 
+There are many different DP mechanisms that are commonly used\cite{DwR14}.
+This thesis only requires one of the most commonly 
 used ones: the Gaussian mechanism~\cite{DwR14}.
 \begin{definition}
-    The Gaussian mechanism with parameter \(\sigma^2\) 
-    is an algorithm that, with input \(x\), 
-    outputs a sample from \(\caln(x, \sigma^2)\), where \(\caln\) denotes 
-    the normal distribution.
+  The Gaussian mechanism with parameter \(\sigma^2\) is a randomised algorithm that,
+  with input data \(x\) and query \(f\colon \calx\to \R^{d}\), outputs a sample from
+  \(\caln(f(x), \sigma^2)\), where \(\caln\) denotes the normal distribution.
+\end{definition}
+
+The privacy bounds of the Gaussian mechanism require that the values of the
+query \(f\) do not vary too much for neighbouring inputs. This requirement
+is formalised as a bound on the \emph{sensitivity} of \(f\).
+\begin{definition}
+    The \(l_p\)-sensitivity \(\Delta_p\), with neighbourhood relation \(\sim\),
+    of a function \(f\colon \calx \to \R^d\)
+    is
+    \[
+        \Delta_p f = \sup_{x\sim x'}||f(x) - f(x')||_p.
+    \]
 \end{definition}
 
 The RDP and zCDP bounds for the Gaussian 
 mechanism are quite simple. The ADP bound is more complicated:
 
 \begin{theorem}\label{gauss-DP-bounds}
-    If for all inputs \(x\) and \(x'\), \(||x - x'||_2 \leq \Delta\),
-    the Gaussian mechanism is 
+    If \(\Delta_{2}f \leq \Delta\), the Gaussian mechanism is
     \begin{enumerate}
         \item 
             \((\alpha, \frac{\alpha \Delta^2}{2\sigma^2})\)-RDP~\cite{Mironov17}
         \item 
             \(\frac{\Delta^2}{2\sigma^2}\)-zCDP~\cite{BuS16}
         \item 
-            \(n\) compositions of the Gaussian mechanism are 
+            \(k\) compositions of the Gaussian mechanism, with
+            queries \(f_{i}\), where \(\Delta_{2}f_{i}\leq \Delta\) for
+            \(1\leq i \leq k\), are
             \((\epsilon, \delta(\epsilon))\)-ADP~\cite{Sommer2019} with 
             \[
                 \delta(\epsilon) 
                 = \frac{1}{2}\left(
-                    \erfc\left(\frac{\sigma(\epsilon - n\mu)}{\sqrt{2n}\Delta}\right)
-                    - e^\epsilon \erfc\left(\frac{\sigma(\epsilon + n\mu)}{\sqrt{2n}\Delta}\right)
+                    \erfc\left(\frac{\sigma(\epsilon - k\mu)}{\sqrt{2k}\Delta}\right)
+                    - e^\epsilon \erfc\left(\frac{\sigma(\epsilon + k\mu)}{\sqrt{2k}\Delta}\right)
                 \right),
             \]
             where \(\mu = \frac{\Delta^2}{2\sigma^2}\) and \(\erfc\) is 
@@ -304,26 +326,12 @@ mechanism are quite simple. The ADP bound is more complicated:
     \end{enumerate}
 \end{theorem}
 
-The most common use case for the Gaussian mechanism is computing a
-function \(f\colon \calx \to \R\) of private data and feeding the result into 
-the Gaussian mechanism to privately release the function value. 
-The condition that the inputs 
-of the Gaussian mechanism cannot vary too much leads into the concept of 
-sensitivity of a function
-\begin{definition}
-    The \(l_p\)-sensitivity \(\Delta_p\), with neighbourhood relation \(\sim\),
-    of a function \(f\colon \calx \to \R^n\)
-    is 
-    \[
-        \Delta_p f = \sup_{x\sim x'}||f(x) - f(x')||_p.
-    \]
-\end{definition}
-
 Theorem~\ref{gauss-DP-bounds} implies that the value of any function with
-finite \(l_2\)-sensitivity can be privately released using the Gaussian mechanism 
-with appropriate noise variance \(\sigma^2\). Of course, the usefulness of the 
-released value depends on the magnitude of \(\sigma^2\) compared to the actual 
-value.
+finite \(l_2\)-sensitivity can be privately released using the Gaussian mechanism
+with appropriate noise variance \(\sigma^2\). Of course, the utility of the
+released value depends on the magnitude of \(\sigma^2\) compared to the actual
+value. As in Definition~\ref{composition_definition}, each function \(f_{i}\)
+can depend on the output of the previous functions \(f_{j}\), \(j < i\).
 
 \section{Bayesian Inference and Markov Chain Monte Carlo}\label{MCMC_background}
 
@@ -337,7 +345,7 @@ Bayes' theorem relates the \emph{posterior} belief of the parameters
 observed data \(X\) and the likelihood of the data \(p(X\mid \theta)\) as follows:
 \[
     p(\theta \mid X) = \frac{p(X \mid \theta)p(\theta)}
-    {\int p(X\mid \theta)p(\theta)d\theta}.
+    {\int p(X\mid \theta)p(\theta)\dx\theta}.
 \]
 It is theoretically possible to compute \(p(\theta \mid X)\) given any 
 likelihood, prior and data, but the integral in the denominator is in many 
@@ -345,7 +353,7 @@ cases difficult to compute~\cite{BDA}. In such cases the posterior cannot be fea
 computed. However, many of the commonly used summary statistics of the posterior, 
 such as the mean, variance and credible intervals, can be approximated from 
 a sample of the posterior. \emph{Markov chain Monte Carlo} (MCMC) is a 
-widely used algorithm to obtain such samples~\cite{BDA}.
+widely used method to obtain such samples~\cite{BDA}.
 
 MCMC algorithms sequentially sample values of \(\theta\)
 with the goal of eventually having the chain of sampled values converge to 
@@ -355,7 +363,7 @@ focuses on a particular MCMC algorithm: \emph{Metropolis-Hastings} (MH).
 At each iteration \(i\), the Metropolis-Hastings algorithm samples \(\theta_i\) 
 from a distribution \(\pi\) of the parameters
 by first picking a proposal \(\theta'\) from a proposal 
-distribution \(q(\theta_{i-1})\)~\cite{BDA}, where \(\theta_{i-1}\) is the 
+distribution \(q(\cdot \mid \theta_{i-1})\)~\cite{BDA}, where \(\theta_{i-1}\) is the
 previously sampled value\footnote{
     The value of \(\theta_0\) for the first iteration is given as input to the 
     algorithm.
@@ -367,7 +375,7 @@ The ratio of posterior and proposal densities is calculated
 \]
 and the proposal is accepted with probability \(\min\{1, r\}\). 
 If the proposal is accepted, 
-\(\theta_i = \theta\), otherwise \(\theta_i = \theta\).
+\(\theta_i = \theta'\), otherwise \(\theta_i = \theta\).
 
 It can be shown that, with a suitable proposal distribution, the chain of 
 \(\theta_i\) values converges to \(\pi\)~\cite{BDA}. The Gaussian distribution centered 
@@ -376,29 +384,29 @@ at the current value is a commonly used proposal.
 When MCMC is used in Bayesian inference, the distribution to approximate is 
 \[
     \pi(\theta) = p(\theta \mid X) = \frac{p(X \mid \theta)p(\theta)}
-    {\int p(X\mid \theta)p(\theta)d\theta}.
+    {\int p(X\mid \theta)p(\theta)\dx\theta}.
 \]
-The difficult integral \(\int p(X\mid \theta)p(\theta)d\theta\) in the denominator 
+The difficult integral \(\int p(X\mid \theta)p(\theta)\dx\theta\) in the denominator
 cancels out when computing \(r\), so only the likelihood and the prior are needed. 
 For numerical stability, \(r\) is usually computed in 
-log space, which makes the acceptance probability 
+log-space, which makes the acceptance probability
 \(\min\{1, e^{\lambda(\theta, \theta')}\}\) where 
-\[
+\begin{equation}\label{lambda_equation}
     \lambda(\theta, \theta') = \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
     + \ln \frac{p(\theta')}{p(\theta)}
     + \ln \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}.
-\]
+\end{equation}
 
 The dataset \(X\) is typically a table with \(n\) independent rows.
 The likelihood is given as \(p(x_j\mid \theta)\)
 for row \(x_j\). Independence of the rows means that 
 \[
-    p(X\mid \theta) = \prod_{j=1}^n p(x_j\mid \theta)
+    p(X\mid \theta) = \prod_{j=1}^n p(x_j\mid \theta),
 \]
-which means that the log likelihood ratio term of \(\lambda\) is 
+which means that the log-likelihood ratio term of \(\lambda\) is
 \[
     \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
-    = \sum_{j=1}^n \ln\frac{p(x_j\mid \theta')}{p(x_j\mid \theta)}
+    = \sum_{j=1}^n \ln\frac{p(x_j\mid \theta')}{p(x_j\mid \theta)}.
 \]
 Algorithm~\ref{MH_algo} puts all of this together to summarise the MH 
 algorithm used for Bayesian inference.
@@ -407,11 +415,11 @@ algorithm used for Bayesian inference.
     \SetAlgoLined
     \For{\(1 \leq i \leq k\)}{
         denote \(\theta = \theta_{i-1}\)\\
-        sample \(\theta' \sim q(\theta)\)\\
-        \(\ln p(X\mid \theta) = 
+        sample \(\theta' \sim q(\cdot \mid \theta)\)\\
+        \(\ln \frac{p(X\mid \theta')}{p(X\mid \theta)} =
             \sum_{j=1}^n (\ln p(x_j \mid \theta') - \ln p(x_j\mid \theta))
         \)\\
-        \(\lambda = \ln p(X\mid \theta)
+        \(\lambda = \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
         + \ln p(\theta') - \ln p(\theta)
         + \ln q(\theta\mid \theta') - \ln q(\theta'\mid \theta)\)
         \\
@@ -439,13 +447,14 @@ will guarantee that the same DP bounds that hold for releasing the intermediate
 value also hold for releasing the final result of the algorithm.
 
 In 2019, Yildirim and Ermis~\cite{YildirimE19} realised that if Gaussian noise is added to 
-the exact value of \(\lambda\), the noise can be corrected for 
+the exact value of \(\lambda\) from Equation~\ref{lambda_equation},
+the noise can be corrected for 
 yielding a differentially private MCMC algorithm which converges to 
-the correct distribution. In the same year, Heikkilä et.\ al.~\cite{HeikkilaJDH19}
+the correct distribution. In the same year, Heikkilä et al.~\cite{HeikkilaJDH19}
 developed another DP MCMC algorithm, called DP Barker, which uses subsampling 
 to amplify privacy.
 
-\section{DP Penalty}\label{dp_penalty_section}
+\section{Correcting MH with the penalty algorithm}\label{dp_penalty_section}
 
 In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
 Metropolis-Hastings called the penalty 
@@ -517,7 +526,7 @@ Theorem~\ref{DP_penalty_theorem_adp}.
     \(\frac{\lambda(\theta, \theta')}{c(\theta, \theta')}\) instead, which 
     has sensitivity 1. \(c(\theta, \theta')\) does not depend on \(X\), 
     so \(\lambda(\theta, \theta')\) can be obtained from 
-    \(\frac{\lambda(\theta, \theta')}{c(\theta, \theta')}\) by post processing.
+    \(\frac{\lambda(\theta, \theta')}{c(\theta, \theta')}\) by post-processing.
 
     Adding Gaussian noise with variance \(\sigma_n^2\) to 
     \(\frac{\lambda(\theta, \theta')}{c(\theta, \theta')}\)
@@ -535,17 +544,17 @@ computed analytically for the former. However, the maximum number of iterations
 can be solved for numerically.
 
 Theorems~\ref{DP_penalty_theorem_zcdp} and~\ref{DP_penalty_theorem_adp}
-require a bound on sensitivity of the log likelihood ratio. If there is a bound 
+require a bound on sensitivity of the log-likelihood ratio. If there is a bound
 \[
     |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq L||\theta - \theta'||_2
 \]
 for all \(D_j, \theta\) and \(\theta'\) then 
 \[
-    c(\theta, \theta') \leq 2L||\theta - \theta'||_2
+    c(\theta, \theta') \leq 2L||\theta - \theta'||_2.
 \]
 The former bound is true in some models, such as logistic
 regression~\cite{YildirimE19}. In other
-models it can be forced by clipping the log likelihood ratios to the interval 
+models it can be forced by clipping the log-likelihood ratios to the interval
 \([-L||\theta - \theta'||_2, L||\theta - \theta'||_2]\). This will remove the 
 guarantee of eventually converging to the correct posterior, but if \(L\) is 
 chosen to be large enough, the clipping will not affect the 
@@ -570,30 +579,33 @@ area of high probability, so all proposals are towards it. Without GRMH, most
 proposals would move the chain away from the area of high probability, and 
 would likely be rejected.
 
-\section{DP Barker}\label{dp_barker_section}
+\section{The Barker acceptance test}\label{dp_barker_section}
 
-The DP Barker algorithm of Heikkilä et.\ al.~\cite{HeikkilaJDH19} is based on 
+The DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19} is based on
 the Barker acceptance test~\cite{Barker65} instead of the Metropolis-Hastings test.
 Instead of using the MH acceptance probability, the Barker acceptance test samples 
 \(V_{log}\sim \mathrm{Logistic(0, 1)}\) and accepts if 
 \[
-    \lambda + V_{log} > 0
+    \lambda + V_{log} > 0.
 \]
 
 If Gaussian noise with variance \(\sigma^2\) is added to 
-\(\lambda\), there exists a correction 
-distribution \(V_{corr}\) such that \(\caln(0, \sigma^2) + V_{corr}\) has the 
-same distribution as \(V_{log}\). Because the variance of \(V_{log}\) is 
+\(\lambda\), as long as \(\sigma^{2}\) is not too large, there exists an
+approximate correction
+distribution \(V_{corr}\) such that \(\caln(0, \sigma^2) + V_{corr}\) has
+approximately the same distribution as \(V_{log}\). Because the variance of
+\(V_{log}\) is
 \(\frac{\pi^2}{3}\)~\cite{HeikkilaJDH19}, the variance of \(V_{corr}\) must be 
 \(\frac{\pi^2}{3} - \sigma^2\) which means that there is an upper bound
 to the noise variance: \(\sigma^2 < \frac{\pi^2}{3}\). Testing whether 
-\(\lambda + \caln(0, \sigma^2) + V_{corr} > 0\) is equivalent to testing 
+\(\lambda + \caln(0, \sigma^2) + V_{corr} > 0\) is approximately equivalent
+to testing 
 whether \(\lambda + V_{log} > 0\), which means that it is possible to derive 
 a DP MCMC algorithm based on the Barker acceptance test if the correction 
 distribution can be sampled from.
 
 However, the analytical form of \(V_{corr}\) is not known~\cite{HeikkilaJDH19}.
-Heikkilä et.\ al.\  approximate the distribution with a Gaussian mixture model. 
+Heikkilä et al.\  approximate the distribution with a Gaussian mixture model.
 This means that their 
 algorithm only converges to an approximately correct distribution, but the 
 approximation error can be made very small.
@@ -620,12 +632,12 @@ be estimated by the sample variance of the individual terms in the sum in
 \(\lambda\)~\cite{HeikkilaJDH19}. This allows combining the errors from subsampling and the 
 Gaussian noise from the Gaussian mechanism to a single Gaussian noise value.
 The \(V_{corr}\) distribution can then be used to approximate the Barker acceptance 
-test as above. See algorithm~\ref{DP_barker_algo} for the DP Barker algorithm.
-\footnote{
+test as above. See Algorithm~\ref{DP_barker_algo} for the DP Barker
+algorithm\footnote{
     See~\cite{HeikkilaJDH19} for the sampling procedure of \(V_{corr}\).
-}
+}.
 
-Heikkilä et.\ al.~\cite{HeikkilaJDH19} do not directly bound the sensitivity 
+Heikkilä et al.~\cite{HeikkilaJDH19} do not directly bound the sensitivity
 of \(\lambda\) as is done in DP penalty, because the sample variance also 
 depends on input data. Instead they directly bound the Rényi divergence 
 between \(\caln(0, \sigma^2 - \sigma^2_b)\), where \(\sigma^2_b\) is the 
@@ -657,29 +669,29 @@ is accounted for with an amplification theorem for Rényi DP~\cite{WangBK19}.
     minibatch and \(q = \frac{|B|}{n}\).
 \end{theorem}
 
-Like DP penalty, DP Barker requires a bound on the log likelihood ratio for 
+Like DP penalty, DP Barker requires a bound on the log-likelihood ratio for
 one row of data. The bound can be forced through clipping if the model does not 
 meet it, but because of the \(n\) in the denominator of the bound, it can get 
 very tight for large values of \(n\). As a result, clipping may be needed for 
-almost all log likelihood ratios, which may cause the algorithm to converge 
+almost all log-likelihood ratios, which may cause the algorithm to converge
 to a very different distribution from the posterior.
 
-To alleviate the tight bound on log likelihood sensitivity, DP Barker is best 
+To alleviate the tight bound on log-likelihood sensitivity, DP Barker is best
 used with a tempered likelihood~\cite{HeikkilaJDH19}. In tempering, the 
-log likelihood is multiplied by a number \(T = \frac{n_0}{n} < 1\). This 
+log-likelihood is multiplied by a number \(T = \frac{n_0}{n} < 1\). This
 increases the variance of the resulting posterior and may lower modeling 
 error in some cases~\cite{HeikkilaJDH19}.
 
-Using the tempered likelihood, the log likelihood 
+Using the tempered likelihood, the log-likelihood
 bound becomes 
 \[
     T|\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)|
-    \leq \frac{\sqrt{|B|}}{n}
+    \leq \frac{\sqrt{|B|}}{n},
 \]
 which is equivalent to 
 \[
     |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)|
-    \leq \frac{\sqrt{|B|}}{n_0}
+    \leq \frac{\sqrt{|B|}}{n_0}.
 \]
 Typically \(n_0 \ll n\) for large datasets, so using a tempered likelihood requires 
 significantly less clipping than a nontempered likelihood.
@@ -688,7 +700,7 @@ significantly less clipping than a nontempered likelihood.
     \SetAlgoLined
     \For{\(1 \leq i \leq k\)}{
         denote \(\theta = \theta\)\\
-        sample \(\theta' \sim q(\theta)\)\\
+        sample \(\theta' \sim q(\cdot \mid \theta)\)\\
         sample \(B \subset \{1, \dotsc, n\}\)\\
         \For{\(j \in B\)}{
             \(r_j = \ln p(\theta'\mid x_j) - \ln p(\theta\mid x_j)\)\\
@@ -715,7 +727,7 @@ significantly less clipping than a nontempered likelihood.
 
 \section{The Penalty Algorithm with Subsampling}\label{dp_minibatch_penalty_section}
 
-In the DP Barker algorithm, the log likelihood ratio is computed using only 
+In the DP Barker algorithm, the log-likelihood ratio is computed using only
 a subsample of the dataset to amplify privacy. Subsampling can also be used 
 with the penalty algorithm in the same way, if the acceptance test is 
 corrected for the subsampling.
@@ -723,7 +735,7 @@ corrected for the subsampling.
 As with DP Barker, the error from subsampling is approximately normally 
 distributed by the central limit theorem. The variance of the subsampling 
 error can be estimated from the sample variance of individual terms of the 
-sum in the log likelihood ratio. This means that the penalty method can be used 
+sum in the log-likelihood ratio. This means that the penalty method can be used
 to correct for the subsampling error.
 
 The acceptance probability with subsampling is
@@ -736,7 +748,7 @@ where
     \ln \frac{p(x_j\mid \theta')}{p(x_j \mid \theta)}
     + \ln \frac{p(\theta')q(\theta \mid \theta')}{p(\theta)q(\theta' \mid \theta)},
 \]
-and \(\sigma_b^2\) is the sample variance of the log likelihood ratios in 
+and \(\sigma_b^2\) is the sample variance of the log-likelihood ratios in
 batch \(B\). Denote
 \[
     r_j = \ln \frac{p(x_j\mid \theta')}{p(x_j\mid \theta)},
@@ -822,7 +834,7 @@ The sensitivity of \(\sigma_b^2\) must be bounded separately.
     \[
         \Delta_\sigma = \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
         L^2||\theta - \theta'||_2^2,
-        + \frac{2(b - 1)}{b}\left(\frac{nT}{b}\right)^2 L^2||\theta - \theta'||^2_2.
+        + \frac{2(b - 1)}{b}\left(\frac{nT}{b}\right)^2 L^2||\theta - \theta'||^2_2,
     \]
     \[
         c(\theta, \theta') = \Delta_\lambda + \Delta_\sigma,
@@ -874,7 +886,7 @@ as it is based on RDP. Computing tight ADP bounds for the minibatch penalty
 algorithm requires an analogue of the ADP bound of Theorem~\ref{gauss-DP-bounds}
 for the Gaussian mechanism with subsampling. An analytical and tight ADP bound for
 the subsampled Gaussian mechanism is not known, but the \emph{Fourier accountant}
-of Koskela et.\ al.~\cite{KJH20} can approximate the tight bound with a very small
+of Koskela et al.~\cite{KJH20} can approximate the tight bound with a very small
 error.
 
 The Fourier accountant takes the subsampling ratio \(q\) and noise variance,
@@ -958,9 +970,9 @@ approximately simulated by the \emph{leapfrog method}. The leapfrog method seque
 updates an estimate \((\theta_i, p_i)\) of the state in steps \(L\) of \(\eta\) 
 as follows:
 \begin{align*}
-    p_{i+1/2} &= p_i - \frac{\eta}{2}\nabla U(\theta_i) \\
-    \theta_{i+1} &= \theta_i + \frac{\eta p_{i+1/2}}{m} \\
-    p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}\nabla U(\theta_{i+1}) \\
+    p_{i+1/2} &= p_i - \frac{\eta}{2}\nabla U(\theta_i), \\
+    \theta_{i+1} &= \theta_i + \frac{\eta p_{i+1/2}}{m}, \\
+    p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}\nabla U(\theta_{i+1}). \\
 \end{align*}
 The simulation starts with \(\theta_0 = \theta\) and \(p_0 = p\) and the 
 result is given by \(T_{L\eta}(\theta, p) \approx (\theta_L, p_L)\).
@@ -1008,11 +1020,11 @@ continuously differentiable function \(f\),
 implies \(f\) preserving volume, recall that the volume of a set 
 \(A\) is given by 
 \[
-    \int_A 1dx.
+    \int_A 1\dx x.
 \]
 The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
 \[
-    \int_{f(A)}1dx = \int_{A}|\det J_f(x)|dx = \int_A 1dx.
+    \int_{f(A)}1\dx x = \int_{A}|\det J_f(x)|\dx x = \int_A 1\dx x.
 \]
 where the first equality follows from the change of variables formula.
 
@@ -1029,10 +1041,10 @@ With \(H(\theta, p) = U(\theta) + \frac{1}{2}p^{T}M^{-1}p\),
     P(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{1}{2}p^{T}M^{-1}p\right)
 \]
 This means that the marginal distributions of \(\theta\) and \(p\) are 
-independent, the marginal distribution of \(p\) is a d-dimensional
+independent, the marginal distribution of \(p\) is a \(d\)-dimensional
 Gaussian distribution 
 with mean 0 and covariance \(M\), and the marginal distribution of
-\(\theta\) can have any continuously differentiable log likelihood \(-U\).
+\(\theta\) can have any continuously differentiable log-likelihood \(-U\).
 Because of this, \(\theta\) is used to represent the variables of interest,
 while \(p\) is a set of auxiliary variables used for the proposals.
 
@@ -1063,33 +1075,33 @@ that the acceptance probability mainly depends on \(\eta\).
 
 \section{Differential Privacy with HMC}\label{dp_hmc_section}
 
-HMC only uses the model log likelihood, and thus the data, through \(U\).
+HMC only uses the model log-likelihood, and thus the data, through \(U\).
 \(U\) is used in two ways. Firstly, its value is used in the acceptance test,
 and secondly, its gradients are used to obtain proposals. Adding appropriate
 amounts of noise to both accesses would make HMC private, but the addition of
 noise may break some of the properties required for the algorithm's correctness.
 
-The addition of noise to the log likelihood ratios can be corrected using the penalty
+The addition of noise to the log-likelihood ratios can be corrected using the penalty
 acceptance test, i.e. changing the acceptance probability to
 \[
     \min\left\{\exp\left(H(\theta, p) - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\},
 \]
-where \(\sigma_{l}^{2}\) is the variance of the noise added to the log likelihood
+where \(\sigma_{l}^{2}\) is the variance of the noise added to the log-likelihood
 ratios. This is because with \(U(\theta) = -\ln p(X\mid \theta)\), the difference
 of the Hamiltonians in the acceptance probability is
 \[
   H(\theta, p) - H(\theta', p') = \ln p(X\mid \theta') - \ln p(X\mid \theta)
   + \frac{1}{2}(p^{T}M^{-1}p - p'^{T}M^{-1}p').
 \]
-As with the penalty algorithm, the sensitivity of the log likelihood ratios must
+As with the penalty algorithm, the sensitivity of the log-likelihood ratios must
 be bounded. If a bound does not exist, clipping must be used, nullifying the asymptotic
 converge guarantee of the algorithm. However, in Section~\ref{clipping_experiments}
 it is shown that
 clipping low numbers of gradients does not affect convergence in practice.
 
 Releasing the gradients privately requires a trade-off. The leapfrog method remains
-reversible with noisy and potentially clipped gradients, as is shows in the following,
-but it no longer simulate the correct Hamiltonian dynamics~\cite{CFG14}. This does not affect
+reversible with noisy and potentially clipped gradients, as is shown in the following,
+but it no longer simulates the correct Hamiltonian dynamics~\cite{CFG14}. This does not affect
 asymptotic convergence, but it can potentially lower acceptance rates.
 The dynamics can be corrected by adding a friction term to the equations of
 motion of the simulation~\cite{CFG14}, but this removes volume preservation of the simulation,
@@ -1099,9 +1111,14 @@ The leapfrog update equations with noisy and clipped gradients become
 \begin{align*}
   p_{i+1/2} &= p_{i} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i})) + \caln(0, \sigma_{g}^{2})) \\
   \theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2} \\
-  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i+1})) + \caln(0, \sigma_{g}^{2})).
+  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i+1})) + \caln(0, \sigma_{g}^{2})),
 \end{align*}
-The second equation is unchanged, and remains both volume preserving and reversible
+where the \(\clip\) function clips the Euclidean norm of its argument to a
+given bound. The value of the bound is omitted here to keep the equations
+clearer.
+
+The second leapfrog update equation is unchanged from the non-DP case,
+and remains both volume preserving and reversible
 by negating \(p\). Both the first and third equations apply the function
 \(l_{p}\colon \R^{2d}\to \R^{2d}\),
 \[
@@ -1113,13 +1130,13 @@ to \(\theta\) and \(p\).
 The Jacobian of \(l_{p}\) is
 \[
   J_{l_{p}}(\theta, p) =
-  \begin{pmatrix}
+  \begin{bmatrix}
     I_{d\times d} & 0_{d\times d} \\
-    C(\theta, p) & I_{d\times d}
-  \end{pmatrix},
+    C(\theta) & I_{d\times d}
+  \end{bmatrix},
 \]
 where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
-zero matrices, respectively, and \(C(\theta, p) = J_{\clip(\nabla U(\theta))}(\theta, p)\).
+zero matrices, respectively, and \(C(\theta) = J_{\clip(\nabla U(\theta))}(\theta)\).
 Because \(J_{l_{p}}(\theta, p)\) is triangular, \(\det J_{l_{p}}(\theta, p) = 1\)
 for all \(\theta\) and \(p\), which means that \(l_{p}\) preserves volume.
 As the step updating \(\theta\) also preserves volume, the entire leapfrog
@@ -1155,7 +1172,7 @@ proposal for given \((\theta, p)\). Because \(l\) is potentially random,
 it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\),
 where
 \[
-  P(l(\theta, p) \in A) = \int_{A} d(\theta', p') q_{l}(\theta', p'\mid \theta, p).
+  P(l(\theta, p) \in A) = \int_{A} \dx(\theta', p') q_{l}(\theta', p'\mid \theta, p).
 \]
 Now reversibility by negating \(p\) can be defined:
 \begin{definition}\label{prop_revers_definition}
@@ -1181,9 +1198,9 @@ Definition~\ref{prop_revers_definition} can then be written as
   \begin{align*}
 	q_{\overline{l_{2}\circ l_{1}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
     &= q_{l_{2}\circ l_{1}}(\theta_{1}, p_{1}\mid \theta_{3}, p_{3})
-    \\&= \int_{\R^{2d}} d(\theta_{2}, p_{2}) q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{3}, p_{3})
+    \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{3}, p_{3})
       q_{l_{2}}(\theta_{1}, p_{1}\mid \theta_{2}, p_{2})
-    \\&= \int_{\R^{2d}} d(\theta_{2}, p_{2}) q_{\bar{l}_{1}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2})
+    \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{\bar{l}_{1}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2})
       q_{\bar{l}_{2}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
     \\&= q_{\bar{l_{1}}\circ \bar{l_{2}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
   \end{align*}
@@ -1277,12 +1294,10 @@ which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
         \(p_0 = \caln_d(0, M)\)\\
         \(\theta_{i,0} = \theta_{i-1}\)\\
         \For{\(1 \leq j \leq L\)}{
-            \(p_{j-0.5} = p_{j-1} + \frac{1}{2}\eta \left(G_{i,j-1} 
-            - \frac{1}{2}\sigma_g^2M^{-1}p_{j-1}\right)\)\\
-            \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-0.5}\)\\
+            \(p_{j-\frac{1}{2}} = p_{j-1} + \frac{1}{2}\eta G_{i,j-1} \)\\
+            \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-\frac{1}{2}}\)\\
             \(G_{i,j} = \mathrm{grad}(\theta_{i,j}, b_g)\)\\
-            \(p_{j} = p_{j-0.5} + \frac{1}{2}\eta \left(G_{i,j}
-            - \frac{1}{2}\sigma_g^2M^{-1}p_{j-0.5}\right)\)\\
+            \(p_{j} = p_{j-\frac{1}{2}} + \frac{1}{2}\eta G_{i,j} \)\\
         }
         \(r_l = \ln \frac{p(\theta_{i,L}\mid x_l)}{p(\theta_{i-1}\mid x_l)}\)\\
         \(R = \sum_{l=1}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_l)\)\\
@@ -1304,7 +1319,7 @@ which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
         \mathrm{grad}(\theta, b) = \sum_{i=1}^n \mathrm{clip}_b(\nabla \ln p(\theta\mid x_i))
         + \nabla \ln p(\theta)
     \]
-    and \(\mathrm{clip}_b(\theta)\) clips the euclidean norm of \(\theta\) to be 
+    and \(\mathrm{clip}_b(\theta)\) clips the Euclidean norm of \(\theta\) to be
     less than or equal to \(b\).
 
     \caption{DP HMC}
@@ -1317,7 +1332,7 @@ and its privacy bounds can be computed through Theorems~\ref{composition-theorem
 and \ref{gauss-DP-bounds} for zCDP.
 % Computing the ADP bound directly with
 % Theorem \ref{gauss-DP-bounds} is not possible because the gradients and
-% log likelihood ratios have different sensitivities and noise levels. However,
+% log-likelihood ratios have different sensitivities and noise levels. However,
 % the proof of Theorem~\ref{gauss-DP-bounds}~\cite{Sommer2019} is straightforward
 % to extend to this case.
 
@@ -1339,20 +1354,20 @@ and \ref{gauss-DP-bounds} for zCDP.
   \[
     k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
   \]
-  iterations using \(\sigma_{l}^{2}\) as log likelihood ratio noise variance,
-  \(\sigma_{g}^{2}\) as gradient noise variance, clipping log likelihood ratios
+  iterations using \(\sigma_{l}^{2}\) as log-likelihood ratio noise variance,
+  \(\sigma_{g}^{2}\) as gradient noise variance, clipping log-likelihood ratios
   with \(b_{l}\) and clipping gradients by \(b_{g}\).
 \end{theorem}
 \begin{proof}
 Each iteration of the outer for-loop computes the gradient \(L\) times and
-the log likelihood ratio once. The gradient is also computed once before the
+the log-likelihood ratio once. The gradient is also computed once before the
 outer for-loop. Releasing a single gradient has zCDP privacy
 cost of 
 \[
     \rho_g = \frac{4b_g^2}{2\sigma_g^2} = \frac{1}{2\tau_g^2n},
 \]
 where \(\sigma_g = 2\tau_g\sqrt{n}b_g\).
-Releasing the log likelihood ratio of \(\theta\) and \(\theta'\) has privacy cost 
+Releasing the log-likelihood ratio of \(\theta\) and \(\theta'\) has privacy cost
 \[
     \rho_l = \frac{4b_l^2||\theta - \theta'||_2^2}{2\sigma_l(\theta, \theta')^2} = \frac{1}{2\tau_l^2n},
 \]
@@ -1373,7 +1388,7 @@ is
 zCDP based privacy accounting is loose, so the above bound could be improved
 by using the tight bound for the Gaussian mechanism from
 Theorem~\ref{gauss-DP-bounds}. Because DP HMC has both
-different sensitivities and different noise variances between the log likelihood
+different sensitivities and different noise variances between the log-likelihood
 ratios and gradients, Theorem~\ref{gauss-DP-bounds} is not directly applicable.
 However, the bound of Theorem~\ref{gauss-DP-bounds} does generalise to differing
 variances between composition.
@@ -1388,9 +1403,9 @@ variances between composition.
     \sigma_{g}'^{2} = \tau_{g}^{2}n.
   \]
   Then running DP HMC for \(k\) iterations with \(L\) leapfrog steps,
-  using \(2b_{l}\sigma_{l}'^{2}||\theta - \theta'||_{2}\) as the log likelihood ratio
+  using \(2b_{l}\sigma_{l}'^{2}||\theta - \theta'||_{2}\) as the log-likelihood ratio
   noise variance, \(2b_{g}\sigma_{g}'^{2}\) as the gradient noise variance
-  and \(b_{l}\) and \(b_{g}\) as the log likelihood and gradient clip bounds
+  and \(b_{l}\) and \(b_{g}\) as the log-likelihood and gradient clip bounds
   is \((\epsilon, \delta(\epsilon))\)-ADP where
   \[
     \delta(\epsilon) = \frac{1}{2}\left(
@@ -1403,7 +1418,7 @@ variances between composition.
   \]
 \end{theorem}
 \begin{proof}
-Sommer et. al.~\cite{Sommer2019} prove the ADP bound of Theorem~\ref{gauss-DP-bounds} with
+Sommer et al.~\cite{Sommer2019} prove the ADP bound of Theorem~\ref{gauss-DP-bounds} with
 the \emph{privacy loss distribution} (PLD) of the Gaussian mechanism. First, they
 show that the PLD of the Gaussian mechanism with sensitivity \(\Delta\) and variance
 \(\sigma^{2}\) is a Gaussian distribution
@@ -1421,17 +1436,17 @@ As convolution of distributions corresponds to summing random variables, the PLD
 convolution of Gaussian mechanisms with PLDs \(\caln(\mu_{i}, 2\mu_{i})\) is
 simply \(\caln(\sum \mu_{i}, 2\sum \mu_{i})\).
 
-Because the sensitivity of the log likelihood ratio is
+Because the sensitivity of the log-likelihood ratio is
 \(2b_{l}||\theta - \theta'||_{2}\) and the sensitivity of the gradient is
-\(2b_{g}\), both the gradient and log likelihood ratio are divided by their
+\(2b_{g}\), both the gradient and log-likelihood ratio are divided by their
 sensitivities before adding noise, which normalises both to have sensitivity
 one. Adding noise with variance \(\sigma_{l}^2(\theta, \theta')\)
-and \(\sigma_{g}^{2}\) to the log likelihood ratio and gradient respectively
+and \(\sigma_{g}^{2}\) to the log-likelihood ratio and gradient respectively
 is equivalent to adding noise with variance
 \(\sigma_{l}'^{2} = \tau_{l}^{2}n\) and \(\sigma_{g}'^{2} = \tau_{g}^{2}n\).
-to the normalised log likelihood ratio and gradient.
+to the normalised log-likelihood ratio and gradient.
 
-DP HMC releases the log likelihood ratio \(k\) times and the gradient
+DP HMC releases the log-likelihood ratio \(k\) times and the gradient
 \(kL + 1\) times. This means that the PLD of DP HMC is a Gaussian distribution
 \(\caln(\mu, 2\mu)\) with
 \[
@@ -1455,8 +1470,8 @@ The simplest model used for the experiments is the Gaussian model with
 known covariance. The likelihood and prior for \(n\) points of \(d\)-dimensional
 data \(X \in \R^{n\times d}\) and parameters \(\theta\in \R^{d}\) are
 \begin{align*}
-  \theta &\sim \caln_{d}(\mu_{0}, \Sigma_{0}) \\
-  X_{i} &\sim \caln_{d}(\theta, \Sigma)
+  \theta &\sim \caln_{d}(\mu_{0}, \Sigma_{0}), \\
+  X_{i} &\sim \caln_{d}(\theta, \Sigma),
 \end{align*}
 where \(X_{i}\) is a row of \(X\), \(\Sigma\) is the known covariance,
 and \(\mu_{0}\) and \(\Sigma_{0}\) are the prior hyperparameters.
@@ -1494,12 +1509,12 @@ for testing DP MCMC algorithms.
     Let
     \begin{align*}
         \theta = (\theta_1,\dotsc, \theta_d) &\sim
-        \ban(0, \sigma_0^2I, a, b, m) \\
-        X_1 &\sim \caln(\theta_1, \sigma_1^2) \\
-        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2)\\
-        X_3 &\sim \caln(\theta_3, \sigma_3^2) \\
+        \ban(0, \sigma_0^2I, a, b, m), \\
+        X_1 &\sim \caln(\theta_1, \sigma_1^2), \\
+        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2),\\
+        X_3 &\sim \caln(\theta_3, \sigma_3^2), \\
             &\vdots \\
-        X_d &\sim \caln(\theta_d, \sigma_d^2) \\
+        X_d &\sim \caln(\theta_d, \sigma_d^2). \\
     \end{align*}
     Given data \(x_1,\dotsc, x_d\in \R^n\) and
     denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
@@ -1507,7 +1522,7 @@ for testing DP MCMC algorithms.
     \(\ban(\mu, \Sigma, a, b, m)\)
     with
     \[
-        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\}
+        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\}.
     \]
     \[
         \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
@@ -1540,7 +1555,7 @@ variance to stay in the region causes the chain to take a very long time to move
 around in the region. An example of such a posterior is the circular posterior
 described in this section.
 
-The circle posterior is obtained from a model where the log likelihood is
+The circle posterior is obtained from a model where the log-likelihood is
 \[
     \ln p(r\mid x, y) = -a(x^2 + y^2 - r^2)^2
 \]
@@ -1555,21 +1570,21 @@ As the prior does not integrate to 1, it is not a proper probability density,
 so Bayes' theorem does not guarantee that the posterior integrates to a finite
 value. In this case, for a single data point \(r\),
 \begin{align*}
-  \int_{\R^{2}}p(r\mid x, y)dxdy
-  &= \int_{\R^{2}}e^{-a(x^{2} + y^{2} - r^{2})^{2}}dxdy
-  \\&= \int_{0}^{2\pi}d\phi \int_{0}^{\infty}dt
+  \int_{\R^{2}}p(r\mid x, y)\dx x\dx y
+  &= \int_{\R^{2}}e^{-a(x^{2} + y^{2} - r^{2})^{2}}\dx x\dx y
+  \\&= \int_{0}^{2\pi}\dx \phi \int_{0}^{\infty}\dx t
   \cdot te^{-a(t^{2}(\cos^{2} \phi + \sin^{2} \phi) - r^{2})^{2}}
-  \\&= \int_{0}^{2\pi}d\phi \int_{0}^{\infty}dt
+  \\&= \int_{0}^{2\pi}\dx \phi \int_{0}^{\infty}\dx t
   \cdot te^{-a(t^{2} - r^{2})^{2}}
-  \\&= \int_{0}^{2\pi}d\phi \int_{0}^{\infty}du\cdot e^{-a(u - r^{2})^{2}}
+  \\&= \int_{0}^{2\pi}\dx \phi \int_{0}^{\infty}\dx u\cdot e^{-a(u - r^{2})^{2}}
   \\&< \infty.
 \end{align*}
-as the inner integral is over an unnormalised Gaussian density and
-the outer integral is over an interval. For multiple data points, the
+As the inner integral is over an unnormalised Gaussian density and
+the outer integral is over a finite interval. For multiple data points, the
 integral of the likelihood is
 \[
-  \int_{\R^{2}}\prod_{i}^{n}p(r_{i}\mid x,y)dxdy
-  \leq \prod_{i}^{n}\left(\int_{\R^{2}}p(r_{i}\mid x,y)^{n}dxdy\right)^{\frac{1}{n}}
+  \int_{\R^{2}}\prod_{i}^{n}p(r_{i}\mid x,y)\dx x\dx y
+  \leq \prod_{i}^{n}\left(\int_{\R^{2}}p(r_{i}\mid x,y)^{n}\dx x\dx y\right)^{\frac{1}{n}}
   < \infty,
 \]
 where the first inequality is Hölder's inequality applied \(n - 1\) times,
@@ -1591,16 +1606,16 @@ the circle.
 It remains to show that the mean of the circle is actually the origin. It turns
 out that this is fairly simple. For the mean of the \(x\)-coordinate
 \begin{align*}
-  E_{x} &= \int_{\R}dx\cdot x\int_{\R} dy p(r\mid x, y)
-  \\&= \int_{-\infty}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  E_{x} &= \int_{\R}\dx x\cdot x\int_{\R} \dx y p(r\mid x, y)
+  \\&= \int_{-\infty}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
   \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  \\&= \int_{0}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  \\&= \int_{0}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
   \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  + \int_{-\infty}^{0}dx\cdot x\int_{-\infty}^{\infty}dy
+  + \int_{-\infty}^{0}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
   \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  \\&= \int_{0}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  \\&= \int_{0}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
   \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  - \int_{0}^{\infty}dx\cdot x\int_{-\infty}^{\infty}dy
+  - \int_{0}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
   \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
   \\&= 0.
 \end{align*}
@@ -1619,7 +1634,7 @@ Both \(\hat{R}\) and ESS require that the MCMC algorithm asymptotically targets
 the true posterior, as they cannot detect an algorithm that has converged to the 
 wrong distribution. Because some of the DP MCMC algorithms use approximations 
 that may cause the algorithms to not converge to the true posterior, 
-such as clipping the log likelihood ratios, \(\hat{R}\) and ESS are not suitable 
+such as clipping the log-likelihood ratios, \(\hat{R}\) and ESS are not suitable
 for assessing the performance of the algorithms.
 
 Because the DP MCMC algorithms may not converge to the correct distribution, 
@@ -1652,7 +1667,7 @@ mean much more than errors in higher moments in the experiments.
 The \(\sigma\) used for the final experiments is chosen by picking 50 subsamples
 from both samples with replacement and setting \(\sigma\) to be the median 
 between distances of points of the subsamples. This is following the procedure of 
-Gretton et.\ al.~\cite{GrettonBRSS12}, with the addition of the subsampling step 
+Gretton et al.~\cite{GrettonBRSS12}, with the addition of the subsampling step
 to handle samples of different sizes.
 
 \chapter{Experiments}\label{experiment_chapter}
@@ -1660,7 +1675,7 @@ to handle samples of different sizes.
 This chapter contains the experiments performed on both non-DP and DP MCMC
 algorithms. Section~\ref{experiment_setup} details the specific model parameters
 and other technical details of the experiments. Section~\ref{clipping_experiments}
-examines the effect clipping log likelihood ratios, which is necessary for
+examines the effect clipping log-likelihood ratios, which is necessary for
 DP MCMC algorithms, but may adversely affect their convergence.
 Section~\ref{dp_mcmc_comparison} compares the different DP MCMC algorithms
 on several models.
@@ -1672,7 +1687,8 @@ Table~\ref{model_params_table} and contour plots of the
 2-dimensional models are shown in Figure~\ref{posterior_plots_fig}.
 All banana models had \(b = m = 0\). The likelihood variance of the banana
 and 30-dimensional Gaussian
-models was \(\sigma_{1} = 20\), \(\sigma_{2} = 2.5\) and \(\sigma_{i} = 1\)
+models was \(\sigma_{1}^{2} = 20\), \(\sigma_{2}^{2} = 2.5\) and
+\(\sigma_{i}^{2} = 1\)
 for \(i > 2\). The likelihood covariance for the correlated Gaussian model
 was
 \[
@@ -1694,13 +1710,13 @@ latter half was compared to a reference sample obtained from the true posterior,
 except in the circle experiment, where the mean of the sample was compared to
 the true posterior mean of \((0,0)\).
 
-Publicly available implementations of DP Barker
-\footnote{\url{https://github.com/DPBayes/DP-MCMC-NeurIPS2019}}
-and the Fourier accountant
-\footnote{\url{https://github.com/DPBayes/PLD-Accountant}} were
+Publicly available implementations of DP
+Barker\footnote{\url{https://github.com/DPBayes/DP-MCMC-NeurIPS2019}}
+and the Fourier
+accountant\footnote{\url{https://github.com/DPBayes/PLD-Accountant}} were
 used, and the rest of the algorithms were implemented by the author.
-The code for running the experiments is freely available.
-\footnote{\url{https://github.com/oraisa/masters-thesis}}
+The code for running the experiments is freely
+available\footnote{\url{https://github.com/oraisa/masters-thesis}}.
 
 \include{model_params_table}
 
@@ -1715,7 +1731,7 @@ The code for running the experiments is freely available.
 
 \section{The Effects of Clipping}\label{clipping_experiments}
 
-The first experiment evaluates the effect of clipping log likelihood ratios.
+The first experiment evaluates the effect of clipping log-likelihood ratios.
 Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
 distribution as the proposal distributions.}
 algorithms were run on 2 and 10 dimensional banana models.
@@ -1730,7 +1746,7 @@ the algorithms converged without clipping.
 
 Figure~\ref{clip_effect_fig} shows the results of the clipping experiment.
 The top left and bottom left panels show MMD as a function of the clip bound 
-and the fraction of log likelihoods that was actually clipped for both 
+and the fraction of log-likelihoods that was actually clipped for both
 HMC and RWMH in the 2-dimensional model. The effect of clipping on MMD 
 is nonexistent for all but the lowest clip bounds. The top and bottom right 
 panels show results for the 10-dimensional model. This time there are chains 
@@ -1742,10 +1758,10 @@ less than 10\%, clipping is likely undetectable without a large sample.
     \centering
     \includegraphics[width=\textwidth]{figures/clipping.pdf}
     \caption{
-        The effect of log likelihood ratio clipping on the posterior of the 
+        The effect of log-likelihood ratio clipping on the posterior of the
         banana model for random walk Metropolis-Hastings and HMC.
         The top row shows posterior MMD as a function of the clip bound, and 
-        the bottom row shows MMD as a function of the fraction of log likelihoods 
+        the bottom row shows MMD as a function of the fraction of log-likelihoods
         that were clipped. The left columns used a 2-dimensional posterior 
         while the right columns had a 10-dimensional posterior. 
         The black lines show the MMDs of ten different samples of the true posterior
@@ -1757,7 +1773,7 @@ less than 10\%, clipping is likely undetectable without a large sample.
 
 \section{Comparison of DP MCMC Algorithms}\label{dp_mcmc_comparison}
 
-The experiments this section compare the DP MCMC algorithms discussed in this
+The experiments in this section compare the DP MCMC algorithms discussed in this
 thesis. The compared algorithms are the DP penalty algorithm with and without
 guided walk MH and one component updates~\cite{YildirimE19}
 (Section~\ref{dp_penalty_section}), the DP Barker algorithm~\cite{HeikkilaJDH19}
@@ -1778,13 +1794,13 @@ so their results could be improved by using an accounting method for ADP.
 The hyperparameters of the algorithms
 were tuned by running the algorithms with \(\epsilon = 4\) and examining the
 results, trying to find hyperparameters that minimise MMD. Clip bounds were
-tuned so that less than 10\% of the log likelihood ratios were clipped,
+tuned so that less than 10\% of the log-likelihood ratios were clipped,
 as the results of Section~\ref{clipping_experiments} show minimal effect on
 MMD at that point.
 
 Figure~\ref{banana_mmd_fig} shows the MMD for each algorithm as a function of
 \(\epsilon\) for the flat and tempered banana models with 2 and 10 dimensions.
-In the non-tempered models, the minibatch algorithms are not are not very useful,
+In the non-tempered models, the minibatch algorithms are not very useful,
 with the exception of DP Barker in 10 dimensions. Of the non-minibatch algorithms,
 with tempering HMC beats the penalty algorithms, but without tempering this is
 reversed.
@@ -1823,8 +1839,8 @@ both of them.
   \label{banana_extra_mmd_fig}
 \end{figure}
 
-Figure~\ref{banana_clipping_fig} shows the fraction of log likelihood ratios
-that were clipped for each epsilon and algorithm. Almost all runs had
+Figure~\ref{banana_clipping_fig} shows the fraction of log-likelihood ratios
+that were clipped for each \(\epsilon\) and algorithm. Almost all runs had
 less than 10\% clipping, with the exception of DP Barker, as adjusting its
 clip bound is not possible.
 
