@@ -39,10 +39,10 @@ def adp_delta(k, epsilon, params, n):
 
 def adp_iters(epsilon, delta, params, n):
     low_iters = zcdp_iters(epsilon, delta, params, n)
-    up_iters = low_iters
+    up_iters = max(low_iters, 1)
     while adp_delta(up_iters, epsilon, params, n) < delta:
         up_iters *= 2
-    while int(up_iters) > int(low_iters):
+    while int(up_iters) - int(low_iters) > 1:
         new_iters = (low_iters + up_iters) / 2
         new_delta = adp_delta(new_iters, epsilon, params, n)
         if new_delta > delta:
@@ -50,7 +50,10 @@ def adp_iters(epsilon, delta, params, n):
         else:
             low_iters = new_iters
 
-    return int(low_iters)
+    if adp_delta(int(up_iters), epsilon, params, n) < delta:
+        return int(up_iters)
+    else:
+        return int(low_iters)
 
 def hmc(problem, epsilon, delta, params, verbose=True, use_adp=True):
 

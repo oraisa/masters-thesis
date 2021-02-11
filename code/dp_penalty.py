@@ -18,16 +18,17 @@ def zcdp_iters(epsilon, delta, tau, n):
 
 def adp_delta(k, epsilon, tau, n):
     mu = 1 / (2 * tau**2 * n)
-    term1 = spec.erfc((epsilon - k * mu) / (2 * np.sqrt(mu * k)))
-    term2 = np.exp(epsilon) * spec.erfc((epsilon + k * mu) / (2 * np.sqrt(mu * k)))
+    divisor = 2 * np.sqrt(mu * k)
+    term1 = spec.erfc((epsilon - k * mu) / divisor)
+    term2 = np.exp(epsilon) * spec.erfc((epsilon + k * mu) / divisor)
     return (0.5 * (term1 - term2)).sum()
 
 def adp_iters(epsilon, delta, tau, n):
     low_iters = zcdp_iters(epsilon, delta, tau, n)
-    up_iters = low_iters
+    up_iters = max(low_iters, 1)
     while adp_delta(up_iters, epsilon, tau, n) < delta:
         up_iters *= 2
-    while int(up_iters) > int(low_iters):
+    while int(up_iters) - int(low_iters) > 1:
         new_iters = (low_iters + up_iters) / 2
         new_delta = adp_delta(new_iters, epsilon, tau, n)
         if new_delta > delta:
@@ -35,7 +36,10 @@ def adp_iters(epsilon, delta, tau, n):
         else:
             low_iters = new_iters
 
-    return int(low_iters)
+    if adp_delta(int(up_iters), epsilon, tau, n) < delta:
+        return int(up_iters)
+    else:
+        return int(low_iters)
 
 def dp_penalty(problem, epsilon, delta, params, verbose=True, use_adp=True):
     ocu = params.ocu
