@@ -133,7 +133,7 @@ the introduction brief, only directly needed concepts are covered, and much
 of the motivation behind the subjects is left out.
 
 \section{Differential Privacy}\label{DP_background}
-\emph{Differential privacy} (DP)~\cite{DwR14} is a property of
+\emph{Differential privacy} (DP)~\cite{DMN06, DwR14} is a property of
 an algorithm that quantifies the
 amount of information about private data an adversary can gain from the 
 publication of the algorithm's output.
@@ -147,7 +147,7 @@ DP randomised algorithms are also called \emph{mechanisms} in this thesis, and i
 DP literature.
 
 The most common definition is called \((\epsilon, \delta)\)-approximate
-differential privacy (ADP)~\cite{DwR14}.
+differential privacy (ADP)~\cite{DKM06, DwR14}.
 The case where \(\delta = 0\) is called \(\epsilon\)-DP or 
 pure DP.
 
@@ -247,7 +247,7 @@ More precisely:
             If \(\calm\) is \((\epsilon, \delta)\)-ADP and 
             \(\calm'\) is \((\epsilon', \delta')\)-ADP, then 
             their composition is 
-            \((\epsilon + \epsilon', \delta + \delta')\)-ADP~\cite{DwR14}
+            \((\epsilon + \epsilon', \delta + \delta')\)-ADP~\cite{DKM06}
         \item 
             If \(\calm\) is \((\alpha, \epsilon)\)-RDP and 
             \(\calm'\) is \((\alpha, \epsilon')\)-RDP, then 
@@ -280,7 +280,7 @@ post-processing immunity:
 
 There are many different DP mechanisms that are commonly used\cite{DwR14}.
 This thesis only requires one of the most commonly 
-used ones: the Gaussian mechanism~\cite{DwR14}.
+used ones: the Gaussian mechanism~\cite{DKM06}.
 \begin{definition}
   The Gaussian mechanism with parameter \(\sigma^2\) is a randomised algorithm that,
   with input data \(x\) and query \(f\colon \calx\to \R^{d}\), outputs a sample from
@@ -352,18 +352,19 @@ likelihood, prior and data, but the integral in the denominator is in many
 cases difficult to compute~\cite{BDA}. In such cases the posterior cannot be feasibly 
 computed. However, many of the commonly used summary statistics of the posterior, 
 such as the mean, variance and credible intervals, can be approximated from 
-a sample of the posterior. \emph{Markov chain Monte Carlo} (MCMC) is a 
-widely used method to obtain such samples~\cite{BDA}.
+a sample of the posterior. \emph{Markov chain Monte Carlo}
+(MCMC)~\cite{MRR53} is a widely used method to obtain such samples.
 
 MCMC algorithms sequentially sample values of \(\theta\)
 with the goal of eventually having the chain of sampled values converge to 
 a given distribution~\cite{BDA}. While this can be done in many ways, this thesis 
-focuses on a particular MCMC algorithm: \emph{Metropolis-Hastings} (MH).
+focuses on a particular MCMC algorithm:
+\emph{Metropolis-Hastings} (MH)~\cite{MRR53, Has70}.
 
 At each iteration \(i\), the Metropolis-Hastings algorithm samples \(\theta_i\) 
 from a distribution \(\pi\) of the parameters
 by first picking a proposal \(\theta'\) from a proposal 
-distribution \(q(\cdot \mid \theta_{i-1})\)~\cite{BDA}, where \(\theta_{i-1}\) is the
+distribution \(q(\cdot \mid \theta_{i-1})\)~\cite{MRR53}, where \(\theta_{i-1}\) is the
 previously sampled value\footnote{
     The value of \(\theta_0\) for the first iteration is given as input to the 
     algorithm.
@@ -378,7 +379,7 @@ If the proposal is accepted,
 \(\theta_i = \theta'\), otherwise \(\theta_i = \theta\).
 
 It can be shown that, with a suitable proposal distribution, the chain of 
-\(\theta_i\) values converges to \(\pi\)~\cite{BDA}. The Gaussian distribution centered 
+\(\theta_i\) values converges to \(\pi\)~\cite{Has70}. The Gaussian distribution centered
 at the current value is a commonly used proposal.
 
 When MCMC is used in Bayesian inference, the distribution to approximate is 
@@ -621,18 +622,18 @@ distribution.
 The \emph{central limit theorem} (CLT) states that the distribution of a sum 
 of random variables approaches a Gaussian distribution as more random variables 
 are summed, if some conditions on the independence and variance of the random 
-variables are met~\cite{HeikkilaJDH19}. With the CLT, it can be argued 
+variables are met~\cite{SPC17}. With the CLT, it can be argued
 that the error from 
 using the subsampled \(\lambda\) instead of the full data \(\lambda\) has an 
 approximately Gaussian distribution, if the subsample is large 
-enough~\cite{HeikkilaJDH19}. 
+enough~\cite{SPC17}.
 
 The variance of the error from subsampling can 
 be estimated by the sample variance of the individual terms in the sum in 
-\(\lambda\)~\cite{HeikkilaJDH19}. This allows combining the errors from subsampling and the 
+\(\lambda\)~\cite{SPC17}. This allows combining the errors from subsampling and the
 Gaussian noise from the Gaussian mechanism to a single Gaussian noise value.
 The \(V_{corr}\) distribution can then be used to approximate the Barker acceptance 
-test as above. See Algorithm~\ref{DP_barker_algo} for the DP Barker
+test as above~\cite{HeikkilaJDH19}. See Algorithm~\ref{DP_barker_algo} for the DP Barker
 algorithm\footnote{
     See~\cite{HeikkilaJDH19} for the sampling procedure of \(V_{corr}\).
 }.
@@ -920,7 +921,7 @@ distance by updating only a single component can greatly reduce the added noise.
 Hamiltonian Monte Carlo (HMC\footnote{
     HMC originally stood for hybrid Monte Carlo, 
     but the name Hamiltonian Monte Carlo has become more common.
-})~\cite{neal2012mcmc} is a widely used MCMC algorithm that, like 
+})~\cite{DKP87, neal2012mcmc} is a widely used MCMC algorithm that, like
 Metropolis-Hastings and the penalty algorithm, was originally developed 
 for simulations in physics and chemistry, but has since been applied to 
 Bayesian inference. 
