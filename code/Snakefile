@@ -38,3 +38,8 @@ rule circle_figures:
         "../Thesis/figures/circle.pdf"
     shell:
         "python {input.py} {input.results}"
+
+rule accountant_comparison_figure:
+    input: "plot_iterations.py"
+    output: "../Thesis/figures/accountant_comparison.pdf"
+    shell: "python {input}"
