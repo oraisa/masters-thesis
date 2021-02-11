@@ -1730,6 +1730,48 @@ available\footnote{\url{https://github.com/oraisa/masters-thesis}}.
   \label{posterior_plots_fig}
 \end{figure}
 
+\section{Comparing Privacy Accounting Methods}
+
+DP penalty, minibatch DP penalty and DP HMC have two different methods to
+compute the number of iterations the algorithm can run for given a privacy
+bound and parameters for the algorithm. These privacy accounting methods
+are given by Theorems~\ref{DP_penalty_theorem_zcdp} and
+\ref{DP_penalty_theorem_adp} for DP penalty, Theorems~\ref{dp_hmc_theorem_zcdp}
+and \ref{dp_hmc_theorem_adp} for DP HMC, and
+Theorem~\ref{dp_penalty_minibatch_theorem} and the Fourier
+accountant~\cite{KJH20} for minibatch DP penalty.
+
+Figure~\ref{accounting_comparison_fig} compares the number of iterations
+each of the algorithms can run for for both accounting methods and different
+values of \(\epsilon\) in the 2-dimensional flat banana experiment.
+The ADP based methods of Theorems~\ref{DP_penalty_theorem_adp}
+and \ref{dp_hmc_theorem_adp}, as well as the Fourier accountant, significantly
+outperform the other accounting methods. This makes it clear that the tight
+bounds given by the ADP based methods should be used in favor of loose methods.
+The Fourier accountant is not easily applicable to DP Barker, as DP Barker
+does not release the sample variance directly, it may still be possible
+to use the Fourier accountant with DP Barker. This is an interesting question
+for future research, as using a better privacy accountant may significantly
+improve the performance of DP Barker.
+
+\begin{figure}[h]
+	\centering
+  \includegraphics[width=\textwidth]{figures/accountant_comparison}
+  \caption{
+    Comparing the zCDP or RDP and ADP based privacy accounting methods
+    for the algorithms with multiple accounting methods. The left panel
+    compares zCDP based accounting (Theorem~\ref{DP_penalty_theorem_zcdp})
+    and ADP based accounting (Theorem~\ref{DP_penalty_theorem_adp}) for
+    the DP penalty algorithm. The middle panel compares the RDP accounting
+    (Theorem~\ref{dp_penalty_minibatch_theorem}) and the Fourier accountant.
+    The right panel compares the zCDP (Theorem~\ref{dp_hmc_theorem_zcdp})
+    and ADP (Theorem~\ref{dp_hmc_theorem_adp}) based accounting.
+    The ADP based methods significantly outperform the other methods
+    in all cases.
+  }
+  \label{accounting_comparison_fig}
+\end{figure}
+
 \section{The Effects of Clipping}\label{clipping_experiments}
 
 The first experiment evaluates the effect of clipping log-likelihood ratios.
