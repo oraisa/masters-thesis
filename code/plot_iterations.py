@@ -34,20 +34,27 @@ if __name__ == "__main__":
             b=mdpps_params.batch_size, tau=mdpps_params.tau
             ), epsilons)
         ))
-    fig, ax = plt.subplots(1, 3)
+    fig, ax = plt.subplots(1, 3, figsize=(10, 5))
     ax[0].set_title("DP penalty")
+    ax[0].set_xlabel("Epsilon")
+    ax[0].set_ylabel("Iterations")
     ax[0].plot(epsilons, zcdp_iters, label="zCDP")
     ax[0].plot(epsilons, adp_iters, label="ADP")
     ax[0].legend()
 
     ax[1].set_title("Minibatch DP penalty")
+    ax[1].set_xlabel("Epsilon")
+    ax[1].set_ylabel("Iterations")
     ax[1].plot(epsilons, mini_rdp_iters, label="RDP")
     ax[1].plot(epsilons, mini_adp_iters, label="ADP")
     ax[1].legend()
 
     ax[2].set_title("DP HMC")
+    ax[2].set_xlabel("Epsilon")
+    ax[2].set_ylabel("Iterations")
     ax[2].plot(epsilons, hmc_zcdp_iters, label="zCDP")
     ax[2].plot(epsilons, hmc_adp_iters, label="ADP")
     ax[2].legend()
 
+    plt.tight_layout()
     plt.savefig("../Thesis/figures/accountant_comparison.pdf")
