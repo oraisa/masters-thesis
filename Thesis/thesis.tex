@@ -2120,6 +2120,123 @@ different runs.
 \end{proof}
 \setcounter{theorem}{\value{temp_counter}}
 
+\chapter{Proof of Lemma X}
+\begin{lemma}\label{clip_is_almost_everywhere_differentiable}
+  Let \(f\colon \R^{d}\to \R^{d}\) be continuously differentiable in an
+  open set \(U\) with
+  \(\det J_{f}(x) \neq 0\) for all \(x\in U\).
+  If \(U^{C}\) has zero measure, the set \(A\subset \R^{d}\)
+  where \(\clip_{b} \circ f\) is not differentiable has zero measure.
+\end{lemma}
+\begin{proof}
+  \[
+    \clip_{b}(x) = \frac{x}{||x||}\min\{||x||, b\}
+  \]
+  which means that \(\clip_{b}\) is differentiable for all \(x\in \R^{d}\) with
+  \(||x|| \neq b\). Consider \(\clip_{b}\circ f\) in a neighbourhood \(B\) of
+  point \(x_{0}\in \R^{d}\). If \(||f(x)|| \leq b\) for all \(x\in B\),
+  \(\clip_{b}(f(x)) = f(x)\) in \(B\), which is differentiable. If \(||f(x)|| \geq b\)
+  for all \(x\in B\), \(\clip_{b}(f(x)) = \frac{f(x)b}{||f(x)||}\) in \(B\),
+  which is also differentiable because \(f(x) \neq 0\) when
+  \(||f(x)|| \geq b > 0\). In both cases \(\clip_{b}\circ f\) is differentiable
+  at \(x_{0}\). This means that for all \(x_{0}\in A\), \(||f(x_{0})|| = b\), but
+  every neighborhood
+  of \(x_{0}\) has points \(x'\) and \(x''\) such that \(||f(x')|| < b\) and
+  \(||f(x'')|| > b\).
+
+  Let \(S = \{x\in U\mid ||f(x)|| = b\}\).
+  With the assumptions on \(f\),
+  % there is a neighborhood \(E\subset U\)
+  % for every \(x_{0}\in S\) where \(f(x) \neq 0\) for all \(x\in E\) and
+  % \(||f||\) is differentiable.
+  \(\nabla ||f(x)|| = \frac{2f(x)}{||f(x)||}J_{f}(x) \neq 0\) for \(x\in S\).
+  By Lemma~\ref{level_set_lemma},
+  \(S\) is a \((d-1)\)-dimensional hypersurface, which has zero measure
+  in \(d\)-dimensional space. Because \(A\cap U \subset S\), \(A\cap U\)
+  also has zero measure. Since \(A = (A\cap U) \cup (A\cap U^{C})\),
+  \(A\) also has zero measure.
+
+  % Let \(E(x_{1}) = \{(x_{2}, \dotsc, \x_{d})\in \R^{d-1}\mid (x_{1}\dotsc, x_{d})\in A\}\).
+  % \(E(x_{1})\) has measure zero for almost all \(x_{1}\).
+
+  % Let \(x_{1}\in \R\) where \(E(x_{1})\) has non-zero measure.
+\end{proof}
+\begin{lemma}\label{level_set_lemma}
+  Let \(d \geq 2\) and \(g\colon U \to \R\), where \(U\) is an open subset of
+  \(\R^{d}\), be continuously differentiable. Let \(S = \{x\in U\mid f(x) = b\}\),
+  \(b\in \R\).
+  If for all \(x\in S\), \(\nabla f(x) \neq 0\), \(S\) is a \((d - 1)\)-dimensional
+  hypersurface.
+\end{lemma}
+
+For DP HMC, set \(f(\theta) = \nabla U(\theta)\). The conditions of
+Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(U\) are that
+\(U\) is twice continuously differentiable and
+\[
+  H_{U}(\theta) \neq 0
+\]
+where \(H_{U}\) is the Hessian matrix of \(U\).
+\begin{lemma}
+  The log-likelihoods of the Gaussian, banana and circle models meet the
+  conditions of Lemma~\ref{clip_is_almost_everywhere_differentiable}
+\end{lemma}
+\begin{proof}
+\end{proof}
+For the Gaussian log-likelihood
+\[
+  U(\theta) = \frac{1}{2}(x - \theta)^{T}\Sigma^{-1}(x - \theta),
+\]
+so
+\[
+  \nabla U(\theta) = \Sigma^{-1}(x - \theta)
+\]
+and \(H_{U}(\theta) = \Sigma^{-1}\).
+For the banana log-likelihood, using the notation from
+Appendix~\ref{banana_posterior_theorem_proof},
+\[
+  U(\theta) = \frac{1}{2}(g^{-1}(x) - \theta)^{T}\Sigma^{-1}(g^{-1}(x) - \theta),
+\]
+so
+\[
+  \nabla U(\theta) = \Sigma^{-1}(g^{-1}(x) - \theta)
+\]
+and \(H_{U}(\theta) = \Sigma^{-1}\).
+The circle log-likelihood is
+\[
+  U(x, y) = -a(x^{2} + y^{2} - r^{2})^{2},
+\]
+\[
+  \nabla U(x, y) = -4a(x^{3} + xy^{2} - xr^{2}, x^{2}y + y^{3} - yr^{2}),
+\]
+so
+\[
+  H_{U}(x, y) = -4a
+  \begin{bmatrix}
+    3x^{2} + y^{2} - r^{2} & 2xy \\
+    2xy & 3y^{2} + x^{2} - r^{2} \\
+  \end{bmatrix}
+\]
+and
+\begin{align*}
+  \det H_{U}(x, y) &= -4a((3x^{2} + y^{2} - r^{2})(3y^{2} + x^{2} - r^{2})
+  - 4x^{2}y^{2})
+  \\&= -4a(9x^{2}y^{2} + 3x^{4} - 3x^{2}r^{2} + 3y^{4} + y^{2}x^{2} -y^{2}r^{2}
+  - 3y^{2}r^{2} - x^{2}r^{2} + r^{4} - 4x^{2}y^{2})
+  \\&= -4a(6x^{2}y^{2} + 3x^{4} - 4x^{2}r^{2} + 3y^{4} - 4y^{2}r^{2} + r^{4})
+  \\&= -4a(6x^{2}y^{2} + 3(x^{4} + y^{4}) - 4r^{2}(x^{2} + y^{2}) + r^{4}).
+\end{align*}
+\[
+  \nabla \det H_{U}(x, y) = -4a(12xy^{2} + 12x^{3} - 8r^{2}x,
+  12yx^{2} + 12y^{3} - 8r^{2}y),
+\]
+which is zero in the origin and on the circle
+\[
+  x^{2} + y^{2} = \frac{2}{3}r^{2}.
+\]
+Elsewhere, Lemma~\ref{level_set_lemma} can be applied to \(\det H_{U}\), which
+means that the set where \(\det H_{U}(x, y) = 0\) is a 1-dimensional curve.
+This means that the set \(U\) where \(\det H_{U}(x, y) \neq 0\) is open and
+\(U^{C}\) has zero measure.
 \end{appendices}
 
 \end{document}
