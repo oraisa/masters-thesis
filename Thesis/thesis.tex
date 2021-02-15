@@ -1138,6 +1138,14 @@ The Jacobian of \(l_{p}\) is
 \]
 where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
 zero matrices, respectively, and \(C(\theta) = J_{\clip(\nabla U(\theta))}(\theta)\).
+It is possible that \(C(\theta)\) does not exist, but this can only happen
+in a null set\footnote{A set of zero Lebesgue measure.} if \(U\) is sufficiently
+well-behaved. With such \(U\), the non-existence of \(C(\theta)\) does not
+affect the volume preservation of \(l_{p}\). Appendix~\ref{clip_diff_chapter}
+gives very general sufficient conditions for \(U\), and proves that all
+of the models considered in Chapter~\ref{experiment_setup_chapter} meet
+the conditions.
+
 Because \(J_{l_{p}}(\theta, p)\) is triangular, \(\det J_{l_{p}}(\theta, p) = 1\)
 for all \(\theta\) and \(p\), which means that \(l_{p}\) preserves volume.
 As the step updating \(\theta\) also preserves volume, the entire leapfrog
@@ -1456,7 +1464,7 @@ DP HMC releases the log-likelihood ratio \(k\) times and the gradient
 \]
 \end{proof}
 
-\chapter{Evaluated Models}
+\chapter{Evaluated Models}\label{experiment_setup_chapter}
 
 To compare the performance of the DP MCMC algorithms, they were run on
 several models. This chapter introduces these models in Sections~\ref{gauss_model},
@@ -2120,13 +2128,32 @@ different runs.
 \end{proof}
 \setcounter{theorem}{\value{temp_counter}}
 
-\chapter{Proof of Lemma X}
+\chapter{The differentiability of the \(\clip\)-function}\label{clip_diff_chapter}
+
+This appendix proves that functions of the form \(\clip\circ f\) are
+almost everywhere differentiable for sufficiently well-behaved \(f\),
+as required by the proof of volume preservation
+of DP HMC leapfrog iterations (Section~\ref{dp_hmc_section}).
+Lemma~\ref{clip_is_almost_everywhere_differentiable} gives very general
+sufficient conditions, and Lemma~\ref{model_clip_ok_lemma} proves that the
+models considered in this thesis meet the conditions.
+
+\begin{lemma}\label{level_set_lemma}
+  Let \(d \geq 2\) and \(g\colon U \to \R\), where \(U\) is an open subset of
+  \(\R^{d}\), be continuously differentiable. Let \(S = \{x\in U\mid f(x) = b\}\),
+  \(b\in \R\).
+  If for all \(x\in S\), \(\nabla f(x) \neq 0\), \(S\) is a \((d - 1)\)-dimensional
+  hypersurface.
+\end{lemma}
+\begin{proof}
+	See~\cite[Section 9.2]{Tu11}.
+\end{proof}
+
 \begin{lemma}\label{clip_is_almost_everywhere_differentiable}
-  Let \(f\colon \R^{d}\to \R^{d}\) be continuously differentiable in an
-  open set \(U\) with
-  \(\det J_{f}(x) \neq 0\) for all \(x\in U\).
-  If \(U^{C}\) has zero measure, the set \(A\subset \R^{d}\)
-  where \(\clip_{b} \circ f\) is not differentiable has zero measure.
+  Let \(f\colon \R^{d}\to \R^{d}\) be continuously differentiable.
+  If the set of saddle points \(U\) of \(||f||\) is a null set,
+  the set \(A\subset \R^{d}\)
+  where \(\clip_{b} \circ f\) is not differentiable is a null set.
 \end{lemma}
 \begin{proof}
   \[
@@ -2142,46 +2169,48 @@ different runs.
   at \(x_{0}\). This means that for all \(x_{0}\in A\), \(||f(x_{0})|| = b\), but
   every neighborhood
   of \(x_{0}\) has points \(x'\) and \(x''\) such that \(||f(x')|| < b\) and
-  \(||f(x'')|| > b\).
+  \(||f(x'')|| > b\). With the differentiability of \(f\), this means that
+  if \(\nabla ||f(x_{0})|| = 0\), \(x_{0}\) is a saddle point of \(||f||\).
 
-  Let \(S = \{x\in U\mid ||f(x)|| = b\}\).
-  With the assumptions on \(f\),
+  Let \(S = \{x\in \R^{d}\mid ||f(x)|| = b \text{ and } \nabla ||f(x)|| \neq 0\}\).
+  % With the assumptions on \(f\),
   % there is a neighborhood \(E\subset U\)
   % for every \(x_{0}\in S\) where \(f(x) \neq 0\) for all \(x\in E\) and
   % \(||f||\) is differentiable.
-  \(\nabla ||f(x)|| = \frac{2f(x)}{||f(x)||}J_{f}(x) \neq 0\) for \(x\in S\).
+  % \(\nabla ||f(x)|| = \frac{2f(x)}{||f(x)||}J_{f}(x) \neq 0\) for \(x\in S\).
   By Lemma~\ref{level_set_lemma},
   \(S\) is a \((d-1)\)-dimensional hypersurface, which has zero measure
-  in \(d\)-dimensional space. Because \(A\cap U \subset S\), \(A\cap U\)
-  also has zero measure. Since \(A = (A\cap U) \cup (A\cap U^{C})\),
-  \(A\) also has zero measure.
+  in \(d\)-dimensional space. Because \(A\cap U^{C} \subset S\), \(A\cap U^{C}\)
+  is also a null set. Since \(A = (A\cap U^{C}) \cup (A\cap U)\),
+  \(A\) is a null set.
 
   % Let \(E(x_{1}) = \{(x_{2}, \dotsc, \x_{d})\in \R^{d-1}\mid (x_{1}\dotsc, x_{d})\in A\}\).
   % \(E(x_{1})\) has measure zero for almost all \(x_{1}\).
 
   % Let \(x_{1}\in \R\) where \(E(x_{1})\) has non-zero measure.
 \end{proof}
-\begin{lemma}\label{level_set_lemma}
-  Let \(d \geq 2\) and \(g\colon U \to \R\), where \(U\) is an open subset of
-  \(\R^{d}\), be continuously differentiable. Let \(S = \{x\in U\mid f(x) = b\}\),
-  \(b\in \R\).
-  If for all \(x\in S\), \(\nabla f(x) \neq 0\), \(S\) is a \((d - 1)\)-dimensional
-  hypersurface.
-\end{lemma}
 
 For DP HMC, set \(f(\theta) = \nabla U(\theta)\). The conditions of
-Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(U\) are that
+Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(U\) are met if
 \(U\) is twice continuously differentiable and
-\[
-  H_{U}(\theta) \neq 0
-\]
-where \(H_{U}\) is the Hessian matrix of \(U\).
-\begin{lemma}
+\begin{lemma}\label{model_clip_ok_lemma}
   The log-likelihoods of the Gaussian, banana and circle models meet the
-  conditions of Lemma~\ref{clip_is_almost_everywhere_differentiable}
+  conditions of Lemma~\ref{clip_is_almost_everywhere_differentiable}.
 \end{lemma}
 \begin{proof}
-\end{proof}
+For DP HMC, set \(f(\theta) = \nabla U(\theta)\). The conditions of
+Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(U\) are met if
+\(U\) is twice continuously differentiable and
+\[
+  \nabla ||\nabla U(x)||
+  = \frac{2\nabla U(x)}{||\nabla U(x)||}J_{\nabla U}(x)
+  = \frac{2\nabla U(x)}{||\nabla U(x)||}H_{U}(x) \neq 0
+\]
+almost everywhere,
+where \(H_{U}\) is the Hessian matrix of \(U\). Because \(\nabla U = 0\) and
+\(||\nabla U|| = 0\) at only one point, having \(\det H_{U}(x) \neq 0\)
+almost everywhere is sufficient.
+
 For the Gaussian log-likelihood
 \[
   U(\theta) = \frac{1}{2}(x - \theta)^{T}\Sigma^{-1}(x - \theta),
@@ -2191,6 +2220,7 @@ so
   \nabla U(\theta) = \Sigma^{-1}(x - \theta)
 \]
 and \(H_{U}(\theta) = \Sigma^{-1}\).
+
 For the banana log-likelihood, using the notation from
 Appendix~\ref{banana_posterior_theorem_proof},
 \[
@@ -2201,6 +2231,7 @@ so
   \nabla U(\theta) = \Sigma^{-1}(g^{-1}(x) - \theta)
 \]
 and \(H_{U}(\theta) = \Sigma^{-1}\).
+
 The circle log-likelihood is
 \[
   U(x, y) = -a(x^{2} + y^{2} - r^{2})^{2},
@@ -2235,8 +2266,7 @@ which is zero in the origin and on the circle
 \]
 Elsewhere, Lemma~\ref{level_set_lemma} can be applied to \(\det H_{U}\), which
 means that the set where \(\det H_{U}(x, y) = 0\) is a 1-dimensional curve.
-This means that the set \(U\) where \(\det H_{U}(x, y) \neq 0\) is open and
-\(U^{C}\) has zero measure.
+\end{proof}
 \end{appendices}
 
 \end{document}
