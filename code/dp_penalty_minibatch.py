@@ -59,8 +59,8 @@ def adp_delta(iters, epsilon, tau, n, b):
     return fa.get_delta_S(target_eps=epsilon, sigma=np.sqrt(tau), q=b/n, ncomp=int(iters))
 
 def adp_iters(epsilon, delta, tau, n, b):
-    low_iters = 1#maximize_iterations(epsilon, delta, n, b, tau)
-    up_iters = low_iters
+    low_iters = 0#maximize_iterations(epsilon, delta, n, b, tau)
+    up_iters = 1
     while adp_delta(up_iters, epsilon, tau, n, b) < delta:
         up_iters *= 2
     while int(up_iters) - int(low_iters) > 1:

@@ -12,28 +12,35 @@ class BarkerParams:
         self.batch_size = batch_size
         self.prop_sigma = prop_sigma
 
-def compute_iters_dp_mcmc(eps, target_delta, N, batch_size):
-    cur_eps = 0
-    cur_T = 0
-    increment = 1000
-    while(increment > 1):
-        increment = int(increment / 2)
-        while(cur_eps <= eps):
-            cur_T += increment
-            cur_eps, _ = get_privacy_spent(
-                batch_size, N, cur_T, max_alpha=int(batch_size / 5),
-                delta=target_delta
-            )
-        cur_eps = 0
-        cur_T -= increment
+def rdp_epsilon(iters, delta, n, b):
+    return get_privacy_spent(
+        b, n, iters, max_alpha=int(b / 5), delta=delta
+    )[0]
 
-    return cur_T
+def maximize_iters(epsilon, delta, n, batch_size):
+    low_iters = 0
+    up_iters = 1024
+    while rdp_epsilon(up_iters, delta, n, batch_size) < epsilon:
+        up_iters *= 2
+    while int(up_iters) - int(low_iters) > 1:
+        new_iters = (low_iters + up_iters) / 2
+        new_epsilon = rdp_epsilon(new_iters, delta, n, batch_size)
+        if new_epsilon > epsilon:
+            up_iters = new_iters
+        else:
+            low_iters = new_iters
+
+    if rdp_epsilon(int(up_iters), delta, n, batch_size) < epsilon:
+        return int(up_iters)
+    else:
+        return int(low_iters)
+
 
 def dp_barker(problem, epsilon, delta, params, verbose=True):
 
     data = problem.data
     n, data_dim = data.shape
-    T = compute_iters_dp_mcmc(epsilon, delta, n, params.batch_size)
+    T = maximize_iters(epsilon, delta, n, params.batch_size)
     if verbose:
         print("Iterations: {}".format(T))
 
