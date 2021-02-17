@@ -1549,14 +1549,16 @@ while moving a substantial distance on the circle.
   \label{hmc_trajectory_fig}
 \end{figure}
 
-\chapter{Evaluated Models}\label{experiment_setup_chapter}
+\chapter{Experimental Setup}\label{experiment_setup_chapter}
 
 To compare the performance of the DP MCMC algorithms, they were run on
 several models. This chapter introduces these models in Sections~\ref{gauss_model},
-\ref{banana_section} and \ref{circle_section}. Finally, the main performance
+\ref{banana_section} and \ref{circle_section}. The practicalities, such as
+the hyperparameter values of the model and the initialisation of the
+MCMC algorithms, are considered in Section~\ref{practical_section}.
+Finally, the main performance
 metric used in the experiments is introduced in Section~\ref{mmd_section}.
-The results and the specifics of the used models are discussed in
-Chapter~\ref{experiment_chapter}.
+The results of the experiments are discussed in Chapter~\ref{experiment_chapter}.
 
 \section{The Gaussian Model}\label{gauss_model}
 
@@ -1715,6 +1717,72 @@ out that this is fairly simple. For the mean of the \(x\)-coordinate
 \end{align*}
 The mean of the \(y\)-coordinate is calculated similarly.
 
+Unlike the banana and Gaussian models,
+the circle model does not give a method to generate the data points
+\(r_{i}\) from given values of \(x\) and \(y\). The \(r_{i}\) values used
+in the experiments of Chapter~\ref{experiment_chapter} were sampled
+from a normal distribution with mean 3 and variance 1.
+
+\section{Practicalities of Running the MCMC Algorithms}\label{practical_section}
+
+Eight sets of model hyperparameters were used in the experiments.
+The hyperparameters are shown in
+Table~\ref{model_params_table} and contour plots of the
+2-dimensional models are shown in Figure~\ref{posterior_plots_fig}.
+All banana models had \(b = m = 0\). The likelihood variance of the banana
+and 30-dimensional Gaussian
+models was \(\sigma_{1}^{2} = 20\), \(\sigma_{2}^{2} = 2.5\) and
+\(\sigma_{i}^{2} = 1\)
+for \(i > 2\). The likelihood covariance for the correlated Gaussian model
+was
+\[
+\begin{bmatrix}
+  1 & 0.999 \\
+  0.999 & 1
+\end{bmatrix}.
+\]
+The true values of \(\theta\) in all experiment except the circle are
+\(\theta_{2} = 3\) and \(\theta_{i} = 0\) for \(i \neq 2\).
+
+
+All experiments ran 20 chains for each value
+of \(\epsilon\) for DP MCMC experiments, or clip bound for clipping experiments,
+for each algorithm included. Each of the
+20 chains had a different starting point, chosen from a Gaussian
+distribution value with standard deviation as
+shown in Table~\ref{model_params_table}, but the starting points did
+not vary across algorithms, or values of \(\epsilon\) or clip bound.
+The Gaussian distribution choosing the starting points was
+centered on the true parameter values for the banana and Gaussian experiments,
+and on \((0, 1)\) for the circle experiment.
+
+The first half of the obtained samples were discarded as they may not represent
+the true posterior, which is standard practice with MCMC~\cite{BDA}. The
+latter half was compared to a reference sample obtained from the true posterior,
+except in the circle experiment, where the mean of the sample was compared to
+the true posterior mean of \((0,0)\).
+
+Publicly available implementations of DP
+Barker\footnote{\url{https://github.com/DPBayes/DP-MCMC-NeurIPS2019}}
+and the Fourier
+accountant\footnote{\url{https://github.com/DPBayes/PLD-Accountant}} were
+used, and the rest of the algorithms were implemented by the author.
+The accuracy and running time of the Fourier acountant is
+determined by two parameters~\cite{KJH20}. They were left at their default values.
+The code for running the experiments is freely
+available\footnote{\url{https://github.com/oraisa/masters-thesis}}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{figures/posterior_plots}
+  \caption{
+    Contour plots of the posterior densities of the 2-dimensional models.
+  }
+  \label{posterior_plots_fig}
+\end{figure}
+
+\include{model_params_table}
+
 \section{Maximum Mean Discrepancy}\label{mmd_section}
 
 The convergence of non-DP MCMC algorithms is typically assessed using 
@@ -1767,66 +1835,19 @@ to handle samples of different sizes.
 \chapter{Experiments}\label{experiment_chapter}
 
 This chapter contains the experiments performed on both non-DP and DP MCMC
-algorithms. Section~\ref{experiment_setup} details the specific model parameters
-and other technical details of the experiments. Section~\ref{clipping_experiments}
+algorithms. Section~\ref{accounting_comparison_section} compares the
+zCDP, RDP and ADP based privacy accounting methods that are available
+for DP penalty, minibatch DP Penalty and DP HMC.
+Section~\ref{clipping_experiments}
 examines the effect clipping log-likelihood ratios, which is necessary for
 DP MCMC algorithms, but may adversely affect their convergence.
 Section~\ref{dp_mcmc_comparison} compares the different DP MCMC algorithms
 on several models.
 
-\section{Experimental Setup}\label{experiment_setup}
-
-Eight models were used in the experiments. The parameters are shown in
-Table~\ref{model_params_table} and contour plots of the
-2-dimensional models are shown in Figure~\ref{posterior_plots_fig}.
-All banana models had \(b = m = 0\). The likelihood variance of the banana
-and 30-dimensional Gaussian
-models was \(\sigma_{1}^{2} = 20\), \(\sigma_{2}^{2} = 2.5\) and
-\(\sigma_{i}^{2} = 1\)
-for \(i > 2\). The likelihood covariance for the correlated Gaussian model
-was
-\[
-\begin{bmatrix}
-  1 & 0.999 \\
-  0.999 & 1
-\end{bmatrix}.
-\]
-
-All experiments ran 20 chains for each value
-of \(\epsilon\) for DP MCMC experiments, or clip bound for clipping experiments,
-for each algorithm included. Each of the
-20 chains had a different starting point, but the starting points did
-not vary across algorithms, or values of \(\epsilon\) or clip bound.
-
-The first half of the obtained samples were discarded as they may not represent
-the true posterior, which is standard practice with MCMC~\cite{BDA}. The
-latter half was compared to a reference sample obtained from the true posterior,
-except in the circle experiment, where the mean of the sample was compared to
-the true posterior mean of \((0,0)\).
-
-Publicly available implementations of DP
-Barker\footnote{\url{https://github.com/DPBayes/DP-MCMC-NeurIPS2019}}
-and the Fourier
-accountant\footnote{\url{https://github.com/DPBayes/PLD-Accountant}} were
-used, and the rest of the algorithms were implemented by the author.
-The code for running the experiments is freely
-available\footnote{\url{https://github.com/oraisa/masters-thesis}}.
-
-\include{model_params_table}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\textwidth]{figures/posterior_plots}
-  \caption{
-    Contour plots of the posterior densities of the 2-dimensional models.
-  }
-  \label{posterior_plots_fig}
-\end{figure}
-
-\section{Comparing Privacy Accounting Methods}
+\section{Comparing Privacy Accounting Methods}\label{accounting_comparison_section}
 
 DP penalty, minibatch DP penalty and DP HMC have two different methods to
-compute the number of iterations the algorithm can run for given a privacy
+compute the number of iterations the algorithm can run for, given a privacy
 bound and parameters for the algorithm. These privacy accounting methods
 are given by Theorems~\ref{DP_penalty_theorem_zcdp} and
 \ref{DP_penalty_theorem_adp} for DP penalty, Theorems~\ref{dp_hmc_theorem_zcdp}
