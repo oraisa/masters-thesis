@@ -1536,7 +1536,6 @@ Even with noisy and clipped gradients,
 the trajectory is able to stay inside the thin, circular area of high probability,
 while moving a substantial distance on the circle.
 
-
 \begin{figure}[h]
 	\centering
   \includegraphics[width=\textwidth]{figures/hmc_trajectory}
@@ -2006,25 +2005,6 @@ of \(\epsilon\).
   \label{banana_extra_clipping_fig}
 \end{figure}
 
-Figure~\ref{banana_grad_clipping_fig} shows the fraction of clipped
-gradients for DP HMC. Clipping gradients does not affect the asymptotic
-convergence of DP HMC, but it may lower the acceptance rate and thus
-the performance of the algorithm. As raising the clip bound to lower
-gradient clipping increases the noise added to gradient, thus also lowering
-the acceptance rate, it is not clear what an appropriate level of gradient
-clipping would be. The observed levels of clipping are fairly constant across
-values of \(\epsilon\), but vary in the models, and in the narrow banana model,
-there is very large variance in clipping.
-
-\begin{figure}
-  \centering
-  \includegraphics[width=\textwidth]{figures/banana_grad_clipping}
-  \caption{
-    Gradient clipping for DP HMC.
-  }
-  \label{banana_grad_clipping_fig}
-\end{figure}
-
 Figure~\ref{circle_fig} shows the results for the circle model. The distance
 of the sample mean from the true mean (the origin) were used instead of MMD,
 as computing MMD requires a sample from the posterior, which is not trivial
@@ -2040,6 +2020,25 @@ different runs.
     Circle mean error on the left and clipping on the right.
   }
   \label{circle_fig}
+\end{figure}
+
+Figure~\ref{grad_clipping_fig} shows the fraction of clipped
+gradients for DP HMC. Clipping gradients does not affect the asymptotic
+convergence of DP HMC, but it may lower the acceptance rate and thus
+the performance of the algorithm. As raising the clip bound to lower
+gradient clipping increases the noise added to gradient, thus also lowering
+the acceptance rate, it is not clear what an appropriate level of gradient
+clipping would be. The observed levels of clipping are fairly constant across
+values of \(\epsilon\), but vary in the models, and in the narrow banana model,
+there is very large variance in clipping.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{figures/grad_clipping}
+  \caption{
+    Gradient clipping for DP HMC.
+  }
+  \label{grad_clipping_fig}
 \end{figure}
 
 \chapter{Conclusions}

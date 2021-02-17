@@ -7,7 +7,8 @@ plot_titles = [
     "Easy Banana, a = 20", "Hard Banana, a = 350", "Tempered Banana, a = 20",
     "Circle", "Correlated Gaussian"
 ]
-fig, axes = plt.subplots(3, 2, figsize=(10, 13))
+
+fig, axes = plt.subplots(3, 2, figsize=(8, 10))
 
 for i, exp in enumerate(exps_to_plot):
     problem = experiments[exp].get_problem()
@@ -15,4 +16,6 @@ for i, exp in enumerate(exps_to_plot):
     problem.plot_density(axes[ind])
     axes[ind].set_title(plot_titles[i])
 
+axes[2, 1].set_visible(False)
+plt.tight_layout()
 plt.savefig("../Thesis/figures/posterior_plots.pdf")

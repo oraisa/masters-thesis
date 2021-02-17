@@ -52,5 +52,4 @@ rule figures:
         "../Thesis/figures/banana_clipping.pdf",
         "../Thesis/figures/banana_extra.pdf",
         "../Thesis/figures/banana_extra_clipping.pdf",
-        "../Thesis/figures/banana_grad_clipping.pdf",
     shell: "python {input.py} {input.results}"

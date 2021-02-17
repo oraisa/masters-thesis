@@ -48,3 +48,11 @@ rule hmc_trajectory_figure:
     input: "plot_hmc_trajectory.py"
     output: "../Thesis.figures/hmc_trajectory.pdf"
     shell: "python {input}"
+
+rule grad_clipping_figure:
+    input:
+        py = "plot_grad_clipping.py",
+        circle = result_dir + "results.csv",
+        banana = "results/banana/results.csv"
+    output: "../Thesis/figures/grad_clipping.pdf"
+    shell: "python {input.py} {input.banana} {input.circle}"

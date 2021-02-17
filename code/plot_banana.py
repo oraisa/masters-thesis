@@ -29,9 +29,6 @@ hue_order = [algorithm_names[algo] for algo in hue_order_short]
 extra_hue_order = hue_order[0:3]
 df["Algorithm"] = df["Algorithm"].map(algorithm_names)
 
-key = jax.random.PRNGKey(46237)
-keys = jax.random.split(key, 10)
-
 df_easy_2d = df[df["experiment"] == "easy-2d"]
 df_easy_10d = df[df["experiment"] == "easy-10d"]
 df_tempered_2d = df[df["experiment"] == "tempered-2d"]
@@ -40,6 +37,9 @@ df_gauss_30d = df[df["experiment"] == "gauss-30d"]
 df_gauss_hard_6d = df[df["experiment"] == "hard-gauss-6d"]
 df_gauss_hard_2d = df[df["experiment"] == "hard-gauss-2d"]
 df_hard_2d = df[df["experiment"] == "hard-2d"]
+
+# key = jax.random.PRNGKey(46237)
+# keys = jax.random.split(key, 10)
 
 # banana2 = banana_model.BananaModel(dim=2# )
 # data2 = banana2.generate_test_data()
@@ -93,19 +93,4 @@ plot_mmd_clip_acceptance(
     "../Thesis/figures/banana_extra.pdf",
     "../Thesis/figures/banana_extra_clipping.pdf",
     "../Thesis/figures/banana_extra_acceptance.pdf"
-)
-
-plot_data(
-    "Grad Clipping", ["DP HMC"],
-    [
-        [df_easy_2d, df_tempered_2d], [df_easy_10d, df_tempered_10d],
-        [df_gauss_30d, df_gauss_hard_2d], [df_hard_2d, None]
-    ],
-    np.array((
-        ("d = 2, non-tempered", "d = 2, tempered"), ("d = 10, non-tempered", "d = 10, tempered"),
-        ("d = 30, Gaussian", "d = 2, correlated Gaussian"),
-        ("d = 2, narrow banana", None)
-    )),
-    (0, 0.5), "../Thesis/figures/banana_grad_clipping.pdf",
-    legend_outside=False
 )
