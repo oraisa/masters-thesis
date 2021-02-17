@@ -542,7 +542,47 @@ Theorem~\ref{DP_penalty_theorem_adp} is harder to use than
 Theorem~\ref{DP_penalty_theorem_zcdp} because the number of iteration 
 DP penalty can be run for given an \((\epsilon, \delta)\)-bound cannot be 
 computed analytically for the former. However, the maximum number of iterations 
-can be solved for numerically.
+can be solved for numerically. Algorithm~\ref{max_iterations_algo} shows a simple
+procedure that solves the maximum number of iterations using the bisection
+method.
+
+\begin{algorithm}[H]\label{max_iterations_algo}
+  \SetAlgoLined
+	\(low\) = \(\mathrm{zcdp}(\epsilon, \delta, \tau, n)\) \\
+  \(high\) = \(\max \{low, 1\}\) \\
+
+  \While{\(\mathrm{adp}(\epsilon, high, \tau, n) < \delta\)}{
+    \(high = high \cdot 2\) \\
+  }
+  \While{\(\lfloor high \rfloor - \lfloor low \rfloor > 1\)}{
+    \(new = \frac{high + low}{2}\)\\
+    \If{\(\mathrm{adp}(\epsilon, new, \tau, n) > \delta\)}{
+      \(high = new\)\\
+    }
+    \Else{
+      \(low = new\)\\
+    }
+  }
+  \If{\(\mathrm{adp}(\epsilon, \lfloor high \rfloor, \tau, n) < \delta\)}{
+    \Return \(\lfloor high \rfloor\)\\
+  }
+  \Else{
+    \Return \(\lfloor low \rfloor\)\\
+  }
+
+  \caption{
+    Maximise the number of iterations given \(\epsilon\), \(\delta\),
+    \(\tau\) and \(n\). The
+    \(\mathrm{zcdp}\)-function computes the number of iterations
+    Theorem~\ref{DP_penalty_theorem_zcdp} allows, and the
+    \(\mathrm{adp}\)-function computes \(\delta(\epsilon)\) from
+    Theorem~\ref{DP_penalty_theorem_adp}. \(\lfloor \cdot \rfloor\) is the
+    floor function that rounds real numbers down. Note that the variables
+    \(low\), \(high\) and \(new\) are not necessarily integers, as
+    Theorem~\ref{DP_penalty_theorem_adp} can handle a non-integer number of
+    iterations.
+  }
+\end{algorithm}
 
 Theorems~\ref{DP_penalty_theorem_zcdp} and~\ref{DP_penalty_theorem_adp}
 require a bound on sensitivity of the log-likelihood ratio. If there is a bound
@@ -669,6 +709,16 @@ is accounted for with an amplification theorem for Rényi DP~\cite{WangBK19}.
     where \(n\) is the number of rows in \(D\), \(|B|\) is the size of the 
     minibatch and \(q = \frac{|B|}{n}\).
 \end{theorem}
+Algorithm~\ref{max_iterations_algo} can modified to compute the maximum number
+of iterations Theorem~\ref{dp_barker_theorem} allows by computing
+\(\epsilon\)-bounds given \(\delta\) with Theorem~\ref{dp_barker_theorem}
+instead of computing \(\delta\)-bounds given \(\epsilon\). The variable
+\(low\) of Algorithm~\ref{max_iterations_algo} must be initialised to 0,
+and the variable \(high\) must be initialised to a value greater than 0\footnote{
+  Choosing a value close to the maximum number of iterations speeds up the
+  computation of the maximum number of iterations. The experiments in this
+  thesis used the value 1024.
+}.
 
 Like DP penalty, DP Barker requires a bound on the log-likelihood ratio for
 one row of data. The bound can be forced through clipping if the model does not 
@@ -902,6 +952,17 @@ The DP Barker algorithm, like minibatch penalty, uses RDP to compute privacy
 bounds. Using the Fourier accountant with DP Barker may be possible, but it is
 not as simple as with minibatch penalty, as DP Barker does not consider
 releasing the sample variance \(\sigma_{b}^{2}\) directly.
+
+As with the DP penalty and DP Barker algorithms, the maximum number of iterations
+for minibatch DP penalty can be computed using Algorithm~\ref{max_iterations_algo}.
+For Theorem~\ref{dp_penalty_minibatch_theorem}, Algorithm~\ref{max_iterations_algo}
+must be modified the as it is modified for DP Barker
+(Section~\ref{dp_barker_section}). With the Fourier accountant, the only necessary
+modification is computing \(\delta\) with the Fourier accountant\footnote{
+  The Fourier accountant handles the non-integer iteration numbers used
+  by Algorithm~\ref{max_iterations_algo} by internally
+  rounding them down.
+}.
 
 The appearance of \(n\) as a multiplier of \(\Delta_\lambda\) and 
 \(n^2\) as a multiplier of \(\Delta_\sigma\) causes the noise variance to increase 
@@ -1463,6 +1524,31 @@ DP HMC releases the log-likelihood ratio \(k\) times and the gradient
   \qedhere
 \]
 \end{proof}
+
+The maximum number of iterations DP HMC can run for can be computed with
+Algorithm~\ref{max_iterations_algo} by using Theorem~\ref{dp_hmc_theorem_adp}
+to compute \(\delta\), and using Theorem~\ref{dp_hmc_theorem_zcdp}
+to initialise the variable \(low\).
+
+Figure~\ref{hmc_trajectory_fig} shows an example of a leapfrog trajectory
+of DP HMC on a circular posterior (Section~\ref{circle_section}).
+Even with noisy and clipped gradients,
+the trajectory is able to stay inside the thin, circular area of high probability,
+while moving a substantial distance on the circle.
+
+
+\begin{figure}[h]
+	\centering
+  \includegraphics[width=\textwidth]{figures/hmc_trajectory}
+  \caption{
+    DP HMC proposal trajectory on a circular posterior
+    (Section~\ref{circle_section}). The orange point is the starting
+    point of the leapfrog simulation and the blue line shows the progress
+    of the leapfrog steps. The background is a contour plot of the circular
+    posterior density.
+  }
+  \label{hmc_trajectory_fig}
+\end{figure}
 
 \chapter{Evaluated Models}\label{experiment_setup_chapter}
 
@@ -2128,7 +2214,7 @@ different runs.
 \end{proof}
 \setcounter{theorem}{\value{temp_counter}}
 
-\chapter{The differentiability of the \(\clip\)-function}\label{clip_diff_chapter}
+\chapter{Differentiability of the \(\clip\)-function}\label{clip_diff_chapter}
 
 This appendix proves that functions of the form \(\clip\circ f\) are
 almost everywhere differentiable for sufficiently well-behaved \(f\),

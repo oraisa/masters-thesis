@@ -43,3 +43,8 @@ rule accountant_comparison_figure:
     input: "plot_iterations.py"
     output: "../Thesis/figures/accountant_comparison.pdf"
     shell: "python {input}"
+
+rule hmc_trajectory_figure:
+    input: "plot_hmc_trajectory.py"
+    output: "../Thesis.figures/hmc_trajectory.pdf"
+    shell: "python {input}"
