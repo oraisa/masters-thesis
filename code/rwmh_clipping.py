@@ -13,12 +13,6 @@ parser.add_argument("index", type=int)
 parser.add_argument("output", type=str)
 args = parser.parse_args()
 
-
-np.random.seed(46237)
-for i in range(args.index + 1):
-    seed = np.random.randint(2**32)
-np.random.seed(seed)
-
 problem = banana_model.get_problem(dim=args.dim, a=20, n0=None, n=100000)
 n, data_dim = problem.data.shape
 
@@ -30,7 +24,15 @@ clip_bound = args.clip_bound
 dim = args.dim
 theta0 = np.zeros(dim)
 theta0[1] = 3
-theta0 += np.random.normal(scale=0.05, size=dim)
+
+# Set the seed for the starting points only based on index
+np.random.seed(4238946 + args.index)
+problem.theta0 += np.random.normal(scale=0.05, size=dim)
+
+# Set the seed for the algorithm to be different for each algorithm
+np.random.seed(
+    (int(("rwmh" + str(args.clip_bound)).encode("utf8").hex(), 16) + args.index) % 2**32
+)
 
 res = clipping.rwmh(problem, iters, prop_sigma, clip_bound, theta0)
 
