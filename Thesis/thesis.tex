@@ -278,7 +278,7 @@ post-processing immunity:
   is \((\epsilon, \delta)\)-ADP, \((\alpha, \epsilon)\)-RDP or \(\rho\)-zCDP.
 \end{theorem}
 
-There are many different DP mechanisms that are commonly used\cite{DwR14}.
+There are many different DP mechanisms that are commonly used~\cite{DwR14}.
 This thesis only requires one of the most commonly 
 used ones: the Gaussian mechanism~\cite{DKM06}.
 \begin{definition}
@@ -332,6 +332,24 @@ with appropriate noise variance \(\sigma^2\). Of course, the utility of the
 released value depends on the magnitude of \(\sigma^2\) compared to the actual
 value. As in Definition~\ref{composition_definition}, each function \(f_{i}\)
 can depend on the output of the previous functions \(f_{j}\), \(j < i\).
+
+Functions that do not have finite \(l_{2}\)-sensitivity can still be used with
+the Gaussian mechanism if \emph{clipping} is used. Clipping restricts the
+values of \(f\) to a maximum \(l_{p}\)-norm. Specifically, clipping
+\(f\) with the bound \(b\in \R\) applies
+the function \(\clip_{b}^{p}\colon \R^{d}\to \R^{d}\) where
+\[
+  \clip_{b}^{p}(y) =
+  \begin{cases}
+    \frac{y}{||y||_{p}}\min\{||y||_{p}, b\} & \text{if } y \neq 0\\
+    0 & \text{if } y = 0
+  \end{cases}
+\]
+to the values of \(f\). Then \(\Delta_{p}(\clip_{b}^{p} \circ f) = 2b\) by the
+triangle inequality, as \(||\clip_{b}^{p}(f(x))||_{p} \leq b\) for
+all \(x\in \calx\). As this thesis only uses the Gaussian mechanism and
+thus only needs to clip the \(l_{2}\)-norm, the superscript \(p\) is always
+\(2\) and the notation \(\clip_{b} = \clip_{b}^{2}\) is used.
 
 \section{Bayesian Inference and Markov Chain Monte Carlo}\label{MCMC_background}
 
@@ -538,6 +556,35 @@ Theorem~\ref{DP_penalty_theorem_adp}.
     claim.
 \end{proof}
 
+The \(\tau\)-parameter controls the trade-off between the amount of noise
+and the number of iterations the algorithm is allowed to run for. From the
+expression for \(\sigma^{2}\) and \(k\) in Theorem~\ref{DP_penalty_theorem_zcdp},
+the standard deviation of the noise increases linearly with \(\tau\), while
+the number of iterations increases quadratically.
+
+Yildirim and Ermis~\cite{YildirimE19} see \(\alpha\) as a bound on \(c\) of the
+form
+\[
+  c(\theta, \theta') \leq Cn^{-\alpha}
+\]
+almost surely for some constant \(C > 0\). This bound would mean that \(\sigma\)
+would not increase with \(n\), which Yildirim and Ermis see as a necessary
+condition for the DP penalty algorithm to perform well. They also recommend
+having \(\alpha = \frac{1}{2}\), which is used in the experiments in
+Chapter~\ref{experiment_chapter}.
+With clipping, this can be achieved by setting the clip bound based on \(n\).
+For the experiments
+in Chapter~\ref{experiment_chapter}, the parameters are optimised separately
+for each \(n\) that is used, so setting any clip bound can be seen as
+choosing a value for \(C\).
+
+% However , this condition may not be necessary, as DP penalty adds noise to
+% \(\lambda\), which is a sum of \(n\) values. Unless there is a lot of
+% cancellation between the different terms, the magnitude of \(\lambda\), would
+% increase with \(n\), so the ratio of \(\lambda\) and the noise may not increase,
+% even if the variance of the noise increases. Of course, this is a very informal
+% argument
+
 Theorem~\ref{DP_penalty_theorem_adp} is harder to use than 
 Theorem~\ref{DP_penalty_theorem_zcdp} because the number of iteration 
 DP penalty can be run for given an \((\epsilon, \delta)\)-bound cannot be 
@@ -595,8 +642,8 @@ for all \(D_j, \theta\) and \(\theta'\) then
 \]
 The former bound is true in some models, such as logistic
 regression~\cite{YildirimE19}. In other
-models it can be forced by clipping the log-likelihood ratios to the interval
-\([-L||\theta - \theta'||_2, L||\theta - \theta'||_2]\). This will remove the 
+models it can be forced by clipping the log-likelihood ratios with the bound
+\(b = L||\theta - \theta'||_{2}\). This will remove the
 guarantee of eventually converging to the correct posterior, but if \(L\) is 
 chosen to be large enough, the clipping will not affect the 
 acceptance decision frequently. As a tradeoff, picking a large \(L\) will increase 
@@ -776,12 +823,17 @@ significantly less clipping than a nontempered likelihood.
     }
 \end{algorithm}
 
+Tuning the parameters of DP Barker is more restrictive than DP penalty, as
+the former does not have a tunable clip bound, and its noise variance has an
+upper bound. In addition, choosing a noise variance requires computing the
+\(V_{corr}\) approximation for that variance.
+
 \section{The Penalty Algorithm with Subsampling}\label{dp_minibatch_penalty_section}
 
 In the DP Barker algorithm, the log-likelihood ratio is computed using only
 a subsample of the dataset to amplify privacy. Subsampling can also be used 
 with the penalty algorithm in the same way, if the acceptance test is 
-corrected for the subsampling.
+corrected for error from subsampling.
 
 As with DP Barker, the error from subsampling is approximately normally 
 distributed by the central limit theorem. The variance of the subsampling 
@@ -970,6 +1022,16 @@ with \(n\), without a corresponding decrease in \(\epsilon'\). This makes subsam
 DP penalty unsuitable for problems with large datasets, unless tempering is 
 used. Like with DP Barker, using tempering \(T = \frac{n_0}{n}\) cancels \(n\)
 out of the noise variance.
+
+The minibatch DP penalty algorithm has the same parameters as DP penalty, with
+the addition of the batch size parameter. The restrictions on the noise variance
+of DP Barker are not present in minibatch DP penalty. In
+Theorem~\ref{dp_penalty_minibatch_theorem}, the expression for \(\sigma\) was
+simplified by multiplying \(c^{2}\) by only a single number \(\tau\), instead
+of the \(\tau^{2}n^{2\alpha}\) used in Theorem~\ref{DP_penalty_theorem_zcdp}
+after Yildirim and Ermis~\cite{YildirimE19}. This makes using the Fourier
+accountant particularly simple, as the noise variance given to it is simply
+\(\tau\).
 
 The proposed variations of the penalty algorithm, one component updates and guided
 walk MH, are also applicable with subsampling. The sensitivity reduction from
@@ -1304,9 +1366,11 @@ Definition~\ref{prop_revers_definition} can then be written as
     q_{l_{p}}(\theta', p'\mid \theta, p) &= \delta_{\theta'}(\theta)
     \cdot \caln\left(p'\mid p - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
     \\&= \delta_{\theta}(\theta')
-    \cdot \caln\left(-p\mid -p' - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
+    \cdot \caln\left(-p\mid -p' - \frac{\eta}{2}g(\theta'), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
     \\&= q_{l_{p}}(\theta, -p\mid \theta', -p')
   \end{align*}
+  where the second equality uses the fact that if
+  \(\delta_{\theta}(\theta')\neq 0\), \(\theta = \theta'\),
   and
   \begin{align*}
 	q_{l_{\theta}}(\theta, -p\mid \theta', -p')
@@ -1356,6 +1420,22 @@ to
   \end{bmatrix}
 \]
 which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
+This means that the acceptance test of non-DP HMC is no longer correct.
+In addition, the proof of Theorem~\ref{leapfrog_revers_theorem} depends on the
+fact that in
+\[
+  q_{l_{p}}(\theta', p'\mid \theta, p)
+  = \delta_{\theta'}(\theta)\cdot \caln\left(p'\mid p
+    - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right),
+  % = \delta_{\theta}(\theta')\cdot \caln\left(-p\mid -p'
+  %   - \frac{\eta}{2}g(\theta'), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
+\]
+\(p\) and \(p'\) have the same multiplier. With the friction term, this is
+no longer the case, as the multiplier for \(p\) changes to
+\((1 - \frac{\eta}{4}\sigma_{g}^{2}M^{-1})\). For these reasons the friction term
+in not used in this thesis beyond this brief discussion,
+but finding a way to correct the acceptance test is a potential avenue for
+future research.
 
 \begin{algorithm}[H]
     \SetAlgoLined
@@ -1400,11 +1480,6 @@ DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
 Like the DP penalty algorithm, DP HMC is a composition of Gaussian mechanisms,
 and its privacy bounds can be computed through Theorems~\ref{composition-theorem}
 and \ref{gauss-DP-bounds} for zCDP.
-% Computing the ADP bound directly with
-% Theorem \ref{gauss-DP-bounds} is not possible because the gradients and
-% log-likelihood ratios have different sensitivities and noise levels. However,
-% the proof of Theorem~\ref{gauss-DP-bounds}~\cite{Sommer2019} is straightforward
-% to extend to this case.
 
 \begin{theorem}\label{dp_hmc_theorem_zcdp}
   Let \(\epsilon \geq 0\), \(0 \leq \delta < 1\), \(\tau_{g} > 0\), \(\tau_{l} > 0\),
@@ -1434,14 +1509,12 @@ the log-likelihood ratio once. The gradient is also computed once before the
 outer for-loop. Releasing a single gradient has zCDP privacy
 cost of 
 \[
-    \rho_g = \frac{4b_g^2}{2\sigma_g^2} = \frac{1}{2\tau_g^2n},
+    \rho_g = \frac{4b_g^2}{2\sigma_g^2} = \frac{1}{2\tau_g^2n}.
 \]
-where \(\sigma_g = 2\tau_g\sqrt{n}b_g\).
 Releasing the log-likelihood ratio of \(\theta\) and \(\theta'\) has privacy cost
 \[
-    \rho_l = \frac{4b_l^2||\theta - \theta'||_2^2}{2\sigma_l(\theta, \theta')^2} = \frac{1}{2\tau_l^2n},
+    \rho_l = \frac{4b_l^2||\theta - \theta'||_2^2}{2\sigma_l(\theta, \theta')^2} = \frac{1}{2\tau_l^2n}.
 \]
-where \(\sigma_l(\theta, \theta') = 2\tau_l\sqrt{n}b_l||\theta - \theta'||_2\).
 
 The total zCDP budget with given \((\epsilon, \delta)\)-bound is 
 \[
@@ -1529,6 +1602,24 @@ The maximum number of iterations DP HMC can run for can be computed with
 Algorithm~\ref{max_iterations_algo} by using Theorem~\ref{dp_hmc_theorem_adp}
 to compute \(\delta\), and using Theorem~\ref{dp_hmc_theorem_zcdp}
 to initialise the variable \(low\).
+
+The \(\tau_{l}\) and \(b_{l}\) parameters of DP HMC are analogous to the
+\(\tau\) and clip bound parameters of DP penalty. Additionally, DP HMC
+releases gradients, which requires a separate parameter \(\tau_{g}\) to
+control the trade-off between noise and privacy cost of a single iteration,
+and a clip bound \(b_{g}\) for the gradients. The number of leapfrog iterations
+per sample \(L\) also affects the privacy of the algorithm, as it affects the
+number of gradients released.
+
+The \(\alpha\) value from Theorem~\ref{DP_penalty_theorem_zcdp} for
+DP penalty could be included in Theorem~\ref{dp_hmc_theorem_zcdp},
+which would make Theorem~\ref{dp_hmc_theorem_zcdp} the special case where
+\(\alpha = \frac{1}{2}\). Because, as argued for DP penalty in
+Section~\ref{dp_penalty_section}, having \(\alpha = \frac{1}{2}\) can be
+guaranteed by setting the clip bound appropriately, and the clip bound can
+be chosen to be anything if the parameters are only used with a single value
+of \(n\),
+Theorem~\ref{dp_hmc_theorem_zcdp} was simplified to not include \(\alpha\).
 
 Figure~\ref{hmc_trajectory_fig} shows an example of a leapfrog trajectory
 of DP HMC on a circular posterior (Section~\ref{circle_section}).
