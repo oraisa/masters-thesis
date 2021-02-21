@@ -1158,11 +1158,11 @@ These properties are important for its use as a proposal mechanism for MCMC.
 
 The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
 \[
-    P(\theta, p) \propto \exp(-H(\theta, p)).
+    \pi(\theta, p) \propto \exp(-H(\theta, p)).
 \]
 With \(H(\theta, p) = U(\theta) + \frac{1}{2}p^{T}M^{-1}p\),
 \[
-    P(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{1}{2}p^{T}M^{-1}p\right)
+    \pi(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{1}{2}p^{T}M^{-1}p\right)
 \]
 This means that the marginal distributions of \(\theta\) and \(p\) are 
 independent, the marginal distribution of \(p\) is a \(d\)-dimensional
@@ -1177,17 +1177,56 @@ which are technically
 two separate Metropolis-Hastings proposals and acceptance tests. In the first 
 stage, \(p\) is proposed from the Gaussian distribution with mean 0 and 
 covariance \(M\). Because the proposal matches the marginal distribution of 
-\(p\), it is always accepted.
+\(p\), the Metropolis-Hastings acceptance probability is 1, so the proposal
+is always accepted.
 
 In the second stage, Hamiltonian dynamics for the particle on a surface are 
 simulated with the leapfrog method, starting from the current value 
 of \(\theta\) and the proposed value of \(p\). The end result is a proposal 
-for both \(\theta\) and \(p\). Because the leapfrog simulation preserves volumes 
-and is reversible by negating \(p\), the acceptance probability of the 
-proposal is simply
+for both \(\theta\) and \(p\).
+
+Recall that the MH acceptance test uses the ratio
 \[
-    \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
+  r(\theta, p, \theta', p') = \frac{\pi(\theta, p)}{\pi(\theta', p')}
+  \frac{q(\theta, p\mid \theta', p')}{q(\theta', p'\mid \theta, p)}
 \]
+where \(\pi\) is the density of the target distribution and \(q\) is
+the density of the proposal distribution.
+
+For HMC, the leapfrog proposal \(l\)
+is deterministic, so \(q_{l}\) is a probability mass function where
+\(q_{l}(\theta', p'\mid \theta, p) = 1\) if the leapfrog simulation
+proposes \((\theta, p)\) when starting from \((\theta, p)\),
+and \(q_{l}(\theta', p'\mid \theta, p) = 0\) otherwise. For the leapfrog proposals,
+\(q_{l}(\theta', p'\mid \theta, p) = q_{l}(\theta, -p\mid \theta', -p')\).
+If the momentum \(p\) were negated after the leapfrog simulation, the
+resulting proposal \(l^{*}\) would have
+\(q_{l^{*}}(\theta', p'\mid \theta, p) = q(\theta, p\mid \theta', p')\).
+Then
+\[
+  r(\theta, p, \theta', p')
+  = \frac{\pi(\theta', p')}{\pi(\theta, p)}
+  \frac{q_{l^{*}}(\theta, p\mid \theta', p')}{q_{l^{*}}(\theta', p'\mid \theta, p)}
+  = \frac{\pi(\theta', p')}{\pi(\theta, p)},
+\]
+which means that the acceptance probability of the proposal is simply
+\[
+  \min\{1, r(\theta, p, \theta', p')\}
+  = \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
+\]
+In practice, the values of \(p\) are not saved, and
+\(H(\theta, p) = H(\theta, -p)\), so it does not matter whether
+\(l\) or \(l^{*}\) is used as the proposal.
+
+% Interestingly, this proof does not use the volume preservation of \(l\) or
+% \(l^{*}\).
+% In fact, the fact that
+% \(q_{l^{*}}(\theta', p'\mid \theta, p) = q(\theta, p\mid \theta', p')\)
+% means that \(l^{*}\) is it's own inverse. By the inverse function theorem,
+% \(J_{l^{*}}(\theta, p) = J_{l^{*}}(l^{*}(\theta, p))^{-1}\). This means that
+% \(\det J_{l^{*}}(\theta, p) = \frac{1}{
+% \det J_{l^{*}}(l^{*}(\theta, p))}\)
+
 If the simulation conserved \(H\) exactly, the acceptance probability would 
 always be 1. Because this is usually not possible, there is always some probability 
 of rejecting, which depends on the length of the jump taken by the leapfrog 
@@ -1274,38 +1313,50 @@ for all \(\theta\) and \(p\), which means that \(l_{p}\) preserves volume.
 As the step updating \(\theta\) also preserves volume, the entire leapfrog
 simulation preserves volume.
 
-Showing that the leapfrog simulation is reversible by negating \(p\) requires
-more thought, as the simulation is no longer deterministic. Recall that the
-MH acceptance test uses the acceptance probability
-\[
-  \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}
-    \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}\right\},
-\]
-where \(\pi\) is the target density and \(q\) is the proposal density.
-For HMC, \(q\) must be understood as a Dirac \(\delta\) function, as the
-standard leapfrog is deterministic. The reversibility of the leapfrog
-by negating \(p\) means that
-\(q(\theta', p'\mid \theta, p) = q(\theta, -p\mid \theta', -p')\).
-If \(p\) were negated after the leapfrog simulation, one would have another
-proposal distribution \(q'\), with
-\(q'(\theta', p'\mid \theta, p) = q'(\theta, p\mid \theta', p')\).
-Running HMC with proposal \(q'\) instead of \(q\) does not change the
-output of the algorithm, as \(p\) is not stored and
-the kinetic energy term in the Hamiltonian is \(\frac{1}{2}p^{T}M^{-1}p\), so
-\(H(\theta, p) = H(\theta, -p)\). This means that the proposal ratio in the
-MH acceptance probability is one for HMC.
+Showing that the ratio of proposal densities in \(r(\theta, p, \theta', p')\)
+is 1
+for the DP HMC leapfrog requires more though, as the simulation is no longer
+reversible.
 
-With the noisy gradient, the leapfrog proposal is no longer deterministic,
-so the reversibility by negating \(p\) must be proven separately.
-
-The proof requires defining some new terminology. Let
-\(l\colon \R^{2d} \to \R^{2d}\) be a function giving a potentially random
-proposal for given \((\theta, p)\). Because \(l\) is potentially random,
-it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\),
-where
+The proof requires handling randomised functions that are neither discrete or
+continuous, as the steps in the DP HMC leapfrog are partially random and
+partially deterministic. A convenient way to handle such mixed random variables
+is using \emph{generalised functions}, specifically the
+\emph{Dirac delta function}. The Dirac delta function \(\delta_{x}\) for
+\(x\in \R\) is a
+generalized function with the property that \(\delta_{x}(y) = 0\) if
+\(x \neq y\) and
 \[
-  P(l(\theta, p) \in A) = \int_{A} \dx(\theta', p') q_{l}(\theta', p'\mid \theta, p).
+  \int_{\R} f(y)\delta_{x}(y) \dx y = f(x).
 \]
+Despite the name, the Dirac delta function is not a function by the usual
+definition.
+
+A generalised function can used as a density of a random variable, even the
+random variable is not continuous and does not have a density in the usual
+sense. As with usual density function, for a generalised function \(f\) to be
+a density of a random variable \(X\), it must have
+\[
+  \int_{\R} f(x)\dx x = 1.
+\]
+The probability that the value of \(X\) is in a given set \(A\) is then
+\[
+  P(X\in A) = \int_{A} f(x)\dx x.
+\]
+
+Let \(l\colon \R^{2d} \to \R^{2d}\) be a function giving a random
+proposal for given \((\theta, p)\). Such random functions are called
+\emph{proposal functions} in the following. Because \(l\) is a random function,
+it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\).
+The density of the composition of proposal functions \(l_{1}\) and \(l_{2}\)
+is given by
+\[
+  q_{l_{2}\circ l_{1}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
+  = \int_{\R^{2d}}\dx(\theta_{2}, p_{2})
+  q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
+  q_{l_{2}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2}).
+\]
+
 Now reversibility by negating \(p\) can be defined:
 \begin{definition}\label{prop_revers_definition}
   A proposal function \(l\) is reversible by negating \(p\) if
@@ -1318,7 +1369,12 @@ function that has density
 \(q_{\bar{l}}(\theta', p'\mid \theta, p) = q_{l}(\theta, p\mid \theta', p')\),
 and defining \(l_{-}\) as \(l_{-}(\theta, p) = (\theta, -p)\).
 Definition~\ref{prop_revers_definition} can then be written as
-\(\bar{l} = l_{-}\circ l\circ l_{-}\).
+\(\bar{l} = l_{-}\circ l\circ l_{-}\). The function \(\bar{l}\) only exists
+if
+\[
+  \int_{\R^{2d}}q_{l}(\theta', p'\mid \theta, p)\dx(\theta, p) = 1
+\]
+which is true for random function reversibly by negating \(p\).
 
 \begin{lemma}\label{prop_fun_comp_lemma}
   Let \(l_{1}\) and \(l_{2}\) be proposal functions in \(\R^{2d}\).
@@ -1396,6 +1452,28 @@ Definition~\ref{prop_revers_definition} can then be written as
   This means that the leapfrog simulation with noisy and clipped gradients is
   reversible by negating \(p\).
 \end{proof}
+
+Because the leapfrog proposal \(l\) is reversible by negating p,
+\(\bar{l} = l_{-} \circ l\circ l_{-}\). Denote \(l^{*} = l_{-}\circ l\).
+Because \(\bar{l_{-}} = l_{-}\),
+\(\bar{l^{*}} = \bar{l}\circ \bar{l_{-}}
+= l_{-}\circ l\circ l_{-}\circ l_{-} = l^{*}\).
+As in the non-DP case, using \(l^{*}\) as the proposal is equivalent to using
+\(l\), and when using \(l^{*}\), the \(r(\theta, p, \theta', p')\) simplifies
+\[
+  r(\theta, p, \theta', p')
+  = \frac{\pi(\theta', p')}{\pi(\theta, p)}
+  \frac{q_{l}(\theta, p\mid \theta', p')}{q_{l}(\theta', p'\mid \theta, p)}
+  = \frac{\pi(\theta', p')}{\pi(\theta, p)}
+  \frac{q_{l^{*}}(\theta, p\mid \theta', p')}{q_{\bar{l^{*}}}(\theta, p\mid \theta', p')}
+  = \frac{\pi(\theta', p')}{\pi(\theta, p)}.
+\]
+For HMC,
+\[
+  \frac{\pi(\theta', p')}{\pi(\theta, p)} = \exp(H(\theta, p) - H(\theta', p')),
+\]
+so the acceptance probability from non-DP HMC, with the penalty correction for
+the noise added to the log-likelihood, is correct for DP HMC.
 
 If the friction term that corrects the dynamics is used, the equations of
 motion become~\cite{CFG14}
