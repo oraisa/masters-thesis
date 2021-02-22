@@ -58,8 +58,12 @@ class GaussModel:
         cov_post = term1 @ self.cov / n
         return (mu_post.reshape(-1,), cov_post)
 
-    def generate_true_posterior(self, samples, data):
-        key = jax.random.PRNGKey(8646546)
+    def generate_true_posterior(self, samples, data, temp_scale=1, key=None):
+
+        if temp_scale != 1:
+            raise Exception("GaussModel does not support sampling tempered posteriors")
+        if key is None:
+            key = jax.random.PRNGKey(434927)
         mu_post, cov_post = self.compute_posterior_params(data)
 
         return jax.random.multivariate_normal(key, mu_post, cov_post, (samples,))
@@ -79,7 +83,7 @@ def get_problem(dim, n):
     data = model.generate_data(n)
     problem = util.Problem(
         model.log_likelihood_per_sample, model.log_prior,
-        data, 1, model.true_mean, model.generate_true_posterior(1000, data),
+        data, 1, model.true_mean, model.generate_true_posterior,
         lambda problem, ax: model.plot_posterior(ax, problem.data)
     )
     return problem

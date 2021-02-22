@@ -6,15 +6,21 @@ import mmd
 class Problem:
     def __init__(
             self, log_likelihood_per_sample, log_prior, data, temp_scale,
-            theta0, true_posterior, plot_density_func, true_mean=None
+            theta0, gen_true_posterior, plot_density_func, true_mean=None
     ):
         """Log likelihood per sample should have signature (theta, sample) -> float"""
         self.log_likelihood_per_sample = log_likelihood_per_sample
         self.log_prior = log_prior
         self.data = data
         self.temp_scale = temp_scale
-        self.true_posterior = true_posterior
-        self.true_mean = true_mean if true_mean is not None else np.mean(true_posterior, axis=0)
+        if gen_true_posterior is not None:
+            self.gen_true_posterior = lambda n, key=None: gen_true_posterior(
+                n, data, temp_scale, key
+            )
+            self.true_posterior = gen_true_posterior(1000, data, temp_scale)
+        else:
+            self.gen_true_posterior = None
+        self.true_mean = true_mean if true_mean is not None else np.mean(self.true_posterior, axis=0)
         self.theta0 = theta0
         self.dim = theta0.size
         self.plot_density_func = plot_density_func

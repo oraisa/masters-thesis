@@ -77,12 +77,12 @@ class BananaModel:
             temp_scale = 1
         else:
             temp_scale = n0 / n
-        true_posterior = self.generate_posterior_samples(1000, data, temp_scale)
+        # true_posterior = self.generate_posterior_samples(1000, data, temp_scale)
         theta0 = np.zeros(self.dim)
         theta0 = jax.ops.index_update(theta0, 1, 3)
         return util.Problem(
             self.log_likelihood_per_sample, self.log_prior, data,
-            temp_scale, theta0, true_posterior,
+            temp_scale, theta0, self.generate_posterior_samples,
             lambda problem, ax: self.plot_posterior(
                 problem.data, ax, problem.temp_scale, 1 / np.sqrt(problem.temp_scale)
             )

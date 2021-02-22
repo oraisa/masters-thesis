@@ -25,31 +25,39 @@ rule chain:
     params:
         py = "run_chain.py",
         par_mod = "{algo}_{exp}"
-    output: result_dir + "{algo}_{exp}_{eps}_{i}.csv"
+    output: result_dir + "chains/{algo}_{exp}_{eps}_{i}.csv"
     shell: "python {params.py} {wildcards.algo} {params.par_mod} {wildcards.exp} {wildcards.eps} {wildcards.i} {output}"
 
 rule results:
     input:
         minibatch = expand(
-            result_dir + "{algo}_{exp}_{eps}_{i}.csv",
+            result_dir + "chains/{algo}_{exp}_{eps}_{i}.csv",
             algo=algorithms[3:], exp=experiments[0:4], i=inds, eps=epsilons
         ),
         non_minibatch = expand(
-            result_dir + "{algo}_{exp}_{eps}_{i}.csv",
+            result_dir + "chains/{algo}_{exp}_{eps}_{i}.csv",
             algo=algorithms[0:3], exp=experiments, i=inds, eps=epsilons
         )
     output: result_dir + "results.csv"
     # shell: "cat {input} > {output}"
     # cat-ing too many files seems to fail
-    shell: "cat " + result_dir + "*.csv > {output}"
+    shell: "cat " + result_dir + "chains/*.csv > {output}"
+
+rule baseline_mmds:
+    input:
+        main = "banana_baseline_mmds.py",
+        experiments = "experiments.py"
+    output: result_dir + "baseline_mmds.csv"
+    shell: "python {input.main} {output}"
 
 rule figures:
     input:
         py = "plot_banana.py",
-        results = result_dir + "results.csv"
+        results = result_dir + "results.csv",
+        baseline_mmds = result_dir + "baseline_mmds.csv"
     output:
         "../Thesis/figures/banana_mmd.pdf",
         "../Thesis/figures/banana_clipping.pdf",
         "../Thesis/figures/banana_extra.pdf",
         "../Thesis/figures/banana_extra_clipping.pdf",
-    shell: "python {input.py} {input.results}"
+    shell: "python {input.py} {input.results} {input.baseline_mmds}"
