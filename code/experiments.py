@@ -84,8 +84,6 @@ if __name__ == "__main__":
             caption=r"""
             Model parameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
             For missing $n_0$, \(T = 1\). Start deviation is the standard deviation
-            of the random starting point in the DP experiments. \(a\) is the
-            parameter determining how curved the banana distribution is,
-            with \(a = 0\) corresponding to a Gaussian distribution.
+            of the random starting point in the DP experiments.
             """
         )
