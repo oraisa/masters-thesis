@@ -31,8 +31,8 @@ exp = experiments[args.experiment]
 problem = exp.get_problem()
 
 # Set the seed for the starting points only based on index
-np.random.seed(53274257 + args.index)
-problem.theta0 += np.random.normal(scale=exp.start_stdev, size=problem.dim)
+# np.random.seed(53274257 + args.index)
+# problem.theta0 += np.random.normal(scale=exp.start_stdev, size=problem.dim)
 
 # Set the seed for the algorithm to be different for each algorithm
 np.random.seed(
@@ -48,7 +48,10 @@ epsilon = args.epsilon
 delta = 0.1 / n
 
 par = params.__dict__[args.params].params
-res = algorithms[args.algorithm](problem, epsilon, delta, par, verbose=False)
+res = algorithms[args.algorithm](
+    problem, problem.get_start_point(args.index),
+    epsilon, delta, par, verbose=False
+)
 
 result = pd.DataFrame({
     "epsilon": [epsilon],

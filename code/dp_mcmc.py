@@ -4,19 +4,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 np.random.seed(4673228)
-dim = 10
-problem = banana_model.get_problem(dim=dim, a=20, n0=None, n=200000)
+dim = 2
+problem = banana_model.get_problem(dim=dim, a=20, n0=1000, n=100000)
 n, data_dim = problem.data.shape
 
 epsilon = 4
 delta = 0.1 / n
 
 params = dp_barker.BarkerParams(
-    prop_sigma = np.repeat(8 * 0.0001, 10),
-    batch_size = 2600
+    prop_sigma = np.repeat(0.008 * 15, 2),
+    batch_size = 1300
 )
 
-res = dp_barker.dp_barker(problem, epsilon, delta, params)
+res = dp_barker.dp_barker(problem, problem.theta0, epsilon, delta, params)
 
 
 print("DP mcmc acceptance: {}".format(res.acceptance))
