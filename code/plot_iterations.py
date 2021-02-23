@@ -56,5 +56,9 @@ if __name__ == "__main__":
     ax[2].plot(epsilons, hmc_adp_iters, label="ADP")
     ax[2].legend()
 
+    ax[0].set_ylim(0, 3000)
+    ax[1].set_ylim(0, 3000)
+    ax[2].set_ylim(0, 3000)
+
     plt.tight_layout()
     plt.savefig("../Thesis/figures/accountant_comparison.pdf")

@@ -64,6 +64,6 @@ plot_data(
         ("d = 30, Gaussian", "d = 2, correlated Gaussian"),
         ("d = 2, narrow banana", "Circle")
     )),
-    (0, 0.5), "../Thesis/figures/grad_clipping.pdf",
+    (0, 1), "../Thesis/figures/grad_clipping.pdf",
     legend_outside=False
 )

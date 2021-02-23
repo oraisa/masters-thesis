@@ -55,7 +55,7 @@ def adp_iters(epsilon, delta, params, n):
     else:
         return int(low_iters)
 
-def hmc(problem, epsilon, delta, params, verbose=True, use_adp=True):
+def hmc(problem, theta0, epsilon, delta, params, verbose=True, use_adp=True):
 
     data = problem.data
     n, data_dim = data.shape
@@ -80,7 +80,7 @@ def hmc(problem, epsilon, delta, params, verbose=True, use_adp=True):
     sigma = tau * np.sqrt(n)
 
     chain = np.zeros((iters + 1, dim))
-    chain[0, :] = problem.theta0
+    chain[0, :] = theta0
     leapfrog_chain = np.zeros((iters * L, dim))
     clipped_r = np.zeros(iters)
     clipped_grad_counter = GradClipCounter()

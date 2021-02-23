@@ -41,7 +41,7 @@ def adp_iters(epsilon, delta, tau, n):
     else:
         return int(low_iters)
 
-def dp_penalty(problem, epsilon, delta, params, verbose=True, use_adp=True):
+def dp_penalty(problem, theta0, epsilon, delta, params, verbose=True, use_adp=True):
     ocu = params.ocu
     if params.grw:
         ocu = True # GRW requires one component updates
@@ -52,7 +52,6 @@ def dp_penalty(problem, epsilon, delta, params, verbose=True, use_adp=True):
     temp_scale = problem.temp_scale
 
     tau = params.tau
-    theta0 = problem.theta0
     r_clip_bound = params.r_clip_bound
     prop_sigma = params.prop_sigma
 

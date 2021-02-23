@@ -20,11 +20,11 @@ class Problem:
             self.true_posterior = gen_true_posterior(1000, data, temp_scale)
         else:
             self.gen_true_posterior = None
+            self.true_posterior = None
         self.true_mean = true_mean if true_mean is not None else np.mean(self.true_posterior, axis=0)
         self.theta0 = theta0
         self.dim = theta0.size
         self.plot_density_func = plot_density_func
-        # self.tempering = temp_scale != 1
 
         self.log_likelihood_no_sum = jax.jit(jax.vmap(self.log_likelihood_per_sample, in_axes=(None, 0)))
         self.log_likelihood = jax.jit(lambda theta, X: np.sum(self.log_likelihood_no_sum(theta, X)))
@@ -38,6 +38,15 @@ class Problem:
 
     def plot_density(self, ax):
         self.plot_density_func(self, ax)
+
+    def get_start_point(self, i):
+        key = jax.random.PRNGKey(4236482 + i)
+        std_noise = jax.random.normal(key, shape=(self.dim,))
+        if self.true_posterior is not None:
+            mul = self.true_posterior.std(axis=0) * 1.5
+        else:
+            mul = 1
+        return self.theta0 + std_noise * mul
 
 def clip_grad_fun(grad_fun):
     def return_fun(clip, *args):

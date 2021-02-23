@@ -88,14 +88,14 @@ def c(current, proposal, n, b, temp_scale, clip_bound):
 def sigma(current, proposal, tau, n, b, temp_scale, clip_bound):
     return np.sqrt(tau) * c(current, proposal, n, b, temp_scale, clip_bound)
 
-def dp_penalty_minibatch(problem, epsilon, delta, params, verbose=True, use_fa=True):
+def dp_penalty_minibatch(problem, theta0, epsilon, delta, params, verbose=True, use_fa=True):
     one_component = params.ocu
     if params.grw:
         one_component = True # Guided random walk requires one component updates
 
     temp_scale = problem.temp_scale
     data = problem.data
-    beta_0 = problem.theta0
+    beta_0 = theta0
 
     dim = beta_0.size
     n, data_dim = data.shape

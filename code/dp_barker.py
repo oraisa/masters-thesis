@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import numpy as np
 from dp_mcmc_module.barker_mog import run_dp_Barker
 from dp_mcmc_module.exact_rdp import get_privacy_spent
@@ -36,7 +34,7 @@ def maximize_iters(epsilon, delta, n, batch_size):
         return int(low_iters)
 
 
-def dp_barker(problem, epsilon, delta, params, verbose=True):
+def dp_barker(problem, theta0, epsilon, delta, params, verbose=True):
 
     data = problem.data
     n, data_dim = data.shape
@@ -46,7 +44,7 @@ def dp_barker(problem, epsilon, delta, params, verbose=True):
 
     xcorr_params, n_points = load_x_corr()
     chain, clip_count, accepts = run_dp_Barker(
-        problem, T, params.prop_sigma**2, problem.theta0, problem.temp_scale,
+        problem, T, params.prop_sigma**2, theta0, problem.temp_scale,
         xcorr_params, n_points, batch_size=params.batch_size, verbose=verbose
     )
     return util.MCMCResult(
