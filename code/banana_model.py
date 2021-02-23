@@ -83,9 +83,7 @@ class BananaModel:
         return util.Problem(
             self.log_likelihood_per_sample, self.log_prior, data,
             temp_scale, theta0, self.generate_posterior_samples,
-            lambda problem, ax: self.plot_posterior(
-                problem.data, ax, problem.temp_scale, 1 / np.sqrt(problem.temp_scale)
-            )
+            lambda problem, ax: self.plot_posterior(problem.data, ax, problem.temp_scale)
         )
 
     def banana_density(self, theta1, theta2, mu1, mu2, sigma1, sigma2, a, b, m):
@@ -123,10 +121,14 @@ class BananaModel:
         post = self.generate_posterior_samples(1000, X, T)
         ax.scatter(post[:, 0], post[:, 1], alpha=0.5)
 
-    def plot_posterior(self, X, ax, T, scale=1):
+    def plot_posterior(self, X, ax, T):
         mu1, mu2, _, sigma1_p, sigma2_p, __ = self.compute_posterior_params(X, T)
-        xs = np.linspace(-0.1, 0.1, 1000) * scale
-        ys = np.linspace(-0.1, 0.1, 1000) * scale + mu2
+        samples = self.generate_posterior_samples(40, X, T)
+        spread_samples = samples.mean(axis=0) + (samples - samples.mean(axis=0)) * 2
+        mi = np.min(spread_samples, axis=0)
+        ma = np.max(spread_samples, axis=0)
+        xs = np.linspace(mi[0], ma[0], 1000)
+        ys = np.linspace(mi[1], ma[1], 1000)
         X, Y = np.meshgrid(xs, ys)
         Z = self.banana_density(X, Y, mu1, mu2, sigma1_p, sigma2_p, self.a, self.b, self.m)
         ax.contour(X, Y, Z)

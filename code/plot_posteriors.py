@@ -16,7 +16,7 @@ for i, exp in enumerate(exps_to_plot):
     problem.plot_density(axes[ind])
     axes[ind].set_title(plot_titles[i])
     start_points = np.array([problem.get_start_point(i) for i in range(20)])
-    axes[ind].scatter(start_points[:, 0], start_points[:, 1], color="orange")
+    axes[ind].plot(start_points[:, 0], start_points[:, 1], color="orange", linestyle="", marker=".")
 
 axes[2, 1].set_visible(False)
 plt.tight_layout()

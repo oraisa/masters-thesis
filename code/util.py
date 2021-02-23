@@ -41,12 +41,17 @@ class Problem:
 
     def get_start_point(self, i):
         key = jax.random.PRNGKey(4236482 + i)
-        std_noise = jax.random.normal(key, shape=(self.dim,))
         if self.true_posterior is not None:
-            mul = self.true_posterior.std(axis=0) * 1.5
+            # inters = np.quantile(self.true_posterior, (0.25, 0.75), axis=0)
+            # mul = (inters[1,:] - inters[0,:]).mean() * 0.5
+            # print(mul)
+            # mul = self.true_posterior.std(axis=0).mean() * 0.5
+            ind = jax.random.choice(key, self.true_posterior.shape[0])
+            return self.true_posterior[ind, :]
+            # print(mul)
         else:
-            mul = 1
-        return self.theta0 + std_noise * mul
+            std_noise = jax.random.normal(key, shape=(self.dim,))
+            return self.theta0 + std_noise * 0.3
 
 def clip_grad_fun(grad_fun):
     def return_fun(clip, *args):
