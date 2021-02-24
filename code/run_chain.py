@@ -30,10 +30,6 @@ algorithms = {
 exp = experiments[args.experiment]
 problem = exp.get_problem()
 
-# Set the seed for the starting points only based on index
-# np.random.seed(53274257 + args.index)
-# problem.theta0 += np.random.normal(scale=exp.start_stdev, size=problem.dim)
-
 # Set the seed for the algorithm to be different for each algorithm
 np.random.seed(
     (int((

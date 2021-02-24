@@ -11,7 +11,8 @@ plot_titles = [
 fig, axes = plt.subplots(3, 2, figsize=(8, 10))
 
 for i, exp in enumerate(exps_to_plot):
-    problem = experiments[exp].get_problem()
+    experiment = experiments[exp]
+    problem = experiment.get_problem()
     ind = np.unravel_index(i, axes.shape)
     problem.plot_density(axes[ind])
     axes[ind].set_title(plot_titles[i])

@@ -3,6 +3,7 @@ import pandas as pd
 import circle
 import banana_model
 import gauss_model
+import jax.random
 
 class BananaExperiment:
     def __init__(self, dim, n0, a, n, start_stdev):
@@ -32,7 +33,7 @@ class GaussExperiment:
 
 class CircleExperiment:
     def __init__(self):
-        self.start_stdev = 0.1
+        self.start_stdev = 0.3
 
         self.n = 100000
         self.dim = 2
@@ -46,12 +47,12 @@ class CircleExperiment:
 experiments = {
     "easy-2d": BananaExperiment(dim=2, n0=None, a=20, n=100000, start_stdev=0.02),
     "easy-10d": BananaExperiment(dim=10, n0=None, a=20, n=200000, start_stdev=0.02),
-    "tempered-2d": BananaExperiment(dim=2, n0=1000, a=20, n=100000, start_stdev=0.02),
-    "tempered-10d": BananaExperiment(dim=10, n0=1000, a=20, n=200000, start_stdev=0.02),
+    "tempered-2d": BananaExperiment(dim=2, n0=1000, a=20, n=100000, start_stdev=0.15),
+    "tempered-10d": BananaExperiment(dim=10, n0=1000, a=20, n=200000, start_stdev=0.15),
     "gauss-30d": BananaExperiment(dim=30, n0=None, a=0, n=200000, start_stdev=0.02),
-    "hard-2d": BananaExperiment(dim=2, n0=None, a=350, n=150000, start_stdev=0.02),
+    "hard-2d": BananaExperiment(dim=2, n0=None, a=350, n=150000, start_stdev=0.015),
     # "hard-gauss-6d": GaussExperiment(dim=6, n=200000, start_stdev=0.005),
-    "hard-gauss-2d": GaussExperiment(dim=2, n=200000, start_stdev=0.005),
+    "hard-gauss-2d": GaussExperiment(dim=2, n=200000, start_stdev=0.003),
     "circle": CircleExperiment()
 }
 exp_names = {

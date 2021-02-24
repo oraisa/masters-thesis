@@ -59,7 +59,7 @@ def hmc(problem, theta0, epsilon, delta, params, verbose=True, use_adp=True):
 
     data = problem.data
     n, data_dim = data.shape
-    dim = problem.theta0.size
+    dim = theta0.size
     temp_scale = problem.temp_scale
 
     tau = params.tau 
@@ -96,8 +96,8 @@ def hmc(problem, theta0, epsilon, delta, params, verbose=True, use_adp=True):
         pri_grad = problem.log_prior_grad(theta)
         return temp_scale * (ll_grad + stats.norm.rvs(size=dim, scale=grad_noise_sigma)) + pri_grad
 
-    grad = grad_fun(problem.theta0)
-    llc = problem.log_likelihood_no_sum(problem.theta0, data)
+    grad = grad_fun(theta0)
+    llc = problem.log_likelihood_no_sum(theta0, data)
     for i in range(iters):
         current = chain[i, :]
         #TODO: this assumes diagonal M
