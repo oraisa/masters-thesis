@@ -125,6 +125,28 @@
 % to change the parameters. Removing the abstract and ToC commands will mess up stuff.
 \chapter{Introduction}
 
+As the availability of data on private individual grows ever larger, both the
+potential gains from analysing the data, and the risks associated with the
+analysis, grow. This makes analysis techniques that can ensure the privacy
+of the individual whose data is analysed important. Differential
+privacy~\cite{DMN06} is a formal definition attempting to capture the notion
+of a data analysis algorithm that preserves privacy. Markov chain Monte
+Carlo (MCMC)~\cite{MRR53, Has70} is an algorithm that enables data analysis using
+Bayesian inference~\cite{BDA}. This thesis studies the combination of
+differential privacy and MCMC by introducing existing algorithms, developing
+improvements with new techniques in differential privacy, and finally comparing
+the algorithms on a variaty of settings.
+
+introduce DP
+
+introduce Bayesian inference
+
+existing algorithms
+
+new algorithms and accounting methods
+
+structure
+
 \chapter{Background}
 
 This chapter covers the basics of differential privacy, Bayesian inference
@@ -350,10 +372,26 @@ result in a tight bound. The difference of the two methods of computing ADP boun
 on the MCMC algorithms considered in this thesis is shown in
 Section~\ref{accounting_comparison_section}.
 
-Functions that do not have finite \(l_{2}\)-sensitivity can still be used with
+When the dataset is a table, the query \(f\) of the Gaussian mechanism is
+typically a sum the values of a function \(g\) for each row of the table,
+specifically
+\[
+  f(X) = \sum_{x\in X} g(x).
+\]
+For the substitute neighborhood relation \(f\),
+\[
+  \Delta_{p}f = \sup_{X\sim X'}||f(X) - f(X')||_{p}
+  = \sup_{x, x'}||g(x) - g(x')||_{p}
+  = \Delta^{*}_{p}g,
+\]
+where \(x\) and \(x'\) are the values of the differing row in \(X\) and \(X'\),
+and \(\Delta^{*}_{p}\) denotes sensitivity with the neighborhood relation that
+considers all values neighboring.
+
+In case \(\Delta^{*}_{p}g\) is not finite, \(g\) can still be used with
 the Gaussian mechanism if \emph{clipping} is used. Clipping restricts the
-values of \(f\) to a maximum \(l_{p}\)-norm. Specifically, clipping
-\(f\) with the bound \(b\in \R\) applies
+values of \(g\) to a maximum \(l_{p}\)-norm. Specifically, clipping
+\(g\) with the bound \(b\in \R\) applies
 the function \(\clip_{b}^{p}\colon \R^{d}\to \R^{d}\) where
 \[
   \clip_{b}^{p}(y) =
@@ -362,9 +400,9 @@ the function \(\clip_{b}^{p}\colon \R^{d}\to \R^{d}\) where
     0 & \text{if } y = 0
   \end{cases}
 \]
-to the values of \(f\). Then \(\Delta_{p}(\clip_{b}^{p} \circ f) = 2b\) by the
-triangle inequality, as \(||\clip_{b}^{p}(f(x))||_{p} \leq b\) for
-all \(x\in \calx\). As this thesis only uses the Gaussian mechanism and
+to the values of \(g\). Then \(\Delta^{*}_{p}(\clip_{b}^{p} \circ g) \leq 2b\) by the
+triangle inequality, as \(||\clip_{b}^{p}(g(x))||_{p} \leq b\) for
+all \(x\). As this thesis only uses the Gaussian mechanism and
 thus only needs to clip the \(l_{2}\)-norm, the superscript \(p\) is always
 \(2\) and the notation \(\clip_{b} = \clip_{b}^{2}\) is used.
 
@@ -469,11 +507,10 @@ algorithm used for Bayesian inference.
     \Return \((\theta_1, \dotsc, \theta_k)\)
     \caption{
         Metropolis-Hastings: number of iterations \(k\), proposal 
-        distribution \(q\) and initial value \(\theta_0\) and 
-        dataset \(X\) as input
+        distribution \(q\), initial value \(\theta_0\) and
+        dataset \(X\) as input.
     }
 \end{algorithm}
-
 
 \chapter{Differentially Private MCMC}
 
@@ -827,7 +864,7 @@ significantly less clipping than a nontempered likelihood.
 \begin{algorithm}[H]\label{DP_barker_algo}
     \SetAlgoLined
     \For{\(1 \leq i \leq k\)}{
-        denote \(\theta = \theta\)\\
+        denote \(\theta = \theta_{i-1}\)\\
         sample \(\theta' \sim q(\cdot \mid \theta)\)\\
         sample \(B \subset \{1, \dotsc, n\}\)\\
         \For{\(j \in B\)}{
@@ -849,7 +886,9 @@ significantly less clipping than a nontempered likelihood.
     }
     \Return \((\theta_1, \dotsc, \theta_k)\)
     \caption{
-        DP Barker
+      DP Barker: number of iterations, initial value \(\theta_{0}\),
+      proposal distribution \(q\), noise variance \(\sigma^{2}\),
+      data \(X\) as input.
     }
 \end{algorithm}
 
@@ -1282,10 +1321,12 @@ acceptance test, i.e. changing the acceptance probability to
     \min\left\{\exp\left(H(\theta, p) - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\},
 \]
 where \(\sigma_{l}^{2}\) is the variance of the noise added to the log-likelihood
-ratios. This is because with \(U(\theta) = -\ln p(X\mid \theta)\), the difference
-of the Hamiltonians in the acceptance probability is
+ratios. This is because with
+\(U(\theta) = -\ln p(X\mid \theta) - \ln p(\theta)\),  for data \(X\),
+the difference of the Hamiltonians in the acceptance probability is
 \[
   H(\theta, p) - H(\theta', p') = \ln p(X\mid \theta') - \ln p(X\mid \theta)
+  - \ln p(\theta) + \ln p(\theta')
   + \frac{1}{2}(p^{T}M^{-1}p - p'^{T}M^{-1}p').
 \]
 As with the penalty algorithm, the sensitivity of the log-likelihood ratios must
@@ -1304,20 +1345,22 @@ which means that the acceptance probability must be corrected.
 
 The leapfrog update equations with noisy and clipped gradients become
 \begin{align*}
-  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i})) + \caln(0, \sigma_{g}^{2})) \\
+  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(g(\theta_{i}) + \caln(0, \sigma_{g}^{2})) \\
   \theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2} \\
-  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(\clip(\nabla U(\theta_{i+1})) + \caln(0, \sigma_{g}^{2})),
+  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \caln(0, \sigma_{g}^{2})),
 \end{align*}
-where the \(\clip\) function clips the Euclidean norm of its argument to a
-given bound. The value of the bound is omitted here to keep the equations
-clearer.
+where
+\[
+  g(\theta) = \sum_{x\in X}\clip_{b}(\nabla \ln p(x\mid \theta)) + \ln p(\theta)
+\]
+denotes the clipped gradients summed over the data \(X\).
 
 The second leapfrog update equation is unchanged from the non-DP case,
 and remains both volume preserving and reversible
 by negating \(p\). Both the first and third equations apply the function
 \(l_{p}\colon \R^{2d}\to \R^{2d}\),
 \[
-  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(\clip(\nabla U(\theta))
+  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
     + \caln(0, \sigma_{g^{2}}))\right).
 \]
 to \(\theta\) and \(p\).
@@ -1327,17 +1370,21 @@ The Jacobian of \(l_{p}\) is
   J_{l_{p}}(\theta, p) =
   \begin{bmatrix}
     I_{d\times d} & 0_{d\times d} \\
-    C(\theta) & I_{d\times d}
+    J_{g}(\theta) & I_{d\times d}
   \end{bmatrix},
 \]
 where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
-zero matrices, respectively, and \(C(\theta) = J_{\clip(\nabla U(\theta))}(\theta)\).
-It is possible that \(C(\theta)\) does not exist, but this can only happen
-in a null set\footnote{A set of zero Lebesgue measure.} if \(U\) is sufficiently
-well-behaved. With such \(U\), the non-existence of \(C(\theta)\) does not
-affect the volume preservation of \(l_{p}\). Appendix~\ref{clip_diff_chapter}
-gives very general sufficient conditions for \(U\), and proves that all
-of the models considered in Chapter~\ref{experiment_setup_chapter} meet
+zero matrices, respectively.
+It is possible that \(J_{g}(\theta)\) does not exist, but this can only happen
+in a null set\footnote{A set of zero Lebesgue measure.}, if \(g\) is
+sufficiently well-behaved. The non-existence of \(J_{g}(\theta)\) in a null set
+does not affect the volume preservation of \(l_{p}\).
+As \(g\) is a sum of clipped log-likelihood
+gradients, it suffices to show that the log likelihood is sufficiently
+well-behaved.
+Appendix~\ref{clip_diff_chapter}
+gives very general sufficient conditions for the log-likelihood, and proves
+that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
 the conditions.
 
 Because \(J_{l_{p}}(\theta, p)\) is triangular, \(\det J_{l_{p}}(\theta, p) = 1\)
@@ -1438,7 +1485,7 @@ which is true for random functions reversibly by negating \(p\).
   The leapfrog simulation is a composition of proposal functions
   \(l_{p}\) and \(l_{\theta}\) where
   \[
-    l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(\clip(\nabla U(\theta))
+    l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
       + \caln(0, \sigma_{g}^{2}))\right)
   \]
   and
@@ -1451,7 +1498,7 @@ which is true for random functions reversibly by negating \(p\).
     \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})
   \]
   with \(L\) compositions of \(l_{p} \circ l_{\theta}\circ l_{p}\).
-  Denoting \(g(\theta) = \clip(\nabla U(\theta))\),
+  Then
   \begin{align*}
     q_{l_{p}}(\theta', p'\mid \theta, p) &= \delta_{\theta'}(\theta)
     \cdot \caln\left(p'\mid p - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
@@ -1520,7 +1567,7 @@ additional term \(-\frac{1}{2}\sigma_{g}^{2}M^{-1}p\).
 For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p}\) changes
 to
 \[
-  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(\clip(\nabla U(\theta))
+  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
   + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \caln(0, \sigma_{g}^{2}))\right).
 \]
 \(l_{p}\) no longer preserves volumes, as the Jacobian of \(l_{p}\) is
@@ -1528,7 +1575,7 @@ to
   J_{l_{p}}(\theta, p) =
   \begin{bmatrix}
     I_{d\times d} & 0_{d\times d} \\
-    C(\theta, p) & I_{d\times d} - \frac{\eta}{4}\sigma_{g}^{2}M^{-1}
+    J_{g}(\theta) & I_{d\times d} - \frac{\eta}{4}\sigma_{g}^{2}M^{-1}
   \end{bmatrix}
 \]
 which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
@@ -1551,23 +1598,24 @@ future research.
 
 \begin{algorithm}[H]
     \SetAlgoLined
-    \(G_{1,0} = \mathrm{grad}(\theta_{0}, b_g)\)\\
+    \(G_{1,0} = g_{b_{g}}(\theta_{0}) + \caln(0, \sigma_{g}^{2})\)\\
     \For{\(1 \leq i \leq k\)}{
         \(p_0 = \caln_d(0, M)\)\\
         \(\theta_{i,0} = \theta_{i-1}\)\\
         \For{\(1 \leq j \leq L\)}{
             \(p_{j-\frac{1}{2}} = p_{j-1} + \frac{1}{2}\eta G_{i,j-1} \)\\
             \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-\frac{1}{2}}\)\\
-            \(G_{i,j} = \mathrm{grad}(\theta_{i,j}, b_g)\)\\
+            \(G_{i,j} = g_{b_{g}}(\theta_{i,j}) + \caln(0, \sigma_{g}^{2})\)\\
             \(p_{j} = p_{j-\frac{1}{2}} + \frac{1}{2}\eta G_{i,j} \)\\
         }
         \(r_l = \ln \frac{p(\theta_{i,L}\mid x_l)}{p(\theta_{i-1}\mid x_l)}\)\\
         \(R = \sum_{l=1}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_l)\)\\
-        \(s_{var} = (2\sigma_lb_l||\theta_{i-1} - \theta_{i,L}||_2)^2\)\\
+        % \(s_{var} = (2\sigma_lb_l||\theta_{i-1} - \theta_{i,L}||_2)^2\)\\
         \(\Delta H = R + \frac{1}{2}p_0^TM^{-1}p_0 - \frac{1}{2}p_L^TM^{-1}p_L
-        + \ln \frac{p(\theta_{i,L})}{p(\theta_{i-1})} + \caln(0, s_{var})\)\\
+        + \ln \frac{p(\theta_{i,L})}{p(\theta_{i-1})}
+        + \caln(0, \sigma_{l}^{2}(\theta_{i-1}, \theta_{i,L}))\)\\
         \(u = \mathrm{Unif}(0, 1)\)\\
-        \If{\(u < \Delta H - \frac{1}{2}s_{var}\)}{
+        \If{\(u < \Delta H - \frac{1}{2}\sigma_{l}^{2}(\theta_{i-1}, \theta_{i,L})\)}{
             \(\theta_{i} = \theta_{i, L}\)\\
             \(G_{i+1,0} = G_{i,L}\)\\
         }
@@ -1576,15 +1624,15 @@ future research.
             \(G_{i+1,0} = G_{i,0}\)\\
         }
     }
-    where
-    \[
-        \mathrm{grad}(\theta, b) = \sum_{i=1}^n \mathrm{clip}_b(\nabla \ln p(\theta\mid x_i))
-        + \nabla \ln p(\theta)
-    \]
-    and \(\mathrm{clip}_b(\theta)\) clips the Euclidean norm of \(\theta\) to be
-    less than or equal to \(b\).
-
-    \caption{DP HMC}
+    \caption{
+      DP HMC: log likelihood clip bound \(b_{l}\), gradient clip bound
+      \(b_{g}\), clipped gradient function \(g_{b_{g}}\),
+      number of iterations \(k\), number of leapfrog steps \(L\),
+      leapfrog step size \(\eta\), initial point \(\theta_{0}\),
+      gradient noise variance \(\sigma_{g}^{2}\), log likelihood ratio
+      noise variance \(\sigma_{l}^{2}\), positive-definite mass matrix \(M\)
+      and dataset \(X\) as input.
+    }
     \label{dp_hmc_algo}
 \end{algorithm}
 
@@ -1984,6 +2032,7 @@ available\footnote{\url{https://github.com/oraisa/masters-thesis}}.
   \includegraphics[width=\textwidth]{figures/posterior_plots}
   \caption{
     Contour plots of the posterior densities of the 2-dimensional models.
+    The orange points are the 20 starting points for each chain.
   }
   \label{posterior_plots_fig}
 \end{figure}
@@ -2505,82 +2554,81 @@ models considered in this thesis meet the conditions.
   % Let \(x_{1}\in \R\) where \(E(x_{1})\) has non-zero measure.
 \end{proof}
 
-For DP HMC, set \(f(\theta) = \nabla U(\theta)\). The conditions of
-Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(U\) are met if
-\(U\) is twice continuously differentiable and
 \begin{lemma}\label{model_clip_ok_lemma}
   The log-likelihoods of the Gaussian, banana and circle models meet the
   conditions of Lemma~\ref{clip_is_almost_everywhere_differentiable}.
 \end{lemma}
 \begin{proof}
-For DP HMC, set \(f(\theta) = \nabla U(\theta)\). The conditions of
-Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(U\) are met if
-\(U\) is twice continuously differentiable and
-\[
-  \nabla ||\nabla U(x)||
-  = \frac{2\nabla U(x)}{||\nabla U(x)||}J_{\nabla U}(x)
-  = \frac{2\nabla U(x)}{||\nabla U(x)||}H_{U}(x) \neq 0
-\]
-almost everywhere,
-where \(H_{U}\) is the Hessian matrix of \(U\). Because \(\nabla U = 0\) and
-\(||\nabla U|| = 0\) at only one point, having \(\det H_{U}(x) \neq 0\)
-almost everywhere is sufficient.
+  For DP HMC, set \(f(\theta) = \nabla \ln p(x\mid \theta)\) for some
+  datapoint \(x\). Denote \(l(\theta) = \ln (x\mid \theta)\).
+  The conditions of
+  Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(l\) are met if
+  \(l\) is twice continuously differentiable and
+  \[
+    \nabla ||\nabla l(\theta)||
+    = \frac{2\nabla l(\theta)}{||\nabla l(\theta)||}J_{\nabla l}(\theta)
+    = \frac{2\nabla l(\theta)}{||\nabla l(\theta)||}H_{l}(\theta) \neq 0
+  \]
+  almost everywhere,
+  where \(H_{l}\) is the Hessian matrix of \(l\). Because \(\nabla l = 0\) and
+  \(||\nabla l|| = 0\) at only one point, having \(\det H_{l}(x) \neq 0\)
+  almost everywhere is sufficient.
 
-For the Gaussian log-likelihood
-\[
-  U(\theta) = \frac{1}{2}(x - \theta)^{T}\Sigma^{-1}(x - \theta),
-\]
-so
-\[
-  \nabla U(\theta) = \Sigma^{-1}(x - \theta)
-\]
-and \(H_{U}(\theta) = \Sigma^{-1}\).
+  For the Gaussian log-likelihood
+  \[
+    l(\theta) = \frac{1}{2}(x - \theta)^{T}\Sigma^{-1}(x - \theta),
+  \]
+  so
+  \[
+    \nabla l(\theta) = \Sigma^{-1}(x - \theta)
+  \]
+  and \(H_{l}(\theta) = \Sigma^{-1}\).
 
-For the banana log-likelihood, using the notation from
-Appendix~\ref{banana_posterior_theorem_proof},
-\[
-  U(\theta) = \frac{1}{2}(g^{-1}(x) - \theta)^{T}\Sigma^{-1}(g^{-1}(x) - \theta),
-\]
-so
-\[
-  \nabla U(\theta) = \Sigma^{-1}(g^{-1}(x) - \theta)
-\]
-and \(H_{U}(\theta) = \Sigma^{-1}\).
+  For the banana log-likelihood, using the notation from
+  Appendix~\ref{banana_posterior_theorem_proof},
+  \[
+    l(\theta) = \frac{1}{2}(g^{-1}(x) - \theta)^{T}\Sigma^{-1}(g^{-1}(x) - \theta),
+  \]
+  so
+  \[
+    \nabla l(\theta) = \Sigma^{-1}(g^{-1}(x) - \theta)
+  \]
+  and \(H_{l}(\theta) = \Sigma^{-1}\).
 
-The circle log-likelihood is
-\[
-  U(x, y) = -a(x^{2} + y^{2} - r^{2})^{2},
-\]
-\[
-  \nabla U(x, y) = -4a(x^{3} + xy^{2} - xr^{2}, x^{2}y + y^{3} - yr^{2}),
-\]
-so
-\[
-  H_{U}(x, y) = -4a
-  \begin{bmatrix}
-    3x^{2} + y^{2} - r^{2} & 2xy \\
-    2xy & 3y^{2} + x^{2} - r^{2} \\
-  \end{bmatrix}
-\]
-and
-\begin{align*}
-  \det H_{U}(x, y) &= -4a((3x^{2} + y^{2} - r^{2})(3y^{2} + x^{2} - r^{2})
-  - 4x^{2}y^{2})
-  \\&= -4a(9x^{2}y^{2} + 3x^{4} - 3x^{2}r^{2} + 3y^{4} + y^{2}x^{2} -y^{2}r^{2}
-  - 3y^{2}r^{2} - x^{2}r^{2} + r^{4} - 4x^{2}y^{2})
-  \\&= -4a(6x^{2}y^{2} + 3x^{4} - 4x^{2}r^{2} + 3y^{4} - 4y^{2}r^{2} + r^{4})
-  \\&= -4a(6x^{2}y^{2} + 3(x^{4} + y^{4}) - 4r^{2}(x^{2} + y^{2}) + r^{4}).
-\end{align*}
-\[
-  \nabla \det H_{U}(x, y) = -4a(12xy^{2} + 12x^{3} - 8r^{2}x,
-  12yx^{2} + 12y^{3} - 8r^{2}y),
-\]
-which is zero in the origin and on the circle
-\[
-  x^{2} + y^{2} = \frac{2}{3}r^{2}.
-\]
-Elsewhere, Lemma~\ref{level_set_lemma} can be applied to \(\det H_{U}\), which
-means that the set where \(\det H_{U}(x, y) = 0\) is a 1-dimensional curve.
+  The circle log-likelihood is
+  \[
+    l(x, y) = -a(x^{2} + y^{2} - r^{2})^{2},
+  \]
+  \[
+    \nabla l(x, y) = -4a(x^{3} + xy^{2} - xr^{2}, x^{2}y + y^{3} - yr^{2}),
+  \]
+  so
+  \[
+    H_{l}(x, y) = -4a
+    \begin{bmatrix}
+      3x^{2} + y^{2} - r^{2} & 2xy \\
+      2xy & 3y^{2} + x^{2} - r^{2} \\
+    \end{bmatrix}
+  \]
+  and
+  \begin{align*}
+    \det H_{l}(x, y) &= -4a((3x^{2} + y^{2} - r^{2})(3y^{2} + x^{2} - r^{2})
+                       - 4x^{2}y^{2})
+    \\&= -4a(9x^{2}y^{2} + 3x^{4} - 3x^{2}r^{2} + 3y^{4} + y^{2}x^{2} -y^{2}r^{2}
+    - 3y^{2}r^{2} - x^{2}r^{2} + r^{4} - 4x^{2}y^{2})
+    \\&= -4a(6x^{2}y^{2} + 3x^{4} - 4x^{2}r^{2} + 3y^{4} - 4y^{2}r^{2} + r^{4})
+    \\&= -4a(6x^{2}y^{2} + 3(x^{4} + y^{4}) - 4r^{2}(x^{2} + y^{2}) + r^{4}).
+  \end{align*}
+  \[
+    \nabla \det H_{l}(x, y) = -4a(12xy^{2} + 12x^{3} - 8r^{2}x,
+    12yx^{2} + 12y^{3} - 8r^{2}y),
+  \]
+  which is zero in the origin and on the circle
+  \[
+    x^{2} + y^{2} = \frac{2}{3}r^{2}.
+  \]
+  Elsewhere, Lemma~\ref{level_set_lemma} can be applied to \(\det H_{l}\), which
+  means that the set where \(\det H_{l}(x, y) = 0\) is a 1-dimensional curve.
 \end{proof}
 \end{appendices}
 
