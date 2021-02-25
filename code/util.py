@@ -77,7 +77,7 @@ class MCMCResult:
         self.clipped_grad = clipped_grad
         posterior = problem.true_posterior
 
-        if iters > 0:
+        if iters > 1:
             self.final_chain = chain[int((iters - 1) / 2) + 1:, :]
             self.acceptance = accepts / iters
             if posterior is not None:
