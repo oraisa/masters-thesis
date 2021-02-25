@@ -523,12 +523,22 @@ value also hold for releasing the final result of the algorithm.
 In 2019, Yildirim and Ermis~\cite{YildirimE19} realised that if Gaussian noise
 is added to the exact value of \(\lambda\) from Equation~\ref{lambda_equation},
 the noise can be corrected for,
-yielding a differentially private MCMC algorithm which converges to 
+yielding a differentially private MCMC algorithm, called DP penalty,
+which converges to 
 the correct distribution. In the same year, Heikkilä et al.~\cite{HeikkilaJDH19}
 developed another DP MCMC algorithm, called DP Barker, which uses subsampling 
 to amplify privacy. DP Barker is based on the Barker acceptance
 test~\cite{Barker65} instead of the MH test, and uses an approximation
 of the Barker acceptance test to correct for the noise added for DP.
+
+Also in 2019, Sommer et al. proved the ADP-bound of
+Theorem~\ref{gauss-DP-bounds}~\cite{Sommer2019}, which gives tight bounds for
+ADP, unlike the zCDP based privacy accounting Yildirim and
+Ermis~\cite{YildirimE19} used. Section~\ref{dp_penalty_adp_section} applies
+the new ADP-bound to DP penalty.
+Section~\ref{dp_minibatch_penalty_section} combines DP penalty with the
+subsampling idea from DP Barker, and formulates a subsampled DP penalty
+algorithm.
 
 \section{Differentially private MH with the penalty algorithm}\label{dp_penalty_section}
 
@@ -553,10 +563,7 @@ The corrected acceptance probability for Gaussian noise with variance
 
 Theorem~\ref{DP_penalty_theorem_zcdp} gives the number of iterations DP penalty 
 can be run for when the privacy cost is computed through zCDP, which is 
-what Yildirim and Ermis prove in their paper~\cite{YildirimE19}. A tight, but
-harder to use, bound can be reached by using the ADP bound of
-Theorem~\ref{gauss-DP-bounds}, without using zCDP. This is given by
-Theorem~\ref{DP_penalty_theorem_adp}.
+what Yildirim and Ermis prove in their paper~\cite{YildirimE19}.
 
 \begin{theorem}\label{DP_penalty_theorem_zcdp}
   Let \(\epsilon > 0\), \(0 < \delta < 1\), \(\alpha > 0\), \(\tau > 0\) and
@@ -580,6 +587,83 @@ Theorem~\ref{DP_penalty_theorem_adp}.
     variance of the Gaussian noise
     and the substitute neighborhood relation, is \((\epsilon, \delta)\)-ADP.
 \end{theorem}
+
+The \(\tau\)-parameter controls the trade-off between the amount of noise
+and the number of iterations the algorithm is allowed to run for. From the
+expression for \(\sigma^{2}\) and \(k\) in Theorem~\ref{DP_penalty_theorem_zcdp},
+the standard deviation of the noise increases linearly with \(\tau\), while
+the number of iterations increases quadratically.
+
+Yildirim and Ermis~\cite{YildirimE19} see \(\alpha\) as a bound on \(c\) of the
+form
+\[
+  c(\theta, \theta') \leq Cn^{-\alpha}
+\]
+for almost all \(\theta\) and \(\theta'\) and constant \(C > 0\).
+This bound would mean that \(\sigma\)
+would not increase with \(n\), which Yildirim and Ermis see as a necessary
+condition for the DP penalty algorithm to perform well. They also recommend
+having \(\alpha = \frac{1}{2}\), which is used in the experiments in
+Chapter~\ref{experiment_chapter}.
+With clipping, this can be achieved by setting the clip bound based on \(n\).
+For the experiments
+in Chapter~\ref{experiment_chapter}, the parameters are optimised separately
+for each \(n\) that is used, so setting any clip bound can be seen as
+choosing a value for \(C\).
+
+% However , this condition may not be necessary, as DP penalty adds noise to
+% \(\lambda\), which is a sum of \(n\) values. Unless there is a lot of
+% cancellation between the different terms, the magnitude of \(\lambda\), would
+% increase with \(n\), so the ratio of \(\lambda\) and the noise may not increase,
+% even if the variance of the noise increases. Of course, this is a very informal
+% argument
+
+Theorem~\ref{DP_penalty_theorem_zcdp}
+requires a bound on sensitivity of the log-likelihood ratio. If there is a bound
+\[
+    |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq L||\theta - \theta'||_2
+\]
+for all \(D_j, \theta\) and \(\theta'\) then
+\[
+    c(\theta, \theta') \leq 2L||\theta - \theta'||_2.
+\]
+The former bound is true in some models, such as logistic
+regression~\cite{YildirimE19}. In other
+models it can be forced by clipping the log-likelihood ratios with the bound
+\(b = L||\theta - \theta'||_{2}\). This will remove the
+guarantee of eventually converging to the correct posterior, but if \(L\) is
+chosen to be large enough, the clipping will not affect the
+acceptance decision frequently. As a tradeoff, picking a large \(L\) will increase
+the variance of the Gaussian noise and slow down convergence through it.
+The effects of clipping are empirically studied in
+Section~\ref{clipping_experiments}.
+
+Yildirim and Ermis~\cite{YildirimE19} propose two potential variations to improve the
+performance of the penalty algorithm. The first variation, called
+\emph{one component updates} (OCU) in this thesis, is only proposing
+changes in one dimension in a multidimensional problem. This decreases
+\(||\theta - \theta'||_2\), which means that it decreases the noise variance.
+
+The second variation is called \emph{guided walk Metropolis Hastings}
+(GWMH)~\cite{YildirimE19}.
+In GWMH, proposals change only one dimension, as in OCU. Additionally, a direction
+is associated with each dimension, and proposals are only made in the current
+direction of the chosen dimension. After an accepted proposal, the direction is
+kept the same, but after a reject it is switched. This means that the chain can
+move towards areas of higher probability faster because, after some initial
+proposals are rejected, the directions for each dimension point towards the
+area of high probability, so all proposals are towards it. Without GRMH, most
+proposals would move the chain away from the area of high probability, and
+would likely be rejected.
+
+\section{Applying new techniques to DP penalty}\label{dp_penalty_adp_section}
+
+The DP penalty algorithm is a composition of Gaussian mechanisms, so
+the ADP-bound of Theorem~\ref{gauss-DP-bounds} is applicable. Unlike
+Theorem~\ref{DP_penalty_theorem_zcdp}, Theorem~\ref{gauss-DP-bounds}
+gives tight ADP-bounds, so using the latter instead of the former will
+always give better privacy bounds. Theorem~\ref{DP_penalty_theorem_adp}
+formulates the bound of Theorem~\ref{gauss-DP-bounds} for DP penalty.
 
 \begin{theorem}\label{DP_penalty_theorem_adp}
     Let \(\epsilon > 0\), \(\alpha > 0\), \(\tau > 0\) and \(n > 0\).
@@ -617,36 +701,6 @@ Theorem~\ref{DP_penalty_theorem_adp}.
     the ADP bound of Theorem~\ref{gauss-DP-bounds} proves the 
     claim.
 \end{proof}
-
-The \(\tau\)-parameter controls the trade-off between the amount of noise
-and the number of iterations the algorithm is allowed to run for. From the
-expression for \(\sigma^{2}\) and \(k\) in Theorem~\ref{DP_penalty_theorem_zcdp},
-the standard deviation of the noise increases linearly with \(\tau\), while
-the number of iterations increases quadratically.
-
-Yildirim and Ermis~\cite{YildirimE19} see \(\alpha\) as a bound on \(c\) of the
-form
-\[
-  c(\theta, \theta') \leq Cn^{-\alpha}
-\]
-for almost all \(\theta\) and \(\theta'\) and constant \(C > 0\).
-This bound would mean that \(\sigma\)
-would not increase with \(n\), which Yildirim and Ermis see as a necessary
-condition for the DP penalty algorithm to perform well. They also recommend
-having \(\alpha = \frac{1}{2}\), which is used in the experiments in
-Chapter~\ref{experiment_chapter}.
-With clipping, this can be achieved by setting the clip bound based on \(n\).
-For the experiments
-in Chapter~\ref{experiment_chapter}, the parameters are optimised separately
-for each \(n\) that is used, so setting any clip bound can be seen as
-choosing a value for \(C\).
-
-% However , this condition may not be necessary, as DP penalty adds noise to
-% \(\lambda\), which is a sum of \(n\) values. Unless there is a lot of
-% cancellation between the different terms, the magnitude of \(\lambda\), would
-% increase with \(n\), so the ratio of \(\lambda\) and the noise may not increase,
-% even if the variance of the noise increases. Of course, this is a very informal
-% argument
 
 Theorem~\ref{DP_penalty_theorem_adp} is harder to use than 
 Theorem~\ref{DP_penalty_theorem_zcdp} because the number of iteration 
@@ -693,42 +747,6 @@ method.
     iterations.
   }
 \end{algorithm}
-
-Theorems~\ref{DP_penalty_theorem_zcdp} and~\ref{DP_penalty_theorem_adp}
-require a bound on sensitivity of the log-likelihood ratio. If there is a bound
-\[
-    |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq L||\theta - \theta'||_2
-\]
-for all \(D_j, \theta\) and \(\theta'\) then 
-\[
-    c(\theta, \theta') \leq 2L||\theta - \theta'||_2.
-\]
-The former bound is true in some models, such as logistic
-regression~\cite{YildirimE19}. In other
-models it can be forced by clipping the log-likelihood ratios with the bound
-\(b = L||\theta - \theta'||_{2}\). This will remove the
-guarantee of eventually converging to the correct posterior, but if \(L\) is 
-chosen to be large enough, the clipping will not affect the 
-acceptance decision frequently. As a tradeoff, picking a large \(L\) will increase 
-the variance of the Gaussian noise and slow down convergence through it.
-
-Yildirim and Ermis~\cite{YildirimE19} propose two potential variations to improve the
-performance of the penalty algorithm. The first variation, called
-\emph{one component updates} (OCU) in this thesis, is only proposing
-changes in one dimension in a multidimensional problem. This decreases 
-\(||\theta - \theta'||_2\), which means that it decreases the noise variance.
-
-The second variation is called \emph{guided walk Metropolis Hastings}
-(GWMH)~\cite{YildirimE19}.
-In GWMH, proposals change only one dimension, as in OCU. Additionally, a direction
-is associated with each dimension, and proposals are only made in the current
-direction of the chosen dimension. After an accepted proposal, the direction is 
-kept the same, but after a reject it is switched. This means that the chain can
-move towards areas of higher probability faster because, after some initial 
-proposals are rejected, the directions for each dimension point towards the 
-area of high probability, so all proposals are towards it. Without GRMH, most
-proposals would move the chain away from the area of high probability, and 
-would likely be rejected.
 
 \section{The Barker acceptance test}\label{dp_barker_section}
 
