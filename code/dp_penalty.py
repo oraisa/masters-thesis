@@ -46,7 +46,7 @@ def dp_penalty(problem, theta0, epsilon, delta, params, verbose=True, use_adp=Tr
     if params.grw:
         ocu = True # GRW requires one component updates
 
-    dim = problem.theta0.size
+    dim = theta0.size
     data = problem.data
     n, data_dim = data.shape
     temp_scale = problem.temp_scale
