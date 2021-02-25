@@ -4,10 +4,14 @@ subworkflow banana_workflow:
 subworkflow circle_workflow:
     snakefile: "circle.smk"
 
+subworkflow clipping_workflow:
+    snakefile: "clipping.smk"
+
 rule all:
     input:
-        circle = "../Thesis/figures/circle.pdf",
-        banana = "../Thesis/figures/banana_mmd.pdf",
+        circle = circle_workflow("../Thesis/figures/circle.pdf"),
+        banana = banana_workflow("../Thesis/figures/banana_mmd.pdf"),
+        clipping = clipping_workflow("../Thesis/figures/clipping.pdf"),
         posterior_plots = "../Thesis/figures/posterior_plots.pdf",
         model_params_table = "../Thesis/model_params_table.tex",
         accountant_comparison = "../Thesis/figures/accountant_comparison.pdf",
