@@ -135,19 +135,95 @@ Carlo (MCMC)~\cite{MRR53, Has70} is an algorithm that enables data analysis usin
 Bayesian inference~\cite{BDA}. This thesis studies the combination of
 differential privacy and MCMC by introducing existing algorithms, developing
 improvements with new techniques in differential privacy, and finally comparing
-the algorithms on a variaty of settings.
+the algorithms on a variety of settings.
 
-introduce DP
+Traditional approaches in preserving the privacy of data subjects in data
+analysis, such as simply omitting identifying information, or
+more advanced techniques such as \(k\)-anonymity~\cite{Sam01},
+can lead to compromises of private information. These leaks can result from
+the combination of an
+adversary having access to additional data and linking parts of the additional
+data and the private data, and the adversary having access to many
+public results that use the same private dataset~\cite{DiN03}.
 
-introduce Bayesian inference
+Differential privacy~\cite{DMN06} is a notion of an algorithm that preserves
+privacy by making the data analysis algorithm noisy, thus masking the details of
+the private input data that are necessary for identifying individuals in the data.
+The idea of differential privacy is to require that small changes in the input
+data can only cause small changes in the probability distribution of the
+output. This makes differential privacy immune to any post-processing and
+auxiliary information, and allows quantifying the loss in privacy from releasing
+multiple results based on the same dataset, or for an individual, the privacy
+loss from participating in multiple studies.
 
-existing algorithms
+The tradeoff with differential privacy is the noise that must be added to the
+analysis process, which will decrease the utility of the analysis. For publishing
+aggregate summaries of large datasets, the amount of noise required is not too
+large, and differential privacy has been used in such settings in practice by
+Apple~\cite{App17}, Microsoft~\cite{DKY17}, the U.\ S.\ Census Bureau~\cite{Abo18},
+and others. However, for small datasets, or applications requiring detailed
+information on individuals, such as COVID-19 tracing apps, the amount of
+noise is likely to be prohibitively large, so other techniques for maintaining
+the privacy of individuals are required.
 
-new algorithms and accounting methods
+Bayesian inference~\cite{BDA} is a paradigm of statistical inference where
+the parameters of a statistical model are considered random variables, and
+probability is used to describe the uncertainty about the values of the
+parameters. Bayesian inference is based on Bayes' theorem, which allows
+a data analyst to update his prior knowledge of the parameters based on observed
+data to obtain a posterior distribution of the parameters.
+Computing the posterior distribution analytically is often not possible,
+so numerical methods are needed. Markov chain Monte Carlo (MCMC) is a general
+method of drawing
+samples from a given distribution, such as the posterior distribution. This allows
+the analyst to gain information about the model parameters through the data.
 
-structure
+Combining MCMC algorithms with differential privacy allows
+an analyst to conduct the comprehensive Bayesian inference that is
+possible using MCMC while preserving the privacy of the data subjects through
+differential privacy. Two differentially private MCMC algorithms have been
+developed: the DP penalty algorithm of Yildirim and Ermis~\cite{YildirimE19},
+and the DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19}.
+Of these, the penalty algorithm is considerable simpler and more extensible,
+so the further development of differentially private MCMC algorithms in this
+thesis uses it as the basis.
 
-\chapter{Background}
+In 2019, Sommer et al. developed a technique of computing the privacy of
+iterative algorithms that allows running the algorithms longer than the
+privacy accounting methods used by Yildirim and Ermis~\cite{YildirimE19} and
+Heikkilä et al.~\cite{HeikkilaJDH19}. This technique is applicable to the
+DP penalty algorithm, but not the DP Barker algorithm, although new developments
+of the technique~\cite{KJH20} may be applicable to it.
+
+As an MCMC algorithm, DP penalty is very simple, so developing differentially
+private variants of more advanced MCMC algorithm may result in more effective
+algorithms. This thesis derives a differentially private version of
+Hamiltonian Monte Carlo (HMC)~\cite{neal2012mcmc, DKP87}, which is able to make
+better use of the structure of the statistical model being sampled than DP penalty.
+However, with differential privacy, this comes with a privacy cost, so it is
+not clear that differentially private HMC is more effective than DP penalty.
+
+Another way to lower the privacy cost of a differentially private MCMC
+algorithm is only using a portion of the data at each iteration, instead of
+the full dataset. This technique, called subsampling or minibatching, is used
+by DP Barker, but it is also applicable to DP penalty. As subsampling will
+decrease the accuracy of the algorithm, it is not guaranteed to improve results
+over the existing algorithms.
+
+This thesis begins with a more detailed, but nevertheless brief, introduction to
+differential privacy and MCMC in Chapter~\ref{background_chapter}.
+Chapter~\ref{dp_mcmc_chapter} considers the simpler differentially private
+MCMC algorithm: the existing algorithms DP penalty and DP Barker are introduced
+in Sections~\ref{dp_penalty_section} and \ref{dp_barker_section},
+and the new improvements are discussed in Sections~\ref{dp_penalty_adp_section}
+and \ref{dp_minibatch_penalty_section}. Chapter~\ref{hmc_chapter} first
+introduces HMC in Section~\ref{hmc_basics_section} and develops differentially
+private HMC in Section~\ref{dp_hmc_section}. The performance of the algorithms
+is compared on a wide variety of models. The models, and technical details
+concerning the comparison, are discussed in Chapter~\ref{experiment_setup_chapter}.
+The results of the experiments are presented in Chapter~\ref{experiment_chapter}.
+
+\chapter{Background}\label{background_chapter}
 
 This chapter covers the basics of differential privacy, Bayesian inference
 and Markov chain Monte Carlo algorithms needed in the later chapters. To keep
@@ -512,7 +588,7 @@ algorithm used for Bayesian inference.
     }
 \end{algorithm}
 
-\chapter{Differentially Private MCMC}
+\chapter{Differentially Private MCMC}\label{dp_mcmc_chapter}
 
 As seen in Section~\ref{DP_background}, an algorithm can be made differentially 
 private by adding Gaussian noise the its output. The noise could also be added 
@@ -540,7 +616,7 @@ Section~\ref{dp_minibatch_penalty_section} combines DP penalty with the
 subsampling idea from DP Barker, and formulates a subsampled DP penalty
 algorithm.
 
-\section{Differentially private MH with the penalty algorithm}\label{dp_penalty_section}
+\section{Differentially Private MH with the Penalty Algorithm}\label{dp_penalty_section}
 
 In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
 Metropolis-Hastings called the penalty 
@@ -656,7 +732,7 @@ area of high probability, so all proposals are towards it. Without GRMH, most
 proposals would move the chain away from the area of high probability, and
 would likely be rejected.
 
-\section{Applying new techniques to DP penalty}\label{dp_penalty_adp_section}
+\section{Applying New Techniques to DP Penalty}\label{dp_penalty_adp_section}
 
 The DP penalty algorithm is a composition of Gaussian mechanisms, so
 the ADP-bound of Theorem~\ref{gauss-DP-bounds} is applicable. Unlike
@@ -664,6 +740,8 @@ Theorem~\ref{DP_penalty_theorem_zcdp}, Theorem~\ref{gauss-DP-bounds}
 gives tight ADP-bounds, so using the latter instead of the former will
 always give better privacy bounds. Theorem~\ref{DP_penalty_theorem_adp}
 formulates the bound of Theorem~\ref{gauss-DP-bounds} for DP penalty.
+The iteration numbers the theorems allow are compared in
+Section~\ref{accounting_comparison_section}.
 
 \begin{theorem}\label{DP_penalty_theorem_adp}
     Let \(\epsilon > 0\), \(\alpha > 0\), \(\tau > 0\) and \(n > 0\).
@@ -748,7 +826,7 @@ method.
   }
 \end{algorithm}
 
-\section{The Barker acceptance test}\label{dp_barker_section}
+\section{The Barker Acceptance Test}\label{dp_barker_section}
 
 The DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19} is based on
 the Barker acceptance test~\cite{Barker65} instead of the Metropolis-Hastings test.
@@ -1128,7 +1206,7 @@ OCU may be especially useful as the variance sensitivity contains the square of
 the distance between the current and proposed parameter values, so reducing the
 distance by updating only a single component can greatly reduce the added noise.
 
-\chapter{Differentially Private Hamiltonian Monte Carlo}
+\chapter{Differentially Private Hamiltonian Monte Carlo}\label{hmc_chapter}
 
 Hamiltonian Monte Carlo (HMC\footnote{
     HMC originally stood for hybrid Monte Carlo, 
@@ -2021,13 +2099,19 @@ The true values of \(\theta\) in all experiment except the circle are
 All experiments ran 20 chains for each value
 of \(\epsilon\) for DP MCMC experiments, or clip bound for clipping experiments,
 for each algorithm included. Each of the
-20 chains had a different starting point, chosen from a Gaussian
-distribution value with standard deviation as
-shown in Table~\ref{model_params_table}, but the starting points did
+20 chains had a different starting point,
+% chosen from a Gaussian
+% distribution value with standard deviation as
+% shown in Table~\ref{model_params_table},
+but the starting points did
 not vary across algorithms, or values of \(\epsilon\) or clip bound.
-The Gaussian distribution choosing the starting points was
-centered on the true parameter values for the banana and Gaussian experiments,
-and on \((0, 1)\) for the circle experiment.
+For the banana and Gaussian experiments, the starting points were chosen
+from a Gaussian distribution centered on the true parameter values. The standard
+deviation of the Gaussian was the mean of the component-wise standard deviations
+of the a sample of the true posterior. In the circle experiment, the starting points
+were chosen from a Gaussian distribution centered on \((0, 1)\) with
+variance 1. Figure~\ref{posterior_plots_fig} shows the starting points for
+each model as orange points.
 
 The first half of the obtained samples were discarded as they may not represent
 the true posterior, which is standard practice with MCMC~\cite{BDA}. The
@@ -2338,7 +2422,7 @@ there is very large variance in clipping.
   \label{grad_clipping_fig}
 \end{figure}
 
-\chapter{Conclusions}
+\chapter{Conclusions}\label{conclusion_chapter}
 % STEP 5:
 % Uncomment the following lines and set your .bib file and desired bibliography style
 % to make a bibliography with BibTeX.
