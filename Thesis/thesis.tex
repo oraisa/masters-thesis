@@ -210,6 +210,20 @@ by DP Barker, but it is also applicable to DP penalty. As subsampling will
 decrease the accuracy of the algorithm, it is not guaranteed to improve results
 over the existing algorithms.
 
+There are other frameworks for DP Bayesian inference than DP MCMC, but none
+of them offers the full generality and theoretical guarantees that DP MCMC
+has. DP variational inference~\cite{JHD17} approximates the posterior
+distribution with a tractable distribution, but the approximating distribution
+may not be able to match the posterior. For exponential family models~\cite{ZRD16} and
+generalized linear models~\cite{KJK20},
+differentially private inference is possible by perturbing sufficient statistics,
+but these sets of models are limited. Simply sampling
+from the exact posterior is differentially private under suitable
+conditions~\cite{DNZ17}, but for many models, exact sampling of the posterior
+is not possible. Stochastic gradient Langevin dynamics~\cite{WFS15} resemble
+MCMC, but they omit a key step, which weakens their performance when compared
+with full MCMC.
+
 This thesis begins with a more detailed, but nevertheless brief, introduction to
 differential privacy and MCMC in Chapter~\ref{background_chapter}.
 Chapter~\ref{dp_mcmc_chapter} considers the simpler differentially private
@@ -1335,9 +1349,24 @@ This means that the marginal distributions of \(\theta\) and \(p\) are
 independent, the marginal distribution of \(p\) is a \(d\)-dimensional
 Gaussian distribution 
 with mean 0 and covariance \(M\), and the marginal distribution of
-\(\theta\) can have any continuously differentiable log-likelihood \(-U\).
+\(\theta\) can have any continuously differentiable log-density \(-U\).
 Because of this, \(\theta\) is used to represent the variables of interest,
 while \(p\) is a set of auxiliary variables used for the proposals.
+In Bayesian inference,
+\[
+  U(\theta) = -\sum_{x\in X}\ln p(x\mid \theta)
+\]
+for dataset \(X\). The requirement that \(U\) is a continuously differentiable
+and defined on \(\R^{d}\) means that the log-likelihood \(\ln p(x\mid \cdot)\)
+must also meet these conditions. This means that HMC cannot directly be used
+with discrete parameters, non-differentiable log-likelihoods
+or constrained parameters, such as variance
+parameters that must be positive. Constrained parameters can typically be
+transformed into unconstrained ones, such as transforming \(\sigma = e^{s}\)
+for a variance parameters \(\sigma\), and using \(s\) in the model instead
+of \(\sigma\). Discrete parameters or non-differentiable log-likelihoods
+require other MCMC algorithms, although it may be possible to combine them
+with HMC if there are continuous parameters.
 
 Generating a \((\theta, p)\)-sample is done in two stages~\cite{neal2012mcmc}, 
 which are technically 
@@ -1869,6 +1898,12 @@ and a clip bound \(b_{g}\) for the gradients. The number of leapfrog iterations
 per sample \(L\) also affects the privacy of the algorithm, as it affects the
 number of gradients released.
 
+Non-DP HMC is known to be hard to tune~\cite{neal2012mcmc},
+as changes in \(\eta\) can cause large changes in the acceptance probability,
+and picking a too large \(L\) can cause the leapfrog simulation to turn
+around and propose small jumps. These issues are only amplified for DP HMC,
+as 4 new parameters are introduced.
+
 The \(\alpha\) value from Theorem~\ref{DP_penalty_theorem_zcdp} for
 DP penalty could be included in Theorem~\ref{dp_hmc_theorem_zcdp},
 which would make Theorem~\ref{dp_hmc_theorem_zcdp} the special case where
@@ -1899,6 +1934,15 @@ while moving a substantial distance on the circle.
   }
   \label{hmc_trajectory_fig}
 \end{figure}
+
+The DP Stochastic gradient Langevin dynamics (DP-SGLD) algorithm~\cite{WFS15}
+is similar to DP HMC, but omits the MH acceptance test. Instead, in DP-SGLD,
+the step size \(\eta\) must be lowered towards 0 with each iteration to maintain
+the asymptotic convergence guarantee. In practice, DP-SGLD is run for a finite
+number of iterations, so \(\eta\) does not decay to 0, and the algorithm
+does not sample from the correct posterior. With the inclusion of the
+acceptance test, MCMC algorithms can sample from the correct posterior, even
+when run for a finite time~\cite{BDA}, though this is not theoretically guaranteed.
 
 \chapter{Experimental Setup}\label{experiment_setup_chapter}
 
@@ -2221,8 +2265,8 @@ and \ref{dp_hmc_theorem_adp}, as well as the Fourier accountant, significantly
 outperform the other accounting methods. This makes it clear that the tight
 bounds given by the ADP based methods should be used in favor of loose methods.
 The Fourier accountant is not easily applicable to DP Barker, as DP Barker
-does not release the sample variance directly, it may still be possible
-to use the Fourier accountant with DP Barker. This is an interesting question
+does not release the sample variance directly, but it may still be possible
+to use the Fourier accountant with DP Barker. This is a potential question
 for future research, as using a better privacy accountant may significantly
 improve the performance of DP Barker.
 
@@ -2246,15 +2290,17 @@ improve the performance of DP Barker.
 
 \section{The Effects of Clipping}\label{clipping_experiments}
 
-The first experiment evaluates the effect of clipping log-likelihood ratios.
+The this section looks at the effect of clipping log-likelihood ratios,
+which is necessary for DP MCMC algorithms, but may affect their convergence
+to the correct posterior.
 Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
 distribution as the proposal distributions.}
-algorithms were run on 2 and 10 dimensional banana models.
+algorithms were run on the 2 and 10 dimensional flat banana models.
 DP was not used so that error from the extra noise would not affect the results.
 
 For both 2 and 10 dimensions, 500 samples from HMC and 3000 samples from
 RWMH were taken and the latter half of them were
-compared to 2000 samples from the true posterior. The reference posterior sample 
+compared to 1000 samples from the true posterior. The reference posterior sample
 was also compared to other samples from the posterior to obtain a baseline.
 The sample sizes and other parameters of the algorithms were tuned so that
 the algorithms converged without clipping.
@@ -2267,7 +2313,12 @@ is nonexistent for all but the lowest clip bounds. The top and bottom right
 panels show results for the 10-dimensional model. This time there are chains 
 that did not converge correctly with most clip bounds, but the chains with 
 the higher bounds converged. Based on these results, if the clip fraction is 
-less than 10\%, clipping is likely undetectable without a large sample.
+less than 20\%, clipping is likely undetectable without a large sample.
+For the other experiments, clip bounds were tuned to achieve less than
+10\% clipping, to make absolutely sure that the algorithms are converging to the
+correct posteriors. As this experiment only used a single model in fairly low
+dimensions, it is possible that in other settings the clip fraction should be
+even lower, so future research should look into clipping in other models.
 
 \begin{figure}[h]
     \centering
@@ -2290,10 +2341,10 @@ less than 10\%, clipping is likely undetectable without a large sample.
 
 The experiments in this section compare the DP MCMC algorithms discussed in this
 thesis. The compared algorithms are the DP penalty algorithm with and without
-guided walk MH and one component updates~\cite{YildirimE19}
+GWMH and OCU~\cite{YildirimE19}
 (Section~\ref{dp_penalty_section}), the DP Barker algorithm~\cite{HeikkilaJDH19}
-(Section~\ref{dp_barker_section}), the penalty algorithm with subsampling, again
-with and without GWMH and OCU (Section~\ref{dp_minibatch_penalty_section}) and
+(Section~\ref{dp_barker_section}), the minibatch DP penalty algorithm, again
+with and without GWMH and OCU (Section~\ref{dp_minibatch_penalty_section}), and
 DP HMC (Section~\ref{dp_hmc_section}).
 
 The \(\delta\) for all experiments is \(\frac{0.1}{n}\), and \(\epsilon\) is
@@ -2318,7 +2369,10 @@ Figure~\ref{banana_mmd_fig} shows the MMD for each algorithm as a function of
 In the non-tempered models, the minibatch algorithms are not very useful,
 with the exception of DP Barker in 10 dimensions. Of the non-minibatch algorithms,
 with tempering HMC beats the penalty algorithms, but without tempering this is
-reversed.
+reversed. The black lines at the bottom show MMDs of 10 different samples of the
+true posterior compared to the reference sample. In 2 dimensions, the best
+algorithms get close to the MMDs achieved by the non-DP algorithms from
+the clipping experiment of Section~\ref{clipping_experiments}.
 
 \begin{figure}
   \centering
@@ -2338,12 +2392,13 @@ the 30-dimensional Gaussian, the narrow banana and the highly correlated Gaussia
 The minibatch algorithms were not included as the previous experiment indicates
 that they perform poorly without tempering.
 In the 30-dimensional Gaussian, DP penalty with OCU and GWMH beats the other
-two algorithms, with DP HMC narrowly beating DP penalty. In the narrow
-banana all algorithms are approximately equal, until \(\epsilon = 4\) where
-DP penalty OCU+GWMH has huge variance in MMD, and in the higher values of
-\(\epsilon\) where it performs extremely poorly. In the highly correlated
+two algorithms. In the narrow
+banana all algorithms are approximately equal. In the highly correlated
 Gaussian experiment, the penalty algorithms perform equally, and HMC beats
-both of them.
+both of them. In the 30-dimensional Gaussian, all algorithms have clearly
+decreasing MMD with increasing \(\epsilon\), but in the narrow banana and
+correlated Gaussian, only HMC on the correlated Gaussian is able to achieve
+significantly lower MMD with higher \(\epsilon\).
 
 \begin{figure}
   \centering
@@ -2359,7 +2414,8 @@ both of them.
 Figure~\ref{banana_clipping_fig} shows the fraction of log-likelihood ratios
 that were clipped for each \(\epsilon\) and algorithm. Almost all runs had
 less than 10\% clipping, with the exception of DP Barker, as adjusting its
-clip bound is not possible.
+clip bound is not possible, and the 2-dimensional tempered experiment where
+some clip fractions are getting closer to 20\%.
 
 \begin{figure}
   \centering
@@ -2372,9 +2428,7 @@ clip bound is not possible.
 
 Figure~\ref{banana_extra_clipping_fig} shows clipping for the harder models.
 Again, almost all runs have less than 10\% clipping, with the exception of
-DP penalty OCU+GWMH on the narrow banana, where the high amount of clipping
-could explain the poor performance of the algorithm with larger values
-of \(\epsilon\).
+some runs with on the narrow banana, especially with \(\epsilon = 1\).
 
 \begin{figure}
   \centering
@@ -2389,8 +2443,8 @@ of \(\epsilon\).
 Figure~\ref{circle_fig} shows the results for the circle model. The distance
 of the sample mean from the true mean (the origin) were used instead of MMD,
 as computing MMD requires a sample from the posterior, which is not trivial
-to obtain for the circle model. Both algorithms perform well on average, with
-HMC slightly beating DP penalty on \(\epsilon = 0.5\). Clipping is again low
+to obtain for the circle model. Both algorithms perform well on average.
+Clipping is again low
 for both algorithms, and HMC has a fairly large variance in clipping between
 different runs.
 
@@ -2423,6 +2477,122 @@ there is very large variance in clipping.
 \end{figure}
 
 \chapter{Conclusions}\label{conclusion_chapter}
+
+The results of the experiments of Section~\ref{dp_mcmc_comparison} show that
+using DP MCMC for Bayesian inference is possible, but will require large
+datasets, especially with complex models. With the already fairly large datasets
+with \(10^{5} \leq n \leq 2\cdot 10^{5}\), the DP MCMC algorithms were able to
+achieve significantly lower MMDs with increasing \(\epsilon\) on most models,
+but the algorithms only got close to the baseline MMDs from samples of the
+true posterior on the simplest models, the flat and tempered bananas. This also
+required a large value of \(\epsilon = 6\), while performance with the more
+reasonable values of \(\epsilon\) like 1 and 2 was much worse. The circle model
+is the only exception, where performance with \(\epsilon = 1\) was reasonable.
+The experiments done by Heikkilä et al.~\cite{HeikkilaJDH19}
+and Yildirim and Ermis~\cite{YildirimE19} have similar results: good performance
+of DP MCMC with a reasonable \(\epsilon \leq 2\) requires a large dataset with
+\(n \geq 10^{5}\).
+
+When comparing the different DP MCMC algorithms, the results of
+Section~\ref{dp_mcmc_comparison} show that neither DP HMC or DP penalty is
+clearly better than the other, as both algorithms beat the other on some models.
+The usefulness of OCU+GWHM for DP penalty is also debatable, as DP penalty
+OCU+GWMH only clearly beat DP penalty on the 30-dimensional Gaussian. The only
+clear conclusion from the comparisons is that the minibatch algorithms are
+only useful with tempered posteriors, and even there they are not better
+than the algorithms using the full data, so subsampling the log-likelihood ratios
+does not seem to be a useful addition to DP MCMC, which is surprising, as
+subsampling significantly lowers the privacy cost of releasing the log-likelihood
+ratio.
+
+The failure of subsampling log-likelihood ratios does not imply that subsampling
+HMC gradients will not be useful. Gradient subsampling has been done with
+non-DP HMC~\cite{CFG14} to reduce computation time, and using subsampling
+in the DP setting is a potential direction for future research. However,
+naive gradient subsampling in HMC has been shown to fail in high
+dimensions~\cite{Bet15}, so additional methods to control the error from subsampling
+are likely needed, such as the friction term~\cite{CFG14} briefly discussed in
+Section~\ref{dp_hmc_section}.
+
+The large number of parameters DP MCMC algorithms have compared to non-DP
+MCMC makes tuning them particularly difficult. DP HMC is the clearest explanation
+of this, where 4 parameters tune the different trade-offs between privacy and
+accuracy, in addition to the parameters of HMC, which are already known to
+be difficult to tune in the non-DP case~\cite{neal2012mcmc}.
+
+Several methods and guidelines for tuning the parameters of non-DP MCMC algorithms
+have been developed. The simplest of these are heuristic guidelines or in some
+cases proofs~\cite{RGG97} of optimal acceptance rates. For MH with a Gaussian
+proposal and a suitable target distribution, it has been shown that the optimal
+acceptance rate approaches approximately \(23\%\) as the dimensionality of the
+target approaches infinity~\cite{RGG97}. For HMC, a \(65\%\) acceptance rate
+is recommended~\cite{neal2012mcmc}. These guidelines can be used to tune the
+proposal variance,
+or, in the case of HMC, \(\eta\), until the algorithm has the desired acceptance
+rate. They can be used when tuning DP MCMC algorithms, and were used to some
+extent in tuning the parameters for the experiments of this thesis, but it
+is not clear how well these guidelines apply to DP MCMC algorithms.
+Yildirim and Ermis show that the DP penalty algorithm has a lower acceptance
+rate than the non-DP MH algorithm with the same proposal, so the optimal
+acceptance rates of DP MCMC algorithms are likely lower their non-DP
+counterparts, but the exact optimal acceptance rates will likely depend on the
+privacy bounds.
+
+Of course, tuning the parameters of an MCMC algorithm by hand is time consuming,
+even with a guideline on the optimal acceptance rate, and requires the user of
+the algorithm to know the guidelines and their applicability. Tuning the
+parameters automatically alleviates these problems. A variant of HMC called
+the No-U-turn sampler (NUTS)~\cite{HoG14} is able to tune both \(\eta\) and \(L\)
+automatically, which made HMC usable in automatic inference libraries such as
+Stan~\cite{stan} that are typically used by applied practitioners who are not
+experts in MCMC algorithms. Extending NUTS and other MCMC algorithms that
+can tune some parameters automatically to the DP case is a potential avenue of
+future research. The empirical results on clipping in
+Section~\ref{clipping_experiments} may be usable as guidelines for tuning the
+clip bounds, perhaps even automatically.
+
+A fundamental difficulty in tuning DP MCMC algorithms is the fact that the
+metrics used to tune the algorithm, such as acceptance and clipping rates,
+cannot be released without incurring a privacy cost and adding noise to the
+metrics. Even tuning the algorithm
+internally based on the metrics, and releasing only the final parameters incurs
+some privacy cost, which can be argued to be low, but cannot be
+computed, as formalising the way a human chooses parameters based on the metrics
+is impossible. This can be sidestepped by tuning the algorithm on synthetic or
+publicly available data, and only using the private data with the final parameters,
+but this risks overfitting the parameters to the tuning dataset and having
+poor performance on the private dataset.
+This thesis largely ignores these issues for the sake of comparing
+the algorithms, but potential users of DP MCMC on real private data should not
+ignore them, which makes developing automatic methods for tuning parameters
+even more important than in the non-DP case.
+
+Other practical issues that the experiments of Section~\ref{dp_mcmc_comparison}
+ignore are the initialisation of the DP MCMC algorithm, and the fact that
+computer implementations cannot sample from continuous distributions exactly.
+In existing work, DP MCMC algorithms have been initialised using a point
+estimate obtained from another DP method with very low privacy
+cost~\cite{HeikkilaJDH19, WFS15}. The initialisation method used
+Section~\ref{dp_mcmc_comparison} mimics the effects of using a point estimate by
+choosing random values around the true parameter values. This is unlikely to
+affect the comparisons of the DP MCMC algorithms, as all of the algorithms
+would use the same method to obtain the point estimate anyway.
+
+The issue of sampling continuous distributions on computers for DP were first
+identified for the Laplace distribution~\cite{Mir12}. When sampling the Laplace
+distribution with finite precision floating point numbers, the bits of the
+results can contain information about the private data that destroys DP, even
+when the analysis is theoretically DP with exact sampling of the Laplace
+distribution. These issues likely exist when sampling the Gaussian distribution,
+which means that actual implementations of the algorithms in this thesis may
+not have their theoretical DP guarantees. Recently, the differential privacy
+of a discrete variance of the Gaussian distribution has been
+analysed~\cite{C0S20}. Using a discrete distribution instead of a continuous one
+sidesteps floating point issues, but in the context of DP MCMC, the penalty
+correction requires adding continuous Gaussian noise. Investigating the effect
+of using discrete Gaussian noise instead with the penalty algorithm is another
+potential avenue of future research.
+
 % STEP 5:
 % Uncomment the following lines and set your .bib file and desired bibliography style
 % to make a bibliography with BibTeX.

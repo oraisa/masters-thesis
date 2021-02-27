@@ -77,7 +77,7 @@ if __name__ == "__main__":
             f, index=False, label="model_params_table", escape=False, na_rep="",
             float_format="%.4g",
             caption=r"""
-            Model parameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
+            Model hyperparameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
             For missing $n_0$, \(T = 1\).
             """
         )

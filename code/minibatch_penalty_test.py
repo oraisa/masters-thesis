@@ -2,35 +2,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import banana_model
+import experiments
 import mmd
 import dp_penalty_minibatch
 import util
 
 # np.random.seed(53726482)
 
-dim = 2
-problem = banana_model.get_problem(dim=dim, a=20, n0=1000, n=200000)
+problem = experiments.experiments["easy-10d"].get_problem()
+dim = problem.dim
+# problem = banana_model.get_problem(dim=dim, a=20, n0=1000, n=200000)
 n, data_dim = problem.data.shape
 
-epsilon = 4
+epsilon = 1
 delta = 0.1 / n
 params = dp_penalty_minibatch.MinibatchPenaltyParams(
-    tau = 0.6,
-    prop_sigma = np.repeat(8 * 0.00006, 2),
-    r_clip_bound = 3.5,
+    tau = 0.5,
+    prop_sigma = np.repeat(8 * 0.00004, 10),
+    r_clip_bound = 2.0,
     batch_size = 1000,
-    ocu = False,
-    grw = False
-
-    # tau = 0.6,
-    # prop_sigma = np.array((8, 7, 5, 5, 5, 5, 5, 5, 5, 5)) * 0.00006,
-    # r_clip_bound = 1,
-    # batch_size = 1000,
-    # ocu = True,
-    # grw = True
+    ocu = True,
+    grw = True
 )
 
-res = dp_penalty_minibatch.dp_penalty_minibatch(problem, epsilon, delta, params)
+res = dp_penalty_minibatch.dp_penalty_minibatch(
+    problem, problem.get_start_point(0), epsilon, delta, params
+)
 
 print("Acceptance: {}".format(res.acceptance))
 print("Clipping: {}".format(res.clipped_r))

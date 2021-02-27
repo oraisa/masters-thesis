@@ -1,23 +1,22 @@
 \begin{table}
 \centering
 \caption{
-            Model parameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
-            For missing $n_0$, \(T = 1\). Start deviation is the standard deviation
-            of the random starting point in the DP experiments.
+            Model hyperparameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
+            For missing $n_0$, \(T = 1\).
             }
 \label{model_params_table}
-\begin{tabular}{lrrrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-                    Name &  Dim &       n &  $n_0$ &  Start Deviation &     a &  $\sigma^2_0$ \\
+                    Name &  Dim &       n &  $n_0$ &     a &  $\sigma^2_0$ \\
 \midrule
-      Flat banana, d = 2 &    2 &  100000 &        &             0.02 &    20 &          1000 \\
-     Flat banana, d = 10 &   10 &  200000 &        &             0.02 &    20 &          1000 \\
-  Tempered banana, d = 2 &    2 &  100000 &   1000 &             0.02 &    20 &          1000 \\
- Tempered banana, d = 10 &   10 &  200000 &   1000 &             0.02 &    20 &          1000 \\
-  High dimensional Gauss &   30 &  200000 &        &             0.02 &     0 &          1000 \\
-           Narrow banana &    2 &  150000 &        &             0.02 &   350 &          1000 \\
-        Correlated Gauss &    2 &  200000 &        &            0.005 &     0 &           100 \\
-                  Circle &    2 &  100000 &        &              0.1 & 1e-05 &               \\
+      Flat banana, d = 2 &    2 &  100000 &        &    20 &          1000 \\
+     Flat banana, d = 10 &   10 &  200000 &        &    20 &          1000 \\
+  Tempered banana, d = 2 &    2 &  100000 &   1000 &    20 &          1000 \\
+ Tempered banana, d = 10 &   10 &  200000 &   1000 &    20 &          1000 \\
+  High dimensional Gauss &   30 &  200000 &        &     0 &          1000 \\
+           Narrow banana &    2 &  150000 &        &   350 &          1000 \\
+        Correlated Gauss &    2 &  200000 &        &     0 &           100 \\
+                  Circle &    2 &  100000 &        & 1e-05 &               \\
 \bottomrule
 \end{tabular}
 \end{table}

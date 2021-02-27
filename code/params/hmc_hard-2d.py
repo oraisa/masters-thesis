@@ -7,6 +7,6 @@ params = hmc.HMCParams(
     L = 5,
     eta = 0.00045,
     mass = 1,
-    r_clip = 3.5,
+    r_clip = 5.0,
     grad_clip = 2.8,
 )
