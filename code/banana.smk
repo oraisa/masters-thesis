@@ -1,5 +1,5 @@
-epsilons = [1, 2, 3, 4]#, 5, 6]
-inds = range(5)#20)
+epsilons = [1, 2, 3, 4, 5, 6]
+inds = range(20)
 experiments = [
     "easy-2d", "easy-10d", "tempered-2d", "tempered-10d",
     "hard-2d", "gauss-30d", "hard-gauss-2d"
@@ -11,9 +11,9 @@ algorithms = [
 result_dir = "results/banana/"
 param_dir = "params/"
 
-rule all:
-    # input: expand(param_dir + "{algo}_{exp}.py", algo=algorithms, exp=experiments)
-    input: result_dir + "results.csv"
+# rule all:
+#     # input: expand(param_dir + "{algo}_{exp}.py", algo=algorithms, exp=experiments)
+#     input: result_dir + "results.csv"
 
 rule create_params:
     output: param_dir + "{algo}_{exp}.py"
@@ -40,9 +40,9 @@ rule results:
             algo=algorithms[0:3], exp=experiments, i=inds, eps=epsilons
         )
     output: result_dir + "results.csv"
-    shell: "cat {input} > {output}"
+    # shell: "cat {input} > {output}"
     # cat-ing too many files seems to fail
-    # shell: "cat " + result_dir + "chains/*.csv > {output}"
+    shell: "cat " + result_dir + "chains/*.csv > {output}"
 
 rule baseline_mmds:
     input:

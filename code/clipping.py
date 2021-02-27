@@ -120,14 +120,14 @@ def hmc(problem, iters, eta, L, mass, clip_bound, theta0):
             print("Iteration: {}".format(i + 1))
     return MCMCResult(chain, clipped, clip_diff, orig_ratios, accepts, diff_accepts)
 
-dim = 10
+dim = 2
 n = 100000
 
 def run_chain(init, algo, **args):
     return algo(theta0=init, problem=get_problem(), **args)
 def get_problem():
-    return gauss_model.get_problem(dim=dim, n=n)
-    # return banana_model.get_problem(dim=dim, a=20, n0=None, n=n)
+    # return gauss_model.get_problem(dim=dim, n=n)
+    return banana_model.get_problem(dim=dim, a=20, n0=1000, n=n)
 if __name__ == "__main__":
     np.random.seed(43726482)
 
@@ -136,27 +136,14 @@ if __name__ == "__main__":
     clip_bound = 1000
     theta0 = np.zeros(dim)
     theta0[1] = 3
-    inits = [theta0 + np.random.normal(scale=0.05, size=dim) for _ in range(4)]
+    inits = [theta0 + np.random.normal(scale=problem.true_posterior.std(axis=0), size=dim) for _ in range(4)]
 
     mass = np.ones(dim)
-    # mass[1] = 0.5
-    # mass[2:] = 0.4
 
     multiprocessing.set_start_method("spawn")
     with multiprocessing.Pool() as pool:
-        # results = [rwmh(banana, data, 2000, 0.01, clip_bound, init) for init in inits]
-        # results = list(pool.map(functools.partial(
-        #     rwmh, problem, 3000, 0.001, clip_bound
-        # ), inits))
-        # results = list(pool.map(
-        #     functools.partial(
-        #         run_chain, algo=rwmh, iters=3000,
-        #         prop_sigma=np.hstack((np.array((0.015, 0.015)), np.repeat(0.002, dim - 2))),
-        #         clip_bound=clip_bound
-        #     ), inits
-        # ))
         results = list(pool.map(functools.partial(
-            run_chain, algo=hmc, iters=400, eta=0.0004, L=10, mass=mass,
+            run_chain, algo=hmc, iters=400, eta=0.001, L=10, mass=mass,
             clip_bound=clip_bound
         ), inits))
     result = results[0]
