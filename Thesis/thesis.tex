@@ -38,14 +38,16 @@
 \date{\today}
 \prof{Associate Professor Antti Honkela}
 \censors{Associate Professor Antti Honkela}{Doctor Antti Koskela}{}
-\keywords{Differential Privacy, Markov Chain Monte Carlo}
+\keywords{Differential Privacy, Markov Chain Monte Carlo, Hamiltonian Monte Carlo}
 \depositeplace{}
 \additionalinformation{}
 
 
 \classification{\protect{\ \\
-% \  General and reference $\rightarrow$ Document types  $\rightarrow$ Surveys and overviews\  \\
-% \  Applied computing  $\rightarrow$ Document management and text processing  $\rightarrow$ Document management $\rightarrow$ Text editing\\
+    Mathematics of computing\(\rightarrow\)Probability and statistics\(\rightarrow\)Probabilistic reasoning
+    algorithms\\\(\rightarrow\)Markov-chain Monte Carlo methods\(\rightarrow\)Metropolis-Hastings algorithm  \\
+    Security and privacy\(\rightarrow\)Human and societal aspects of security and privacy\(\rightarrow\)Privacy
+    protections \\
 }}
 
 % if you want to quote someone special. You can comment this line and there will be nothing on the document.
@@ -111,7 +113,20 @@
 % language as well, in between the abstract definitions.
 
 \begin{abstract}
- 
+  Differential privacy has over the past decade become a widely used framework
+  for privacy preserving machine learning. At the same time,
+  Markov chain Monte Carlo (MCMC) algorithms have become an increasingly popular method
+  of performing Bayesian inference. Surprisingly, their combination has not
+  received much attention in the literature. This thesis introduces the
+  existing research on differentially private MCMC algorithms, extends the
+  existing results using recent developments in differential privacy and
+  develops two new differentially private MCMC algorithms:
+  an algorithm using subsampling to lower privacy costs, and
+  a differentially private variant of the Hamiltonian Monte
+  Carlo-algorithm. The performance of the algorithms is compared on several
+  Bayesian inference problems, revealing that none of the algorithms is
+  clearly better than the others, but subsampling likely only useful to lower
+  computational costs.
 \end{abstract}
 
 % Place ToC
@@ -125,10 +140,10 @@
 % to change the parameters. Removing the abstract and ToC commands will mess up stuff.
 \chapter{Introduction}
 
-As the availability of data on private individual grows ever larger, both the
+As the availability of data on private individuals grows ever larger, both the
 potential gains from analysing the data, and the risks associated with the
 analysis, grow. This makes analysis techniques that can ensure the privacy
-of the individual whose data is analysed important. Differential
+of the individuals important. Differential
 privacy~\cite{DMN06} is a formal definition attempting to capture the notion
 of a data analysis algorithm that preserves privacy. Markov chain Monte
 Carlo (MCMC)~\cite{MRR53, Has70} is an algorithm that enables data analysis using
@@ -168,7 +183,7 @@ the privacy of individuals are required.
 
 Bayesian inference~\cite{BDA} is a paradigm of statistical inference where
 the parameters of a statistical model are considered random variables, and
-probability is used to describe the uncertainty about the values of the
+the language of probability is used to describe uncertainty about the values of the
 parameters. Bayesian inference is based on Bayes' theorem, which allows
 a data analyst to update his prior knowledge of the parameters based on observed
 data to obtain a posterior distribution of the parameters.
@@ -184,7 +199,7 @@ possible using MCMC while preserving the privacy of the data subjects through
 differential privacy. Two differentially private MCMC algorithms have been
 developed: the DP penalty algorithm of Yildirim and Ermis~\cite{YildirimE19},
 and the DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19}.
-Of these, the penalty algorithm is considerable simpler and more extensible,
+Of these, the penalty algorithm is considerably simpler and more extensible,
 so the further development of differentially private MCMC algorithms in this
 thesis uses it as the basis.
 
@@ -208,7 +223,7 @@ algorithm is only using a portion of the data at each iteration, instead of
 the full dataset. This technique, called subsampling or minibatching, is used
 by DP Barker, but it is also applicable to DP penalty. As subsampling will
 decrease the accuracy of the algorithm, it is not guaranteed to improve results
-over the existing algorithms.
+over existing algorithms.
 
 There are other frameworks for DP Bayesian inference than DP MCMC, but none
 of them offers the full generality and theoretical guarantees that DP MCMC
@@ -221,8 +236,8 @@ but these sets of models are limited. Simply sampling
 from the exact posterior is differentially private under suitable
 conditions~\cite{DNZ17}, but for many models, exact sampling of the posterior
 is not possible. Stochastic gradient Langevin dynamics~\cite{WFS15} resemble
-MCMC, but they omit a key step, which weakens their performance when compared
-with full MCMC.
+MCMC, but they omit key Metropolis-Hastings acceptance test, which weakens
+their performance when compared with full MCMC.
 
 This thesis begins with a more detailed, but nevertheless brief, introduction to
 differential privacy and MCMC in Chapter~\ref{background_chapter}.
@@ -255,7 +270,7 @@ perspective of a data subject, the privacy loss of the algorithm.
 DP algorithms must necessarily\footnote{Unless the algorithm does not
 actually use the private data.} include randomness to mask influence of the
 private data, so all of the considered algorithms in this thesis are randomised.
-DP randomised algorithms are also called \emph{mechanisms} in this thesis, and in the
+DP randomised algorithms are also called \emph{mechanisms} in this thesis and in the
 DP literature.
 
 The most common definition is called \((\epsilon, \delta)\)-approximate
@@ -282,7 +297,8 @@ substitute neighbourhood.
     changing at most one row in one of them.
 \end{definition}
 The neighbourhood relation is denoted by \(\sim\). The definitions and 
-theorems of this section are valid for all neighbourhood relations.
+theorems of this section are valid for all neighbourhood relations, but later
+chapters use the substitute neighborhood relation.
 
 There many other definitions of differential privacy that are mostly used
 to compute \((\epsilon, \delta)\)-bounds for ADP. This thesis uses two of them: 
@@ -312,12 +328,12 @@ measuring the distance\footnote{
     \]
 \end{definition}
 
-Both Rényi-DP and zCDP can be expressed as bounds on the 
+Both RDP and zCDP can be expressed as bounds on the
 Rényi divergence between the outputs of a randomised algorithm with
 neighbouring inputs:
 
 \begin{definition}
-    A mechanism \(\calm\) is \((\alpha, \epsilon)\)-Rényi DP
+    A mechanism \(\calm\) is \((\alpha, \epsilon)\)-RDP
     if for all \(x \sim x'\)
     \[
         D_\alpha(\calm(x)\dmid \calm(x')) \leq \epsilon.
@@ -450,12 +466,13 @@ Theorem~\ref{gauss-DP-bounds} implies that the value of any function with
 finite \(l_2\)-sensitivity can be privately released using the Gaussian mechanism
 with appropriate noise variance \(\sigma^2\). Of course, the utility of the
 released value depends on the magnitude of \(\sigma^2\) compared to the actual
-value. As in Definition~\ref{composition_definition}, each function \(f_{i}\)
+value. In the ADP bound of Theorem~\ref{gauss-DP-bounds},
+as in Definition~\ref{composition_definition}, each function \(f_{i}\)
 can depend on the output of the previous functions \(f_{j}\), \(j < i\).
 
 Note that while the RDP and zCDP bounds of Theorem~\ref{gauss-DP-bounds} are
 tight, the conversion from RDP or zCDP to ADP with Theorem~\ref{other_dp_to_adp}
-is not tight. As a result computing
+is not tight. As a result, computing
 ADP bounds for the Gaussian mechanism through RDP or zCDP, and converting
 the resulting bounds to ADP with Theorem~\ref{other_dp_to_adp} does not
 result in a tight bound. The difference of the two methods of computing ADP bounds
@@ -466,8 +483,9 @@ When the dataset is a table, the query \(f\) of the Gaussian mechanism is
 typically a sum the values of a function \(g\) for each row of the table,
 specifically
 \[
-  f(X) = \sum_{x\in X} g(x).
+  f(X) = \sum_{x\in X} g(x)
 \]
+for dataset \(X\).
 For the substitute neighborhood relation \(f\),
 \[
   \Delta_{p}f = \sup_{X\sim X'}||f(X) - f(X')||_{p}
@@ -605,7 +623,7 @@ algorithm used for Bayesian inference.
 \chapter{Differentially Private MCMC}\label{dp_mcmc_chapter}
 
 As seen in Section~\ref{DP_background}, an algorithm can be made differentially 
-private by adding Gaussian noise the its output. The noise could also be added 
+private by adding Gaussian noise its output. The noise could also be added
 to any intermediate value calculated by the algorithm, and post processing immunity 
 will guarantee that the same DP bounds that hold for releasing the intermediate 
 value also hold for releasing the final result of the algorithm.
@@ -689,17 +707,21 @@ form
 \[
   c(\theta, \theta') \leq Cn^{-\alpha}
 \]
-for almost all \(\theta\) and \(\theta'\) and constant \(C > 0\).
-This bound would mean that \(\sigma\)
-would not increase with \(n\), which Yildirim and Ermis see as a necessary
+for almost all \(\theta\) and \(\theta'\) and constant
+\(C > 0\)~\cite[Assumption A1]{YildirimE19}.
+They also consider a weaker form where for any \(\varepsilon\) there is
+a \(C\) such that
+\(P(c(\theta, \theta') > Cn^{-\alpha}) < \varepsilon\)~\cite[Assumption A4]{YildirimE19}.
+These bounds imply that \(\sigma\)
+does not increase with \(n\), which Yildirim and Ermis see as a necessary
 condition for the DP penalty algorithm to perform well. They also recommend
 having \(\alpha = \frac{1}{2}\), which is used in the experiments in
 Chapter~\ref{experiment_chapter}.
-With clipping, this can be achieved by setting the clip bound based on \(n\).
-For the experiments
+With clipping, the weaker bound can be achieved by setting the clip bound based
+on \(n\). For the experiments
 in Chapter~\ref{experiment_chapter}, the parameters are optimised separately
 for each \(n\) that is used, so setting any clip bound can be seen as
-choosing a value for \(C\).
+choosing a value of \(C\) for each \(\varepsilon\).
 
 % However , this condition may not be necessary, as DP penalty adds noise to
 % \(\lambda\), which is a sum of \(n\) values. Unless there is a lot of
@@ -713,7 +735,7 @@ requires a bound on sensitivity of the log-likelihood ratio. If there is a bound
 \[
     |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq L||\theta - \theta'||_2
 \]
-for all \(D_j, \theta\) and \(\theta'\) then
+for all \(x_j, \theta\) and \(\theta'\) then
 \[
     c(\theta, \theta') \leq 2L||\theta - \theta'||_2.
 \]
@@ -739,7 +761,7 @@ The second variation is called \emph{guided walk Metropolis Hastings}
 In GWMH, proposals change only one dimension, as in OCU. Additionally, a direction
 is associated with each dimension, and proposals are only made in the current
 direction of the chosen dimension. After an accepted proposal, the direction is
-kept the same, but after a reject it is switched. This means that the chain can
+kept the same, but after a rejection it is switched. This means that the chain can
 move towards areas of higher probability faster because, after some initial
 proposals are rejected, the directions for each dimension point towards the
 area of high probability, so all proposals are towards it. Without GRMH, most
@@ -795,7 +817,7 @@ Section~\ref{accounting_comparison_section}.
 \end{proof}
 
 Theorem~\ref{DP_penalty_theorem_adp} is harder to use than 
-Theorem~\ref{DP_penalty_theorem_zcdp} because the number of iteration 
+Theorem~\ref{DP_penalty_theorem_zcdp} because the number of iterations
 DP penalty can be run for given an \((\epsilon, \delta)\)-bound cannot be 
 computed analytically for the former. However, the maximum number of iterations 
 can be solved for numerically. Algorithm~\ref{max_iterations_algo} shows a simple
@@ -845,10 +867,7 @@ method.
 The DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19} is based on
 the Barker acceptance test~\cite{Barker65} instead of the Metropolis-Hastings test.
 Instead of using the MH acceptance probability, the Barker acceptance test samples 
-\(V_{log}\sim \mathrm{Logistic(0, 1)}\) and accepts if 
-\[
-    \lambda + V_{log} > 0.
-\]
+\(V_{log}\sim \mathrm{Logistic(0, 1)}\) and accepts if \(\lambda + V_{log} > 0\).
 
 If Gaussian noise with variance \(\sigma^2\) is added to 
 \(\lambda\), as long as \(\sigma^{2}\) is not too large, there exists an
@@ -857,7 +876,7 @@ distribution \(V_{corr}\) such that \(\caln(0, \sigma^2) + V_{corr}\) has
 approximately the same distribution as \(V_{log}\). Because the variance of
 \(V_{log}\) is
 \(\frac{\pi^2}{3}\)~\cite{HeikkilaJDH19}, the variance of \(V_{corr}\) must be 
-\(\frac{\pi^2}{3} - \sigma^2\) which means that there is an upper bound
+\(\frac{\pi^2}{3} - \sigma^2\), which means that there is an upper bound
 to the noise variance: \(\sigma^2 < \frac{\pi^2}{3}\). Testing whether 
 \(\lambda + \caln(0, \sigma^2) + V_{corr} > 0\) is approximately equivalent
 to testing 
@@ -871,9 +890,10 @@ This means that their
 algorithm only converges to an approximately correct distribution, but the 
 approximation error can be made very small.
 
-If the sum in \(\lambda\) was only computed over a subset of the data, the 
-algorithm would take less computation to run, and would be less sensitive 
-to changes in the data. The latter property is called \emph{subsampling amplification}
+By computing the sum in \(\lambda\) only over a subset of the data, the
+running time of the algorithm is reduced, and the algorithm becomes less
+sensitive to changes in the input data.
+The latter property is called \emph{subsampling amplification}
 of differential privacy~\cite{WangBK19}. Using the \(\lambda\) computed 
 with subsampling instead of the full data \(\lambda\) introduces an additional 
 error that must be corrected for to have the algorithm converge to the correct 
@@ -903,18 +923,19 @@ of \(\lambda\) as is done in DP penalty, because the sample variance also
 depends on input data. Instead they directly bound the Rényi divergence 
 between \(\caln(0, \sigma^2 - \sigma^2_b)\), where \(\sigma^2_b\) is the 
 batch sample variance, for two adjacent inputs. Subsampling amplification 
-is accounted for with an amplification theorem for Rényi DP~\cite{WangBK19}.
+is accounted for with an amplification theorem for RDP~\cite{WangBK19}.
 
 \begin{theorem}\label{dp_barker_theorem}
-    If 
+    If
     \[
-        |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq \frac{\sqrt{|B|}}{n}
+        |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)| \leq \frac{\sqrt{b}}{n}
     \]
     \[
-        \alpha < \frac{|B|}{5}, \alpha \in \N
+        2 < \alpha < \frac{b}{5}, \alpha \in \N
     \]
-    for all \(\theta, \theta' \in \Theta\), all \(X\) and \(1\leq j \leq n\),
-    running \(k\) iterations of DP Barker with dataset size \(n\)
+    for all \(\theta, \theta'\) and \(x_{j}\),
+    running \(k\) iterations of DP Barker with dataset size \(n\),
+    minibatch size \(b\) and noise variance \(\sigma^{2} = 2\)
     is \((\alpha, k\epsilon(\alpha))\)-RDP for the substitute neighborhood
     relation, with
     \[
@@ -924,25 +945,27 @@ is accounted for with an amplification theorem for Rényi DP~\cite{WangBK19}.
     \]
     and 
     \[
-        \epsilon'(\alpha) = \frac{5}{2|B|} + \frac{1}{2(\alpha - 1)}
-        \ln \frac{2|B|}{|B| - 5\alpha} + \frac{2\alpha}{|B| - 5\alpha}
+        \epsilon'(\alpha) = \frac{5}{2b} + \frac{1}{2(\alpha - 1)}
+        \ln \frac{2b}{b - 5\alpha} + \frac{2\alpha}{b - 5\alpha}
     \]
-    where \(n\) is the number of rows in \(D\), \(|B|\) is the size of the 
-    minibatch and \(q = \frac{|B|}{n}\).
+    where \(q = \frac{b}{n}\)~\cite{HeikkilaJDH19}.
 \end{theorem}
 The RDP bounds given by Theorem~\ref{dp_barker_theorem} can be converted to
-ADP bounds with Theorem~\ref{other_dp_to_adp}.
-Algorithm~\ref{max_iterations_algo} can modified to compute the maximum number
-of iterations Theorem~\ref{dp_barker_theorem} allows by computing
-\(\epsilon\)-bounds given \(\delta\) with Theorem~\ref{dp_barker_theorem}
-and Theorem~\ref{other_dp_to_adp},
-instead of computing \(\delta\)-bounds given \(\epsilon\). The variable
-\(low\) of Algorithm~\ref{max_iterations_algo} must be initialised to 0,
-and the variable \(high\) must be initialised to a value greater than 0\footnote{
-  Choosing a value close to the maximum number of iterations speeds up the
-  computation of the maximum number of iterations. The experiments in this
-  thesis used the value 1024.
-}.
+ADP bounds with Theorem~\ref{other_dp_to_adp}. This requires choosing an
+optimal \(\alpha\) in the given range that maximises the number of iterations
+the algorithm can run for.
+
+% Algorithm~\ref{max_iterations_algo} can modified to compute the maximum number
+% of iterations Theorem~\ref{dp_barker_theorem} allows by computing
+% \(\epsilon\)-bounds given \(\delta\) with Theorem~\ref{dp_barker_theorem}
+% and Theorem~\ref{other_dp_to_adp},
+% instead of computing \(\delta\)-bounds given \(\epsilon\). The variable
+% \(low\) of Algorithm~\ref{max_iterations_algo} must be initialised to 0,
+% and the variable \(high\) must be initialised to a value greater than 0\footnote{
+%   Choosing a value close to the maximum number of iterations speeds up the
+%   computation of the maximum number of iterations. The experiments in this
+%   thesis used the value 1024.
+% }.
 
 Like DP penalty, DP Barker requires a bound on the log-likelihood ratio for
 one row of data. The bound can be forced through clipping if the model does not 
@@ -961,12 +984,12 @@ Using the tempered likelihood, the log-likelihood
 bound becomes 
 \[
     T|\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)|
-    \leq \frac{\sqrt{|B|}}{n},
+    \leq \frac{\sqrt{b}}{n},
 \]
 which is equivalent to 
 \[
     |\ln p(x_j\mid \theta') - \ln p(x_j\mid \theta)|
-    \leq \frac{\sqrt{|B|}}{n_0}.
+    \leq \frac{\sqrt{b}}{n_0}.
 \]
 Typically \(n_0 \ll n\) for large datasets, so using a tempered likelihood requires 
 significantly less clipping than a nontempered likelihood.
@@ -978,11 +1001,12 @@ significantly less clipping than a nontempered likelihood.
         sample \(\theta' \sim q(\cdot \mid \theta)\)\\
         sample \(B \subset \{1, \dotsc, n\}\)\\
         \For{\(j \in B\)}{
-            \(r_j = \ln p(\theta'\mid x_j) - \ln p(\theta\mid x_j)\)\\
+          \(r_j = \clip_{\frac{\sqrt{b}}{n_{0}}}(
+          \ln p(x_j \mid \theta') - \ln p(x_{j}\mid \theta))\)\\
         }
         \(\sigma^2_b = \mathrm{Var}\{r_j\mid j\in B\}\)\\
         \(\lambda = 
-        \frac{n}{|B|}\sum_{j\in B} r_j
+        \frac{n}{b}\sum_{j\in B} r_j
         + \ln \frac{p(\theta')}{p(\theta)}
         + \ln \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}\)
         \\
@@ -1005,12 +1029,14 @@ significantly less clipping than a nontempered likelihood.
 Tuning the parameters of DP Barker is more restrictive than DP penalty, as
 the former does not have a tunable clip bound, and its noise variance has an
 upper bound. In addition, choosing a noise variance requires computing the
-\(V_{corr}\) approximation for that variance.
+\(V_{corr}\) approximation for that variance. For these reasons, only noise
+variance \(\sigma = 2\) from Theorem~\ref{dp_barker_theorem} is used, as was
+done by Heikkilä et al.~\cite{HeikkilaJDH19}.
 
 \section{The Penalty Algorithm with Subsampling}\label{dp_minibatch_penalty_section}
 
 In the DP Barker algorithm, the log-likelihood ratio is computed using only
-a subsample of the dataset to amplify privacy. Subsampling can also be used 
+a subsample of the dataset, which amplifies privacy. Subsampling can also be used
 with the penalty algorithm in the same way, if the acceptance test is 
 corrected for the error from subsampling.
 
@@ -1026,11 +1052,11 @@ The acceptance probability with subsampling is
 \]
 where
 \[
-    \lambda^*(\theta, \theta') = \frac{nT}{|B|}\sum_{j\in B}
+    \lambda^*(\theta, \theta') = \frac{nT}{b}\sum_{j\in B}
     \ln \frac{p(x_j\mid \theta')}{p(x_j \mid \theta)}
     + \ln \frac{p(\theta')q(\theta \mid \theta')}{p(\theta)q(\theta' \mid \theta)},
 \]
-\(T\) is the tempering multiplier,
+\(T\) is the tempering multiplier
 and \(\sigma_b^2\) is the sample variance of the log-likelihood ratios in
 batch \(B\). Denote
 \[
@@ -1042,12 +1068,12 @@ batch \(B\). Denote
 Then \(\sigma^2_b\) can be estimated from the sample variance of \(r_j\):
 \begin{align*}
     \sigma_b^2 
-    &= \var\left(\frac{nT}{|B|}\sum_{j\in B}r_j\right)
-    = \frac{nT^2}{|B|^2}\sum_{j\in B}\var(r_j)
-    = \frac{nT^2}{|B|}\var(r_j)
-  \\&\approx\frac{(nT)^2}{|B|^2}
-    \sum_{j\in B}\left(r_j - \frac{R}{|B|}\right)^2
-    = \frac{(nT)^2}{|B|^2}\left(\sum_{j\in B}r_j^2 - \frac{R^2}{|B|}\right).
+    &= \var\left(\frac{nT}{b}\sum_{j\in B}r_j\right)
+    = \frac{nT^2}{b^2}\sum_{j\in B}\var(r_j)
+    = \frac{nT^2}{b}\var(r_j)
+  \\&\approx\frac{(nT)^2}{b^2}
+    \sum_{j\in B}\left(r_j - \frac{R}{b}\right)^2
+    = \frac{(nT)^2}{b^2}\left(\sum_{j\in B}r_j^2 - \frac{R^2}{b}\right).
 \end{align*}
 
 Because \(\sigma_b^2\) depends on the data, releasing \(\lambda\) privately is 
@@ -1064,7 +1090,7 @@ bound sensitivity of \(\lambda\) is the same as without subsampling.
 The sensitivity of \(\sigma_b^2\) must be bounded separately.
 \begin{lemma}\label{variance_sensitivity_lemma}
     The sensitivity of \(\frac{1}{2}\sigma_b^2\), 
-    when \(r_j \leq L||\theta - \theta'||_2\) and \(b = |B|\), has upper bound
+    when \(r_j \leq L||\theta - \theta'||_2\), has upper bound
     \begin{align*}
         \frac{1}{2}\Delta \sigma_b^2
         &\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
@@ -1180,22 +1206,19 @@ and computes the ADP bounds of the subsampled Gaussian mechanism with sensitivit
 and noise variance \(\tau c^{2}(\theta, \theta')\), but if the released value is
 normalised to have sensitivity 1, the noise variance becomes \(\tau\), which makes
 the Fourier accountant easy to apply to the minibatch penalty algorithm.
+As with the DP penalty algorithm, the maximum number of iterations
+for minibatch DP penalty can be computed using Algorithm~\ref{max_iterations_algo}
+by computing values of \(\delta\) in Algorithm~\ref{max_iterations_algo}
+with the Fourier accountant\footnote{
+  The Fourier accountant handles the non-integer iteration numbers used
+  by Algorithm~\ref{max_iterations_algo} by internally
+  rounding them down.
+}.
 
 The DP Barker algorithm, like minibatch penalty, uses RDP to compute privacy
 bounds. Using the Fourier accountant with DP Barker may be possible, but it is
 not as simple as with minibatch penalty, as DP Barker does not consider
 releasing the sample variance \(\sigma_{b}^{2}\) directly.
-
-As with the DP penalty and DP Barker algorithms, the maximum number of iterations
-for minibatch DP penalty can be computed using Algorithm~\ref{max_iterations_algo}.
-For Theorem~\ref{dp_penalty_minibatch_theorem}, Algorithm~\ref{max_iterations_algo}
-must be modified the as it is modified for DP Barker
-(Section~\ref{dp_barker_section}). With the Fourier accountant, the only necessary
-modification is computing \(\delta\) with the Fourier accountant\footnote{
-  The Fourier accountant handles the non-integer iteration numbers used
-  by Algorithm~\ref{max_iterations_algo} by internally
-  rounding them down.
-}.
 
 The appearance of \(n\) as a multiplier of \(\Delta_\lambda\) and 
 \(n^2\) as a multiplier of \(\Delta_\sigma\) causes the noise variance to increase 
@@ -1216,7 +1239,7 @@ accountant particularly simple, as the noise variance given to it is simply
 
 The proposed variations of the penalty algorithm, one component updates and guided
 walk MH, are also applicable with subsampling. The sensitivity reduction from
-OCU may be especially useful as the variance sensitivity contains the square of
+OCU may be especially useful, as the variance sensitivity contains the square of
 the distance between the current and proposed parameter values, so reducing the
 distance by updating only a single component can greatly reduce the added noise.
 
@@ -1227,7 +1250,7 @@ Hamiltonian Monte Carlo (HMC\footnote{
     but the name Hamiltonian Monte Carlo has become more common.
 })~\cite{DKP87, neal2012mcmc} is a widely used MCMC algorithm that, like
 Metropolis-Hastings and the penalty algorithm, was originally developed 
-for simulations in physics and chemistry, but has since been applied to 
+for simulations in physics, but has since been applied to
 Bayesian inference. 
 
 HMC simulates the trajectory of a moving particle in a way 
@@ -1254,7 +1277,7 @@ The kinetic energy of the particle with
 momentum\footnote{Momentum is velocity times mass.}
 \(p \in \R^{2}\) and mass \(m \in \R\) is \(\frac{p^{T}p}{2m}\). The potential energy of the particle
 at position \(\theta \in \R^{2}\) is proportional to the height of the surface, given by
-a continuously differentiable function \(U(\theta)\). 
+a continuously differentiable function \(U\).
 The sum of potential and kinetic energies, the total 
 energy of the system, is called the Hamiltonian \(H\). Hamilton's equations 
 give the equations of motion for a system with a given Hamiltonian:
@@ -1354,17 +1377,17 @@ Because of this, \(\theta\) is used to represent the variables of interest,
 while \(p\) is a set of auxiliary variables used for the proposals.
 In Bayesian inference,
 \[
-  U(\theta) = -\sum_{x\in X}\ln p(x\mid \theta)
+  U(\theta) = -\sum_{x\in X}\ln p(x\mid \theta) - \ln p(\theta)
 \]
 for dataset \(X\). The requirement that \(U\) is a continuously differentiable
 and defined on \(\R^{d}\) means that the log-likelihood \(\ln p(x\mid \cdot)\)
-must also meet these conditions. This means that HMC cannot directly be used
-with discrete parameters, non-differentiable log-likelihoods
+and the log-prior must also meet these conditions. This means that HMC cannot directly
+be used with discrete parameters, non-differentiable log-likelihoods or log-priors,
 or constrained parameters, such as variance
 parameters that must be positive. Constrained parameters can typically be
 transformed into unconstrained ones, such as transforming \(\sigma = e^{s}\)
-for a variance parameters \(\sigma\), and using \(s\) in the model instead
-of \(\sigma\). Discrete parameters or non-differentiable log-likelihoods
+for a variance parameter \(\sigma^{2}\), and using \(s\) in the model instead
+of \(\sigma^{2}\). Discrete parameters or non-differentiable models
 require other MCMC algorithms, although it may be possible to combine them
 with HMC if there are continuous parameters.
 
@@ -1466,7 +1489,7 @@ but it no longer simulates the correct Hamiltonian dynamics~\cite{CFG14}. This d
 asymptotic convergence, but it can potentially lower acceptance rates.
 The dynamics can be corrected by adding a friction term to the equations of
 motion of the simulation~\cite{CFG14}, but this removes volume preservation of the simulation,
-which means that the acceptance probability must be corrected.
+which means that the acceptance probability is no longer valid.
 
 The leapfrog update equations with noisy and clipped gradients become
 \begin{align*}
@@ -1476,7 +1499,7 @@ The leapfrog update equations with noisy and clipped gradients become
 \end{align*}
 where
 \[
-  g(\theta) = \sum_{x\in X}\clip_{b}(\nabla \ln p(x\mid \theta)) + \ln p(\theta)
+  g(\theta) = \sum_{x\in X}\clip_{b}(\nabla \ln p(x\mid \theta)) + \nabla\ln p(\theta)
 \]
 denotes the clipped gradients summed over the data \(X\).
 
@@ -1505,9 +1528,9 @@ in a null set\footnote{A set of zero Lebesgue measure.}, if \(g\) is
 sufficiently well-behaved. The non-existence of \(J_{g}(\theta)\) in a null set
 does not affect the volume preservation of \(l_{p}\).
 As \(g\) is a sum of clipped log-likelihood
-gradients, it suffices to show that the log likelihood is sufficiently
-well-behaved.
-Appendix~\ref{clip_diff_chapter}
+gradients and the log prior gradient, it suffices to show that the
+log-likelihood is sufficiently well-behaved, as the prior is already assumed
+to be differentiable and is not clipped. Appendix~\ref{clip_diff_chapter}
 gives very general sufficient conditions for the log-likelihood, and proves
 that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
 the conditions.
@@ -1716,7 +1739,7 @@ fact that on the right side of
 \(p\) and \(p'\) have the same multiplier. With the friction term, this is
 no longer the case, as the multiplier for \(p\) changes to
 \((1 - \frac{\eta}{4}\sigma_{g}^{2}M^{-1})\).
-This means that the acceptance test of non-DP HMC is no longer correct, so
+This means that the acceptance test is no longer correct, so
 the friction term in not used in this thesis beyond this brief discussion,
 but finding a way to correct the acceptance test is a potential avenue for
 future research.
@@ -1860,7 +1883,8 @@ Gaussian PLD \(\caln(\mu, 2\mu)\) are given by~\cite[Lemma 12]{Sommer2019}
     \erfc\left(\frac{\epsilon - \mu}{2\sqrt{\mu}}\right)
     - e^{\epsilon}\erfc\left(\frac{\epsilon + \mu}{2\sqrt{\mu}}\right)\right).
 \]
-Finally, they show that the PLD of an adaptive composition is the convolution of
+Finally, they show that the PLD of an adaptive composition of Gaussian mechanisms
+is the convolution of
 the PLDs of the individual parts of the composition~\cite[Theorem 1]{Sommer2019}.
 As convolution of distributions corresponds to summing random variables, the PLD of a
 convolution of Gaussian mechanisms with PLDs \(\caln(\mu_{i}, 2\mu_{i})\) is
@@ -1873,7 +1897,7 @@ sensitivities before adding noise, which normalises both to have sensitivity
 one. Adding noise with variance \(\sigma_{l}^2(\theta, \theta')\)
 and \(\sigma_{g}^{2}\) to the log-likelihood ratio and gradient respectively
 is equivalent to adding noise with variance
-\(\sigma_{l}'^{2} = \tau_{l}^{2}n\) and \(\sigma_{g}'^{2} = \tau_{g}^{2}n\).
+\(\sigma_{l}'^{2} = \tau_{l}^{2}n\) and \(\sigma_{g}'^{2} = \tau_{g}^{2}n\)
 to the normalised log-likelihood ratio and gradient.
 
 DP HMC releases the log-likelihood ratio \(k\) times and the gradient
@@ -1962,9 +1986,9 @@ known covariance. The likelihood and prior for \(n\) points of \(d\)-dimensional
 data \(X \in \R^{n\times d}\) and parameters \(\theta\in \R^{d}\) are
 \begin{align*}
   \theta &\sim \caln_{d}(\mu_{0}, \Sigma_{0}), \\
-  X_{i} &\sim \caln_{d}(\theta, \Sigma),
+  x_{i} &\sim \caln_{d}(\theta, \Sigma),
 \end{align*}
-where \(X_{i}\) is a row of \(X\), \(\Sigma\) is the known covariance,
+where \(x_{i}\) is a row of \(X\), \(\Sigma\) is the known covariance,
 and \(\mu_{0}\) and \(\Sigma_{0}\) are the prior hyperparameters.
 The posterior of this model is another \(d\)-dimensional Gaussian distribution
 with parameters expressible in closed form~\cite[Section 3.5]{BDA},
@@ -1977,14 +2001,14 @@ distribution that is a challenging target for MCMC algorithms. For this reason i
 been used to test MCMC algorithms in the literature~\cite{TPK14}.
 
 \begin{definition}
-    Let \(X\) have a \(d\)-variate Gaussian distribution with
+    Let \(x\) have a \(d\)-variate Gaussian distribution with
     mean \(\mu\) and covariance matrix \(\Sigma\). Let
     \[
         g(x) = (x_1, x_2 - a(x_1 - m)^2 - b, x_3, \dotsc, x_d),
     \]
     with \(a, b, m \in \R\).
     The banana distribution with parameters \(\mu, \Sigma, a, b\) and \(m\)
-    is the distribution of \(g(X)\). It is denoted by
+    is the distribution of \(g(x)\). It is denoted by
     \(\ban(\mu, \Sigma, a, b, m)\).
 \end{definition}
 
@@ -2001,13 +2025,13 @@ for testing DP MCMC algorithms.
     \begin{align*}
         \theta = (\theta_1,\dotsc, \theta_d) &\sim
         \ban(0, \sigma_0^2I, a, b, m), \\
-        X_1 &\sim \caln(\theta_1, \sigma_1^2), \\
-        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2),\\
-        X_3 &\sim \caln(\theta_3, \sigma_3^2), \\
+        x_1 &\sim \caln(\theta_1, \sigma_1^2), \\
+        x_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2),\\
+        x_3 &\sim \caln(\theta_3, \sigma_3^2), \\
             &\vdots \\
-        X_d &\sim \caln(\theta_d, \sigma_d^2). \\
+        x_d &\sim \caln(\theta_d, \sigma_d^2). \\
     \end{align*}
-    Given data \(x_1,\dotsc, x_d\in \R^n\) and
+    Given data \(x_1,\dotsc, x_n\in \R^d\) and
     denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
     the posterior of \(\theta\) tempered with \(T\) is the banana distribution
     \(\ban(\mu, \Sigma, a, b, m)\)
@@ -2122,7 +2146,7 @@ from a normal distribution with mean 3 and variance 1.
 \section{Practicalities of Running the MCMC Algorithms}\label{practical_section}
 
 Eight sets of model hyperparameters were used in the experiments.
-The hyperparameters are shown in
+The varied hyperparameters are shown in
 Table~\ref{model_params_table} and contour plots of the
 2-dimensional models are shown in Figure~\ref{posterior_plots_fig}.
 All banana models had \(b = m = 0\). The likelihood variance of the banana
@@ -2212,7 +2236,7 @@ is defined as
 where \(\mathcal{F}\) is some class of functions. By 
 choosing a suitable \(\mathcal{F}\), \(\mathrm{MMD}(p, q)\) can be estimated from a 
 sample from \(p\) and \(q\). The suitable classes \(\mathcal{F}\) can be 
-characterised by a kernel function \(k\colon P\times Q \to \R\), where 
+characterised by kernel functions \(k\colon P\times Q \to \R\), where
 \(P\) and \(Q\) are the supports of \(p\) and \(q\), respectively.
 The Gaussian radial basis function (RBF) kernel 
 \[
@@ -2315,8 +2339,8 @@ that did not converge correctly with most clip bounds, but the chains with
 the higher bounds converged. Based on these results, if the clip fraction is 
 less than 20\%, clipping is likely undetectable without a large sample.
 For the other experiments, clip bounds were tuned to achieve less than
-10\% clipping, to make absolutely sure that the algorithms are converging to the
-correct posteriors. As this experiment only used a single model in fairly low
+10\% clipping, to ensure that the error from clipping is minimal.
+As this experiment only used a single model in fairly low
 dimensions, it is possible that in other settings the clip fraction should be
 even lower, so future research should look into clipping in other models.
 
@@ -2441,7 +2465,7 @@ some runs with on the narrow banana, especially with \(\epsilon = 1\).
 \end{figure}
 
 Figure~\ref{circle_fig} shows the results for the circle model. The distance
-of the sample mean from the true mean (the origin) were used instead of MMD,
+of the sample mean from the true mean (the origin) was used instead of MMD,
 as computing MMD requires a sample from the posterior, which is not trivial
 to obtain for the circle model. Both algorithms perform well on average.
 Clipping is again low
@@ -2512,10 +2536,11 @@ in the DP setting is a potential direction for future research. However,
 naive gradient subsampling in HMC has been shown to fail in high
 dimensions~\cite{Bet15}, so additional methods to control the error from subsampling
 are likely needed, such as the friction term~\cite{CFG14} briefly discussed in
-Section~\ref{dp_hmc_section}.
+Section~\ref{dp_hmc_section}, or the Nosé-Hoover thermostat~\cite{DFB14} that
+dynamically adjusts the friction.
 
 The large number of parameters DP MCMC algorithms have compared to non-DP
-MCMC makes tuning them particularly difficult. DP HMC is the clearest explanation
+MCMC makes tuning them particularly difficult. DP HMC is the clearest example
 of this, where 4 parameters tune the different trade-offs between privacy and
 accuracy, in addition to the parameters of HMC, which are already known to
 be difficult to tune in the non-DP case~\cite{neal2012mcmc}.
@@ -2533,12 +2558,13 @@ rate. They can be used when tuning DP MCMC algorithms, and were used to some
 extent in tuning the parameters for the experiments of this thesis, but it
 is not clear how well these guidelines apply to DP MCMC algorithms.
 Yildirim and Ermis show that the DP penalty algorithm has a lower acceptance
-rate than the non-DP MH algorithm with the same proposal, so the optimal
+rate than the non-DP MH algorithm with the same proposal~\cite{YildirimE19},
+so the optimal
 acceptance rates of DP MCMC algorithms are likely lower their non-DP
 counterparts, but the exact optimal acceptance rates will likely depend on the
 privacy bounds.
 
-Of course, tuning the parameters of an MCMC algorithm by hand is time consuming,
+Tuning the parameters of an MCMC algorithm by hand is time consuming,
 even with a guideline on the optimal acceptance rate, and requires the user of
 the algorithm to know the guidelines and their applicability. Tuning the
 parameters automatically alleviates these problems. A variant of HMC called
@@ -2556,7 +2582,7 @@ metrics used to tune the algorithm, such as acceptance and clipping rates,
 cannot be released without incurring a privacy cost and adding noise to the
 metrics. Even tuning the algorithm
 internally based on the metrics, and releasing only the final parameters incurs
-some privacy cost, which can be argued to be low, but cannot be
+some privacy cost, which can be argued to be negligible, but cannot be
 computed, as formalising the way a human chooses parameters based on the metrics
 is impossible. This can be sidestepped by tuning the algorithm on synthetic or
 publicly available data, and only using the private data with the final parameters,
@@ -2565,6 +2591,7 @@ poor performance on the private dataset.
 This thesis largely ignores these issues for the sake of comparing
 the algorithms, but potential users of DP MCMC on real private data should not
 ignore them, which makes developing automatic methods for tuning parameters
+that allow computing the privacy cost of tuning
 even more important than in the non-DP case.
 
 Other practical issues that the experiments of Section~\ref{dp_mcmc_comparison}
@@ -2576,7 +2603,7 @@ cost~\cite{HeikkilaJDH19, WFS15}. The initialisation method used
 Section~\ref{dp_mcmc_comparison} mimics the effects of using a point estimate by
 choosing random values around the true parameter values. This is unlikely to
 affect the comparisons of the DP MCMC algorithms, as all of the algorithms
-would use the same method to obtain the point estimate anyway.
+would use the same method to obtain the point estimate in any case.
 
 The issue of sampling continuous distributions on computers for DP were first
 identified for the Laplace distribution~\cite{Mir12}. When sampling the Laplace
@@ -2592,6 +2619,15 @@ sidesteps floating point issues, but in the context of DP MCMC, the penalty
 correction requires adding continuous Gaussian noise. Investigating the effect
 of using discrete Gaussian noise instead with the penalty algorithm is another
 potential avenue of future research.
+
+The results presented in this thesis show that DP MCMC is a viable way to
+conduct DP Bayesian inference with large enough datasets. There are still
+issues that should be investigated before deploying DP MCMC with real
+private data, but they are likely solvable, and most, like parameter tuning,
+and inexact sampling, also affect other methods of DP Bayesian inference.
+The benefits of MCMC over other Bayesian inference methods are present in the
+DP setting, so research into the many unknowns of DP MCMC is likely to be
+fruitful.
 
 % STEP 5:
 % Uncomment the following lines and set your .bib file and desired bibliography style
@@ -2620,13 +2656,13 @@ potential avenue of future research.
     \begin{align*}
         \theta = (\theta_1,\dotsc, \theta_d) &\sim
         \ban(0, \sigma_0^2I, a, b, m) \\
-        X_1 &\sim \caln(\theta_1, \sigma_1^2) \\
-        X_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2)\\
-        X_3 &\sim \caln(\theta_3, \sigma_3^2) \\
+        x_1 &\sim \caln(\theta_1, \sigma_1^2) \\
+        x_2 &\sim \caln(\theta_2 + a(\theta_1 - m)^2 + b, \sigma_2^2)\\
+        x_3 &\sim \caln(\theta_3, \sigma_3^2) \\
             &\vdots \\
-        X_d &\sim \caln(\theta_d, \sigma_d^2) \\
+        x_d &\sim \caln(\theta_d, \sigma_d^2) \\
     \end{align*}
-    Given data \(x_1,\dotsc, x_d\in \R^n\) and
+    Given data \(x_1,\dotsc, x_n\in \R^d\) and
     denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
     the posterior of \(\theta\) tempered with \(T\) is the banana distribution
     \(\ban(\mu, \Sigma, a, b, m)\)
@@ -2669,23 +2705,23 @@ potential avenue of future research.
     The tempered posterior of \(\theta\) is
     \begin{align*}
         p(\theta\mid X) &\propto p(X\mid \theta)^Tp(\theta)
-        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
-        \prod_{i=3}^d p(X_i\mid \theta_i)^T p(\theta)
-        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
-        \prod_{i=3}^d p(X_i\mid \theta_i)^T
+        \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
+        \prod_{i=3}^d p(x_i\mid \theta_i)^T p(\theta)
+        \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
+        \prod_{i=3}^d p(x_i\mid \theta_i)^T
         \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
         + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2
         \sum_{i=3}^d \tau_0\theta_i^2\right)\right)
-        \\&= p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
+        \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
         \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
         + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&\cdot \prod_{i=3}^d p(X_i\mid \theta_i)^T
+        \\&\cdot \prod_{i=3}^d p(x_i\mid \theta_i)^T
         \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
     \end{align*}
 
     Considering the upper and lower part of the last expression separately
     \begin{align*}
-        &p(X_1\mid \theta_1)^Tp(X_2\mid \theta_1, \theta_2)^T
+        &p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
         \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
         + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
         \\&\propto \left(\prod_{i=1}^n \exp
@@ -2725,7 +2761,7 @@ potential avenue of future research.
     \end{align*}
     and
     \begin{align*}
-        &\prod_{i=3}^d p(X_i\mid \theta_i)^T
+        &\prod_{i=3}^d p(x_i\mid \theta_i)^T
         \cdot \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
       \\&\propto \exp\left(-\frac{1}{2}T\sum_{j=3}^d\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
       - \frac{1}{2}\sum_{j=3}^d\tau_0\theta_j^2\right)
@@ -2793,7 +2829,11 @@ models considered in this thesis meet the conditions.
 \end{lemma}
 \begin{proof}
   \[
-    \clip_{b}(x) = \frac{x}{||x||}\min\{||x||, b\}
+    \clip_{b}(x) =
+    \begin{cases}
+      \frac{x}{||x||}\min\{||x||, b\} & \text{if } x \neq 0\\
+      0 & \text{if } x = 0
+    \end{cases}
   \]
   which means that \(\clip_{b}\) is differentiable for all \(x\in \R^{d}\) with
   \(||x|| \neq b\). Consider \(\clip_{b}\circ f\) in a neighbourhood \(B\) of

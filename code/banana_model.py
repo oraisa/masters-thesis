@@ -124,7 +124,7 @@ class BananaModel:
     def plot_posterior(self, X, ax, T):
         mu1, mu2, _, sigma1_p, sigma2_p, __ = self.compute_posterior_params(X, T)
         samples = self.generate_posterior_samples(40, X, T)
-        spread_samples = samples.mean(axis=0) + (samples - samples.mean(axis=0)) * 2
+        spread_samples = samples.mean(axis=0) + (samples - samples.mean(axis=0)) * 2.5
         mi = np.min(spread_samples, axis=0)
         ma = np.max(spread_samples, axis=0)
         xs = np.linspace(mi[0], ma[0], 1000)

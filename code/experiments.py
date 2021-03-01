@@ -65,7 +65,7 @@ if __name__ == "__main__":
     df = pd.DataFrame(
         {
             "Name": [exp_names[key] for key in experiments.keys()],
-            "Dim": [exp.dim for exp in experiments.values()],
+            "d": [exp.dim for exp in experiments.values()],
             "n": [exp.n for exp in experiments.values()],
             "$n_0$": [exp.n0 for exp in experiments.values()],
             "a": [exp.a for exp in experiments.values()],
