@@ -7,4 +7,5 @@ seaborn
 pandas
 numba
 snakemake
+torch
 fourier-accountant==0.12.11

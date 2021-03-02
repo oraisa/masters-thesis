@@ -7,12 +7,14 @@ Run
 pip install -r requirements.txt
 ```
 to install the required dependencies. On systems with the `pip3` command, 
-it should be used instead.
+it should be used instead. The experiments were ran with Python 3.8.5, 
+other versions may not work with the dependencies.
 
 ## Running the Experiments
 
 To run the experiments and generate each figure, run
 ``` sh
+cd code
 snakemake -j4
 ```
 The number after `-j` sets the number of concurrent jobs Snakemake runs.
