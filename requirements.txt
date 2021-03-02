@@ -1,0 +1,10 @@
+numpy
+scipy
+matplotlib
+jax
+jaxlib
+seaborn
+pandas
+numba
+snakemake
+fourier-accountant==0.12.11
