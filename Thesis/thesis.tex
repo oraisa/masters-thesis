@@ -1546,7 +1546,175 @@ deterministic.
 
 The proof requires handling randomised functions that are neither discrete or
 continuous, as the steps in the DP HMC leapfrog are partially random and
-partially deterministic. A convenient way to handle such mixed random variables
+partially deterministic.
+
+\begin{definition}
+	A Markov kernel \(q\) is reversible with respect to a measure \(\mu\)
+  if
+  \[
+    q(a, \dx b)\mu(\dx a) = q(b, \dx a)\mu(\dx b)
+  \]
+  \[
+    \int_{A}q(a, B)\mu(da) = \int_{B}q(b, A)\mu(db)
+  \]
+\end{definition}
+
+\begin{lemma}\label{composition_reversible_lemma}
+	If Markov kernels \(q_{1}\) and \(q_{2}\) are reversible with respect to a
+  measure \(\mu\), the composition \(q_{2}\circ q_{1}\) is also reversible
+  with respect to \(\mu\).
+\end{lemma}
+\begin{proof}
+  \[
+    (q_{2}\circ q_{1})(a, \dx c) = \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c)
+  \]
+	\begin{align*}
+    (q_{2}\circ q_{1})(a, \dx c)\mu(\dx a)
+    &= \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c)\mu(\dx a)
+    \\&= \int_{\R^{d}}q_{1}(b, \dx a)q_{2}(b, \dx c)\mu(\dx b)
+    \\&= \int_{\R^{d}}q_{1}(b, \dx a)q_{2}(c, \dx b)\mu(\dx c)
+    % \\&= \int_{\R^{d}}q_{1}(c, \dx b)q_{2}(b, \dx a)\mu(\dx c)
+    \\&= (q_{1}\circ q_{2})(c, \dx a)\mu(\dx c)
+  \end{align*}
+\end{proof}
+
+\begin{lemma}\label{reversible_proposal_lemma}
+  If the proposal kernel \(q\) is reversible with respect to the
+  Lebesque-measure and \(\pi\) is continuous,
+  \[
+    \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}\right\}
+  \]
+  is a valid MH acceptance probability.
+\end{lemma}
+\begin{proof}
+  The detailed balance condition on general measures
+  with acceptance probability
+  \[
+    \alpha(\theta, \theta') = \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}\right\}
+  \]
+  when moving from \(\theta\) to \(\theta'\) is
+  \[
+    \iint_{A}\pi(\dx \theta)Q(\theta, \dx \theta')\alpha(\theta, \theta')
+    = \iint_{A}\pi(\dx \theta')Q(\theta', \dx \theta)\alpha(\theta', \theta)
+  \]
+  for all measurable sets \(A\subset \R^{d}\)~\cite{Tie98}.
+  For continuous \(\pi\) and \(Q\) reversible with respect to the Lebesque measure
+  \begin{align*}
+    \iint_{A}\pi(\dx \theta)Q(\theta, \dx \theta')\alpha(\theta, \theta')
+    &= \iint_{A}\pi(\theta)Q(\theta, \dx \theta')\alpha(\theta, \theta')\dx\theta
+    \\&= \iint_{A}\min\{\pi(\theta), \pi(\theta')\}Q(\theta, \dx \theta')\dx\theta
+    \\&= \iint_{A}\min\{\pi(\theta'), \pi(\theta)\}Q(\theta', \dx \theta)\dx\theta'
+    \\&= \iint_{A}\pi(\dx \theta')Q(\theta', \dx \theta)\alpha(\theta', \theta).
+    \qedhere
+  \end{align*}
+\end{proof}
+
+\begin{lemma}\label{dirac_measure_reversible_lemma}
+  For a function \(f\) that preserves Lebesgue measure and has
+  \(f^{-1} = f\),
+	the Dirac measure perturbed by \(f\), \(\delta_{f(x)}\), is reversible
+  with respect to the Lebesgue measure. As a special case,
+  the Dirac measure \(\delta_{x}\) is reversible with respect to the
+  Lebesgue measure.
+\end{lemma}
+\begin{proof}
+  Denote the Lebesgue measure by \(\lambda\). Because \(f\) preserves
+  Lebesgue measure and is injective,
+	\begin{align*}
+    \int_{A}\delta_{f(x)}(B)\dx x
+    &= \lambda(f(A)\cap B)
+    \\&= \lambda(f(f(A))\cap f(B))
+    \\&= \lambda(A\cap f(B))
+    \\&= \int_{B}\delta_{f(x)}(A)\dx x
+  \end{align*}
+  The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
+\end{proof}
+
+\begin{lemma}\label{leapfrog_step_reversible_lemma}
+  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{x}}\) for any \(x\in \R\)
+  are reversible with respect to the Lebesgue-measure.
+\end{lemma}
+\begin{proof}
+  Starting with \(l_{\theta}\circ l_{l}\), denote
+  \(f(\theta, p) = (\theta - \eta M^{-1}p, -p)\). Then
+  \[
+    f(f(\theta, p)) = f(\theta - \eta M^{-1}p, -p) = (\theta, p)
+  \]
+  which means that \(f^{-1} = f\). Because \(l_{\theta}\) and \(l_{-}\) preserve
+  Lebesgue-measure, \(f\) also preserves Lebesgue measure.
+  Because \(l_{\theta}\circ l_{-} = \delta_{f(\theta, p)}\),
+  Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
+  \(l_{\theta}\circ l_{l}\).
+
+  For \(l_{-}\circ l_{p_{x}}\), denote \(f_{x}(\theta) = x\eta g(\theta)\) and
+  \(\sigma^{2} = x^{2}\eta^{2}\sigma_{g}^{2}\). Then
+  \[
+    \int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p')) =
+    \int_{B}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\delta_{\theta}(\dx \theta')\dx p'
+    % \int_{\{p'\mid (\theta', p')\in B \wedge \theta = \theta'\}}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\dx p'
+    % \begin{cases}
+    %   0 & \text{if } \theta \neq \theta'\\
+    %   \caln(p'\mid -p + f(\theta), \sigma^{2}) & \text{if } \theta = \theta'
+    % \end{cases}
+  \]
+  Using Lemma~\ref{dirac_measure_reversible_lemma}
+	\begin{align*}
+    \int_{A}\int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))\dx(\theta, p)
+    &= \int_{A}\int_{B}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
+      \delta_{\theta}(\dx \theta')\dx p'\dx(\theta, p)
+    \\&= \int_{B}\int_{A}\caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})
+      \delta_{\theta'}(\dx \theta)\dx p\dx(\theta', p')
+    % &= \int_{A}\int_{B}\mu(\theta, p, \dx(\theta', p'))\dx(\theta, p)
+    % &= \int_{A}\int_{\{p'\mid (\theta', p'\in B) \wedge \theta' = \theta\}}
+    % \caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\dx p'\dx(\theta, p)
+    % \\&= \int_{\{(\theta, p, p')\mid (\theta, p)\in A \wedge (\theta', p')\in B \wedge \theta' = \theta\}}
+    % \caln(p\mid -p' + f_{x}(\theta), \sigma^{2})\dx(\theta, p, p')
+    % \\&= \int_{\{(\theta', p, p')\mid (\theta, p)\in A \wedge (\theta', p')\in B \wedge \theta' = \theta\}}
+    % \caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})\dx(\theta', p, p')
+    % \\&= \int_{B}\int_{\{p\mid (\theta, p\in A) \wedge \theta' = \theta\}}
+    % \caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})\dx p\dx(\theta', p')
+    % \\&= \int_{A}\int_{B}I_{\theta}(\theta')\caln(p'\mid -p + f(\theta), \sigma^{2})
+    % \dx(\theta', p')\dx(\theta, p)
+    % \\&= \int_{B}\int_{A}I_{\theta'}(\theta)\caln(p\mid -p' + f(\theta'), \sigma^{2})
+    % \dx(\theta, p)\dx(\theta', p')
+    % \\&= \int_{B}\int_{A}\mu(\theta', p', \dx(\theta, p))\dx(\theta', p')
+    \\&= \int_{B}\int_{A}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))\dx(\theta', p')
+    \qedhere
+  \end{align*}
+\end{proof}
+
+\begin{lemma}\label{leapfrog_reversibility_lemma}
+	The DP-HMC proposal \(l_{-} \circ l\) is reversible with respect
+  to the Lebesque-measure.
+\end{lemma}
+\begin{proof}
+  The DP-HMC proposal
+  \[
+    l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}\circ l_{\theta}
+    \dotsb \circ l_{\theta}\circ l_{p_{1/2}}
+  \]
+  can be written as
+  \[
+    (l_{-}\circ l_{p_{1/2}})\circ (l_{\theta} \circ l_{-})\circ (l_{-}\circ l_{p_{1}})
+    \circ (l_{\theta} \circ l_{-}) \circ (l_{-} \circ l_{p_{1}})\circ
+    \dotsb \circ (l_{\theta}\circ l_{-})\circ (l_{-}\circ l_{p_{1/2}})
+  \]
+  which is a composition of \(l_{-}\circ l_{p_{1/2}}\), \(l_{-}\circ l_{p_{1}}\)
+  and \(l_{\theta}\circ l_{-}\), which are all reversible with respect to the
+  Lebesgue measure by Lemma~\ref{leapfrog_step_reversible_lemma}.
+  Lemma~\ref{composition_reversible_lemma} shows extends the reversibility
+  with respect to the Lebesgue measure to the entire composition.
+\end{proof}
+
+\begin{theorem}
+  \[
+    \min\left\{\exp\left(H(\theta, p)
+        - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
+  \]
+  is a valid MH acceptance probability for DP-HMC.
+\end{theorem}
+
+A convenient way to handle such mixed random variables
 is using \emph{generalised functions}, specifically the
 \emph{Dirac delta function}. The Dirac delta function \(\delta_{x}\) for
 \(x\in \R\) is a
@@ -1687,7 +1855,7 @@ Because \(\bar{l_{-}} = l_{-}\),
 \(\bar{l^{*}} = \bar{l}\circ \bar{l_{-}}
 = l_{-}\circ l\circ l_{-}\circ l_{-} = l^{*}\).
 As in the non-DP case, using \(l^{*}\) as the proposal is equivalent to using
-\(l\), and when using \(l^{*}\), the \(r(\theta, p, \theta', p')\) simplifies
+\(l\), and when using \(l^{*}\), \(r(\theta, p, \theta', p')\) simplifies
 \[
   r(\theta, p, \theta', p')
   = \frac{\pi(\theta', p')}{\pi(\theta, p)}
