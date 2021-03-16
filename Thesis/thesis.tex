@@ -1549,6 +1549,35 @@ continuous, as the steps in the DP HMC leapfrog are partially random and
 partially deterministic.
 
 \begin{definition}
+  Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
+  \(\mathcal{E}\) is called a \(\sigma\)-algebra on \(E\) if
+  \begin{enumerate}
+    \item \(\emptyset \in \mathcal{E}\)
+    \item \(A\in \mathcal{E}\Rightarrow A^{C}\in \mathcal{E}\)
+    \item \(A_{1},A_{2},\dotsc \in \mathcal{E}
+          \Rightarrow \bigcup_{i=1}^{\infty} A_{i}\in \mathcal{E}\)
+  \end{enumerate}
+  The pair \((E, \mathcal{E})\) is called a measurable space when
+  \(\mathcal{E}\) is a \(\sigma\)-algebra on \(E\).
+\end{definition}
+
+\begin{definition}
+	Let \((E, \mathcal{E})\) be a measurable space. A measure on \((E, \mathcal{E})\)
+  is a function \(\mu\colon \mathcal{E}\to \bar{\R}_{+}\) such that
+  \begin{enumerate}
+    \item
+    \(\mu(\emptyset) = 0\)
+    \item
+    For any sequence of sets \(A_{1}, A_{2},\dotsc \in \mathcal{E}\)
+    \[
+    \quad \mu\left(\bigcup_{i=1}^{\infty} A_{i}\right)
+    = \sum_{i=1}^\infty\mu(A_{i})
+    \]
+  \end{enumerate}
+  A measure \(\mu\) with \(\mu(E) = 1\) is called a probability measure.
+\end{definition}
+
+\begin{definition}
 	A Markov kernel \(q\) is reversible with respect to a measure \(\mu\)
   if
   \[
@@ -1561,21 +1590,39 @@ partially deterministic.
 
 \begin{lemma}\label{composition_reversible_lemma}
 	If Markov kernels \(q_{1}\) and \(q_{2}\) are reversible with respect to a
-  measure \(\mu\), the composition \(q_{2}\circ q_{1}\) is also reversible
-  with respect to \(\mu\).
+  measure \(\mu\),
+  \[
+    (q_{2}\circ q_{1})(a, \dx c) = (q_{1}\circ q_{2})(c, \dx a).
+  \]
+  For Markov kernels \(q_{1}\dotsc q_{k}\) reversible with respect to \(\mu\),
+  \[
+    (q_{k}\circ \dotsb \circ q_{1})(a_{1}, \dx a_{k})
+    = (q_{1}\circ \dotsb \circ q_{k})(a_{k}, \dx a_{1}).
+  \]
+  If \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
+  the composition \(q_{1}\circ \dotsb \circ q_{k}\) is reversible with
+  respect to \(\mu\).
 \end{lemma}
 \begin{proof}
+  Because
   \[
-    (q_{2}\circ q_{1})(a, \dx c) = \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c)
+    (q_{2}\circ q_{1})(a, \dx c) = \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c),
   \]
 	\begin{align*}
     (q_{2}\circ q_{1})(a, \dx c)\mu(\dx a)
     &= \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c)\mu(\dx a)
     \\&= \int_{\R^{d}}q_{1}(b, \dx a)q_{2}(b, \dx c)\mu(\dx b)
     \\&= \int_{\R^{d}}q_{1}(b, \dx a)q_{2}(c, \dx b)\mu(\dx c)
-    % \\&= \int_{\R^{d}}q_{1}(c, \dx b)q_{2}(b, \dx a)\mu(\dx c)
-    \\&= (q_{1}\circ q_{2})(c, \dx a)\mu(\dx c)
+    \\&= (q_{1}\circ q_{2})(c, \dx a)\mu(\dx c).
   \end{align*}
+  The claim for compositions of \(k\) Markov kernels follows by induction.
+  When \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
+  \[
+    (q_{k}\circ \dotsb \circ q_{1})(a_{1}, \dx a_{k})
+    = (q_{1}\circ \dotsb \circ q_{k})(a_{k}, \dx a_{1})
+    = (q_{k}\circ \dotsb \circ q_{1})(a_{k}, \dx a_{1}).
+    \qedhere
+  \]
 \end{proof}
 
 \begin{lemma}\label{reversible_proposal_lemma}
@@ -1622,9 +1669,10 @@ partially deterministic.
   Lebesgue measure and is injective,
 	\begin{align*}
     \int_{A}\delta_{f(x)}(B)\dx x
-    &= \lambda(f(A)\cap B)
-    \\&= \lambda(f(f(A))\cap f(B))
-    \\&= \lambda(A\cap f(B))
+    &= \int_{A}1_{B}(f(x))\dx x
+    \\&= \lambda(A\cap f^{-1}(B))
+    \\&= \lambda(f^{-1}(A)\cap f^{-1}(f^{-1}((B))))
+    \\&= \lambda(f^{-1}(A)\cap B)
     \\&= \int_{B}\delta_{f(x)}(A)\dx x
   \end{align*}
   The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
@@ -1632,7 +1680,7 @@ partially deterministic.
 
 \begin{lemma}\label{leapfrog_step_reversible_lemma}
   \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{x}}\) for any \(x\in \R\)
-  are reversible with respect to the Lebesgue-measure.
+  are reversible with respect to the Lebesgue measure.
 \end{lemma}
 \begin{proof}
   Starting with \(l_{\theta}\circ l_{l}\), denote
@@ -1641,7 +1689,7 @@ partially deterministic.
     f(f(\theta, p)) = f(\theta - \eta M^{-1}p, -p) = (\theta, p)
   \]
   which means that \(f^{-1} = f\). Because \(l_{\theta}\) and \(l_{-}\) preserve
-  Lebesgue-measure, \(f\) also preserves Lebesgue measure.
+  Lebesgue measure, \(f\) also preserves Lebesgue measure.
   Because \(l_{\theta}\circ l_{-} = \delta_{f(\theta, p)}\),
   Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
   \(l_{\theta}\circ l_{l}\).
@@ -1651,11 +1699,6 @@ partially deterministic.
   \[
     \int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p')) =
     \int_{B}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\delta_{\theta}(\dx \theta')\dx p'
-    % \int_{\{p'\mid (\theta', p')\in B \wedge \theta = \theta'\}}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\dx p'
-    % \begin{cases}
-    %   0 & \text{if } \theta \neq \theta'\\
-    %   \caln(p'\mid -p + f(\theta), \sigma^{2}) & \text{if } \theta = \theta'
-    % \end{cases}
   \]
   Using Lemma~\ref{dirac_measure_reversible_lemma}
 	\begin{align*}
@@ -1664,20 +1707,6 @@ partially deterministic.
       \delta_{\theta}(\dx \theta')\dx p'\dx(\theta, p)
     \\&= \int_{B}\int_{A}\caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})
       \delta_{\theta'}(\dx \theta)\dx p\dx(\theta', p')
-    % &= \int_{A}\int_{B}\mu(\theta, p, \dx(\theta', p'))\dx(\theta, p)
-    % &= \int_{A}\int_{\{p'\mid (\theta', p'\in B) \wedge \theta' = \theta\}}
-    % \caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\dx p'\dx(\theta, p)
-    % \\&= \int_{\{(\theta, p, p')\mid (\theta, p)\in A \wedge (\theta', p')\in B \wedge \theta' = \theta\}}
-    % \caln(p\mid -p' + f_{x}(\theta), \sigma^{2})\dx(\theta, p, p')
-    % \\&= \int_{\{(\theta', p, p')\mid (\theta, p)\in A \wedge (\theta', p')\in B \wedge \theta' = \theta\}}
-    % \caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})\dx(\theta', p, p')
-    % \\&= \int_{B}\int_{\{p\mid (\theta, p\in A) \wedge \theta' = \theta\}}
-    % \caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})\dx p\dx(\theta', p')
-    % \\&= \int_{A}\int_{B}I_{\theta}(\theta')\caln(p'\mid -p + f(\theta), \sigma^{2})
-    % \dx(\theta', p')\dx(\theta, p)
-    % \\&= \int_{B}\int_{A}I_{\theta'}(\theta)\caln(p\mid -p' + f(\theta'), \sigma^{2})
-    % \dx(\theta, p)\dx(\theta', p')
-    % \\&= \int_{B}\int_{A}\mu(\theta', p', \dx(\theta, p))\dx(\theta', p')
     \\&= \int_{B}\int_{A}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))\dx(\theta', p')
     \qedhere
   \end{align*}
@@ -1685,7 +1714,7 @@ partially deterministic.
 
 \begin{lemma}\label{leapfrog_reversibility_lemma}
 	The DP-HMC proposal \(l_{-} \circ l\) is reversible with respect
-  to the Lebesque-measure.
+  to the Lebesque measure.
 \end{lemma}
 \begin{proof}
   The DP-HMC proposal
@@ -1702,174 +1731,201 @@ partially deterministic.
   which is a composition of \(l_{-}\circ l_{p_{1/2}}\), \(l_{-}\circ l_{p_{1}}\)
   and \(l_{\theta}\circ l_{-}\), which are all reversible with respect to the
   Lebesgue measure by Lemma~\ref{leapfrog_step_reversible_lemma}.
-  Lemma~\ref{composition_reversible_lemma} shows extends the reversibility
+  As the composition is symmetric,
+  Lemma~\ref{composition_reversible_lemma} extends the reversibility
   with respect to the Lebesgue measure to the entire composition.
 \end{proof}
 
 \begin{theorem}
   \[
-    \min\left\{\exp\left(H(\theta, p)
+    \min\left\{1, \exp\left(H(\theta, p)
         - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
   \]
   is a valid MH acceptance probability for DP-HMC.
 \end{theorem}
-
-A convenient way to handle such mixed random variables
-is using \emph{generalised functions}, specifically the
-\emph{Dirac delta function}. The Dirac delta function \(\delta_{x}\) for
-\(x\in \R\) is a
-generalized function with the property that \(\delta_{x}(y) = 0\) if
-\(x \neq y\) and
-\[
-  \int_{\R} f(y)\delta_{x}(y) \dx y = f(x).
-\]
-Despite the name, the Dirac delta function is not a function by the usual
-definition.
-
-A generalised function can used as a density of a random variable, even if the
-random variable is not continuous and does not have a density in the usual
-sense. As with usual density function, for a generalised function \(f\) to be
-a density of a random variable \(X\), it must have
-\[
-  \int_{\R} f(x)\dx x = 1.
-\]
-The probability that the value of \(X\) is in a given set \(A\) is then
-\[
-  P(X\in A) = \int_{A} f(x)\dx x.
-\]
-
-Let \(l\colon \R^{2d} \to \R^{2d}\) be a function giving a random
-proposal \((\theta', p')\) for given \((\theta, p)\). Such random functions are called
-\emph{proposal functions} in the following. Because \(l\) is a random function,
-it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\).
-The density of the composition of proposal functions \(l_{1}\) and \(l_{2}\)
-is given by
-\[
-  q_{l_{2}\circ l_{1}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
-  = \int_{\R^{2d}}\dx(\theta_{2}, p_{2})
-  q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
-  q_{l_{2}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2}).
-\]
-
-Now reversibility by negating \(p\) can be defined:
-\begin{definition}\label{prop_revers_definition}
-  A proposal function \(l\) is reversible by negating \(p\) if
-  \[
-    q_{l}(\theta', p'\mid \theta, p) = q_{l}(\theta, -p \mid \theta', -p')
-  \]
-\end{definition}
-This can be simplified by defining \(\bar{l}\) as the the proposal
-function that has density
-\(q_{\bar{l}}(\theta', p'\mid \theta, p) = q_{l}(\theta, p\mid \theta', p')\),
-and defining \(l_{-}\) as \(l_{-}(\theta, p) = (\theta, -p)\).
-Definition~\ref{prop_revers_definition} can then be written as
-\(\bar{l} = l_{-}\circ l\circ l_{-}\). The function \(\bar{l}\) only exists
-if
-\[
-  \int_{\R^{2d}}q_{l}(\theta', p'\mid \theta, p)\dx(\theta, p) = 1
-\]
-which is true for random functions reversibly by negating \(p\).
-
-\begin{lemma}\label{prop_fun_comp_lemma}
-  Let \(l_{1}\) and \(l_{2}\) be proposal functions in \(\R^{2d}\) such that
-  \(\bar{l_{1}}\) and \(\bar{l_{2}}\) exist.
-  Then \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
-  For a sequence \(l_{1}, \dotsc, l_{k}\) of proposal functions such that
-  \(\bar{l_{i}}\) exists for \(1\leq i \leq k\),
-  \(\overline{l_{k}\circ \dotsb \circ l_{1}} = \bar{l_{1}}\circ \dotsb \circ \bar{l_{k}}\).
-\end{lemma}
 \begin{proof}
-  \begin{align*}
-	q_{\overline{l_{2}\circ l_{1}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
-    &= q_{l_{2}\circ l_{1}}(\theta_{1}, p_{1}\mid \theta_{3}, p_{3})
-    \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{3}, p_{3})
-      q_{l_{2}}(\theta_{1}, p_{1}\mid \theta_{2}, p_{2})
-    \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{\bar{l}_{1}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2})
-      q_{\bar{l}_{2}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
-    \\&= q_{\bar{l_{1}}\circ \bar{l_{2}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
-  \end{align*}
-  which means that \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
-  The claim for sequences follows by induction.
+Lemmas~\ref{reversible_proposal_lemma} and \ref{leapfrog_reversibility_lemma}
+together show that
+\[
+  \alpha(\theta, p, \theta', p')
+  = \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
+\]
+is a valid acceptance probability if noise is not added to the log-likelihood
+ratios. Recall that in HMC
+\[
+  \pi(\theta, p) \propto \exp(-H(\theta, p))
+\]
+so
+\[
+  \alpha(\theta, p, \theta', p')
+  = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')\right)\right\}.
+\]
+When Gaussian noise with variance \(\sigma_{l}^{2}\) is added to the
+log-likelihood ratios and the penalty correction is applied,
+  \[
+    \alpha(\theta, p, \theta', p')
+    = \min\left\{1, \exp\left(H(\theta, p)
+        - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\}.
+    \qedhere
+  \]
 \end{proof}
 
-\begin{theorem}\label{leapfrog_revers_theorem}
-  The leapfrog simulation with noisy and clipped gradients is reversible by
-  negating \(p\).
-\end{theorem}
-\begin{proof}
-  The leapfrog simulation is a composition of proposal functions
-  \(l_{p}\) and \(l_{\theta}\) where
-  \[
-    l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
-      + \caln(0, \sigma_{g}^{2}))\right)
-  \]
-  and
-  \[
-    l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p).
-  \]
-  Specifically, the simulation is
-  \[
-    (l_{p} \circ l_{\theta}\circ l_{p})\circ
-    \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})
-  \]
-  with \(L\) compositions of \(l_{p} \circ l_{\theta}\circ l_{p}\).
-  Then
-  \begin{align*}
-    q_{l_{p}}(\theta', p'\mid \theta, p) &= \delta_{\theta'}(\theta)
-    \cdot \caln\left(p'\mid p - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
-    \\&= \delta_{\theta}(\theta')
-    \cdot \caln\left(-p\mid -p' - \frac{\eta}{2}g(\theta'), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
-    \\&= q_{l_{p}}(\theta, -p\mid \theta', -p')
-  \end{align*}
-  where the second equality uses the fact that if
-  \(\delta_{\theta}(\theta')\neq 0\), \(\theta = \theta'\),
-  and
-  \begin{align*}
-	q_{l_{\theta}}(\theta, -p\mid \theta', -p')
-    &= \delta_{\theta}(\theta' - \eta M^{-1}p')\cdot\delta_{-p}(-p')
-    \\&= \delta_{\theta'}(\theta + \eta M^{-1}p)\cdot\delta_{p'}(p)
-	\\&= q_{l_{\theta}}(\theta', p'\mid \theta, p),
-  \end{align*}
-  which means that both \(l_{p}\) and \(l_{\theta}\) are reversible by
-  negating \(p\). Then the reverse of the leapfrog composition can be
-  written as
-  \begin{align*}
-	\overline{(l_{p} \circ l_{\theta}\circ l_{p})\circ
-    \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})}
-    &= (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}}) \circ \dotsb \circ
-    (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}})
-    \\&= l_{-}\circ(l_{p}\circ l_{\theta} \circ l_{p}) \circ \dotsb \circ
-    (l_{p}\circ l_{\theta} \circ l_{p})\circ l_{-},
-  \end{align*}
-  where the first equality uses Lemma~\ref{prop_fun_comp_lemma} and
-  the fact that the sequence of compositions is symmetric.
-  The second equality uses the fact that \(l_{p}\) and \(l_{\theta}\)
-  are reversible by negating \(p\), and that \(l_{-}\) is its own inverse.
-  This means that the leapfrog simulation with noisy and clipped gradients is
-  reversible by negating \(p\).
-\end{proof}
+% A convenient way to handle such mixed random variables
+% is using \emph{generalised functions}, specifically the
+% \emph{Dirac delta function}. The Dirac delta function \(\delta_{x}\) for
+% \(x\in \R\) is a
+% generalized function with the property that \(\delta_{x}(y) = 0\) if
+% \(x \neq y\) and
+% \[
+%   \int_{\R} f(y)\delta_{x}(y) \dx y = f(x).
+% \]
+% Despite the name, the Dirac delta function is not a function by the usual
+% definition.
 
-Because the leapfrog proposal \(l\) is reversible by negating p,
-\(\bar{l} = l_{-} \circ l\circ l_{-}\). Denote \(l^{*} = l_{-}\circ l\).
-Because \(\bar{l_{-}} = l_{-}\),
-\(\bar{l^{*}} = \bar{l}\circ \bar{l_{-}}
-= l_{-}\circ l\circ l_{-}\circ l_{-} = l^{*}\).
-As in the non-DP case, using \(l^{*}\) as the proposal is equivalent to using
-\(l\), and when using \(l^{*}\), \(r(\theta, p, \theta', p')\) simplifies
-\[
-  r(\theta, p, \theta', p')
-  = \frac{\pi(\theta', p')}{\pi(\theta, p)}
-  \frac{q_{l}(\theta, p\mid \theta', p')}{q_{l}(\theta', p'\mid \theta, p)}
-  = \frac{\pi(\theta', p')}{\pi(\theta, p)}
-  \frac{q_{l^{*}}(\theta, p\mid \theta', p')}{q_{\bar{l^{*}}}(\theta, p\mid \theta', p')}
-  = \frac{\pi(\theta', p')}{\pi(\theta, p)}.
-\]
-For HMC,
-\[
-  \frac{\pi(\theta', p')}{\pi(\theta, p)} = \exp(H(\theta, p) - H(\theta', p')),
-\]
-so the acceptance probability from non-DP HMC, with the penalty correction for
-the noise added to the log-likelihood, is correct for DP HMC.
+% A generalised function can used as a density of a random variable, even if the
+% random variable is not continuous and does not have a density in the usual
+% sense. As with usual density function, for a generalised function \(f\) to be
+% a density of a random variable \(X\), it must have
+% \[
+%   \int_{\R} f(x)\dx x = 1.
+% \]
+% The probability that the value of \(X\) is in a given set \(A\) is then
+% \[
+%   P(X\in A) = \int_{A} f(x)\dx x.
+% \]
+
+% Let \(l\colon \R^{2d} \to \R^{2d}\) be a function giving a random
+% proposal \((\theta', p')\) for given \((\theta, p)\). Such random functions are called
+% \emph{proposal functions} in the following. Because \(l\) is a random function,
+% it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\).
+% The density of the composition of proposal functions \(l_{1}\) and \(l_{2}\)
+% is given by
+% \[
+%   q_{l_{2}\circ l_{1}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
+%   = \int_{\R^{2d}}\dx(\theta_{2}, p_{2})
+%   q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
+%   q_{l_{2}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2}).
+% \]
+
+% Now reversibility by negating \(p\) can be defined:
+% \begin{definition}\label{prop_revers_definition}
+%   A proposal function \(l\) is reversible by negating \(p\) if
+%   \[
+%     q_{l}(\theta', p'\mid \theta, p) = q_{l}(\theta, -p \mid \theta', -p')
+%   \]
+% \end{definition}
+% This can be simplified by defining \(\bar{l}\) as the the proposal
+% function that has density
+% \(q_{\bar{l}}(\theta', p'\mid \theta, p) = q_{l}(\theta, p\mid \theta', p')\),
+% and defining \(l_{-}\) as \(l_{-}(\theta, p) = (\theta, -p)\).
+% Definition~\ref{prop_revers_definition} can then be written as
+% \(\bar{l} = l_{-}\circ l\circ l_{-}\). The function \(\bar{l}\) only exists
+% if
+% \[
+%   \int_{\R^{2d}}q_{l}(\theta', p'\mid \theta, p)\dx(\theta, p) = 1
+% \]
+% which is true for random functions reversibly by negating \(p\).
+
+% \begin{lemma}\label{prop_fun_comp_lemma}
+%   Let \(l_{1}\) and \(l_{2}\) be proposal functions in \(\R^{2d}\) such that
+%   \(\bar{l_{1}}\) and \(\bar{l_{2}}\) exist.
+%   Then \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
+%   For a sequence \(l_{1}, \dotsc, l_{k}\) of proposal functions such that
+%   \(\bar{l_{i}}\) exists for \(1\leq i \leq k\),
+%   \(\overline{l_{k}\circ \dotsb \circ l_{1}} = \bar{l_{1}}\circ \dotsb \circ \bar{l_{k}}\).
+% \end{lemma}
+% \begin{proof}
+%   \begin{align*}
+% 	q_{\overline{l_{2}\circ l_{1}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
+%     &= q_{l_{2}\circ l_{1}}(\theta_{1}, p_{1}\mid \theta_{3}, p_{3})
+%     \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{3}, p_{3})
+%       q_{l_{2}}(\theta_{1}, p_{1}\mid \theta_{2}, p_{2})
+%     \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{\bar{l}_{1}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2})
+%       q_{\bar{l}_{2}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
+%     \\&= q_{\bar{l_{1}}\circ \bar{l_{2}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
+%   \end{align*}
+%   which means that \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
+%   The claim for sequences follows by induction.
+% \end{proof}
+
+% \begin{theorem}\label{leapfrog_revers_theorem}
+%   The leapfrog simulation with noisy and clipped gradients is reversible by
+%   negating \(p\).
+% \end{theorem}
+% \begin{proof}
+%   The leapfrog simulation is a composition of proposal functions
+%   \(l_{p}\) and \(l_{\theta}\) where
+%   \[
+%     l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
+%       + \caln(0, \sigma_{g}^{2}))\right)
+%   \]
+%   and
+%   \[
+%     l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p).
+%   \]
+%   Specifically, the simulation is
+%   \[
+%     (l_{p} \circ l_{\theta}\circ l_{p})\circ
+%     \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})
+%   \]
+%   with \(L\) compositions of \(l_{p} \circ l_{\theta}\circ l_{p}\).
+%   Then
+%   \begin{align*}
+%     q_{l_{p}}(\theta', p'\mid \theta, p) &= \delta_{\theta'}(\theta)
+%     \cdot \caln\left(p'\mid p - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
+%     \\&= \delta_{\theta}(\theta')
+%     \cdot \caln\left(-p\mid -p' - \frac{\eta}{2}g(\theta'), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
+%     \\&= q_{l_{p}}(\theta, -p\mid \theta', -p')
+%   \end{align*}
+%   where the second equality uses the fact that if
+%   \(\delta_{\theta}(\theta')\neq 0\), \(\theta = \theta'\),
+%   and
+%   \begin{align*}
+% 	q_{l_{\theta}}(\theta, -p\mid \theta', -p')
+%     &= \delta_{\theta}(\theta' - \eta M^{-1}p')\cdot\delta_{-p}(-p')
+%     \\&= \delta_{\theta'}(\theta + \eta M^{-1}p)\cdot\delta_{p'}(p)
+% 	\\&= q_{l_{\theta}}(\theta', p'\mid \theta, p),
+%   \end{align*}
+%   which means that both \(l_{p}\) and \(l_{\theta}\) are reversible by
+%   negating \(p\). Then the reverse of the leapfrog composition can be
+%   written as
+%   \begin{align*}
+% 	\overline{(l_{p} \circ l_{\theta}\circ l_{p})\circ
+%     \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})}
+%     &= (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}}) \circ \dotsb \circ
+%     (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}})
+%     \\&= l_{-}\circ(l_{p}\circ l_{\theta} \circ l_{p}) \circ \dotsb \circ
+%     (l_{p}\circ l_{\theta} \circ l_{p})\circ l_{-},
+%   \end{align*}
+%   where the first equality uses Lemma~\ref{prop_fun_comp_lemma} and
+%   the fact that the sequence of compositions is symmetric.
+%   The second equality uses the fact that \(l_{p}\) and \(l_{\theta}\)
+%   are reversible by negating \(p\), and that \(l_{-}\) is its own inverse.
+%   This means that the leapfrog simulation with noisy and clipped gradients is
+%   reversible by negating \(p\).
+% \end{proof}
+
+% Because the leapfrog proposal \(l\) is reversible by negating p,
+% \(\bar{l} = l_{-} \circ l\circ l_{-}\). Denote \(l^{*} = l_{-}\circ l\).
+% Because \(\bar{l_{-}} = l_{-}\),
+% \(\bar{l^{*}} = \bar{l}\circ \bar{l_{-}}
+% = l_{-}\circ l\circ l_{-}\circ l_{-} = l^{*}\).
+% As in the non-DP case, using \(l^{*}\) as the proposal is equivalent to using
+% \(l\), and when using \(l^{*}\), \(r(\theta, p, \theta', p')\) simplifies
+% \[
+%   r(\theta, p, \theta', p')
+%   = \frac{\pi(\theta', p')}{\pi(\theta, p)}
+%   \frac{q_{l}(\theta, p\mid \theta', p')}{q_{l}(\theta', p'\mid \theta, p)}
+%   = \frac{\pi(\theta', p')}{\pi(\theta, p)}
+%   \frac{q_{l^{*}}(\theta, p\mid \theta', p')}{q_{\bar{l^{*}}}(\theta, p\mid \theta', p')}
+%   = \frac{\pi(\theta', p')}{\pi(\theta, p)}.
+% \]
+% For HMC,
+% \[
+%   \frac{\pi(\theta', p')}{\pi(\theta, p)} = \exp(H(\theta, p) - H(\theta', p')),
+% \]
+% so the acceptance probability from non-DP HMC, with the penalty correction for
+% the noise added to the log-likelihood, is correct for DP HMC.
 
 If the friction term that corrects the dynamics is used, the equations of
 motion become~\cite{CFG14}
@@ -2738,7 +2794,7 @@ parameters automatically alleviates these problems. A variant of HMC called
 the No-U-turn sampler (NUTS)~\cite{HoG14} is able to tune both \(\eta\) and \(L\)
 automatically, which made HMC usable in automatic inference libraries such as
 Stan~\cite{stan} that are typically used by applied practitioners who are not
-experts in MCMC algorithms. Extending NUTS and other MCMC algorithms that
+experts in MCMC algorithms. Extending NUTS and dynamic HMC algorithms that
 can tune some parameters automatically to the DP case is a potential avenue of
 future research. The empirical results on clipping in
 Section~\ref{clipping_experiments} may be usable as guidelines for tuning the
@@ -2780,7 +2836,7 @@ when the analysis is theoretically DP with exact sampling of the Laplace
 distribution. These issues likely exist when sampling the Gaussian distribution,
 which means that actual implementations of the algorithms in this thesis may
 not have their theoretical DP guarantees. Recently, the differential privacy
-of a discrete variance of the Gaussian distribution has been
+of a discrete variant of the Gaussian distribution has been
 analysed~\cite{C0S20}. Using a discrete distribution instead of a continuous one
 sidesteps floating point issues, but in the context of DP MCMC, the penalty
 correction requires adding continuous Gaussian noise. Investigating the effect
