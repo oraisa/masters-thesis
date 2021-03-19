@@ -38,7 +38,7 @@
 \date{\today}
 \prof{Associate Professor Antti Honkela}
 \censors{Associate Professor Antti Honkela}{Doctor Antti Koskela}{}
-\keywords{Differential Privacy, Markov Chain Monte Carlo, Hamiltonian Monte Carlo}
+\keywords{Differential privacy, Markov chain Monte Carlo, Hamiltonian Monte Carlo}
 \depositeplace{}
 \additionalinformation{}
 
@@ -113,18 +113,20 @@
 
 \begin{abstract}
   Differential privacy has over the past decade become a widely used framework
-  for privacy preserving machine learning. At the same time,
+  for privacy-preserving machine learning. At the same time,
   Markov chain Monte Carlo (MCMC) algorithms have become an increasingly popular method
   of performing Bayesian inference. Surprisingly, their combination has not
   received much attention in the literature. This thesis introduces the
-  existing research on differentially private MCMC algorithms, extends the
-  existing results using recent developments in differential privacy and
+  existing research on differentially private MCMC algorithms, proves tighter
+  privacy bounds for them using recent developments in differential privacy, and
   develops two new differentially private MCMC algorithms:
   an algorithm using subsampling to lower privacy costs, and
   a differentially private variant of the Hamiltonian Monte
-  Carlo-algorithm. The performance of the algorithms is compared on several
+  Carlo algorithm. The privacy bounds of both new algorithms are proved, and
+  convergence to the exact posterior is proven for the latter.
+  The performance of both the old and the new algorithms is compared on several
   Bayesian inference problems, revealing that none of the algorithms is
-  clearly better than the others, but subsampling likely only useful to lower
+  clearly better than the others, but subsampling is likely only useful to lower
   computational costs.
 \end{abstract}
 
@@ -145,19 +147,19 @@ analysis, grow. This makes analysis techniques that can ensure the privacy
 of the individuals important. Differential
 privacy~\cite{DMN06} is a formal definition attempting to capture the notion
 of a data analysis algorithm that preserves privacy. Markov chain Monte
-Carlo (MCMC)~\cite{MRR53, Has70} is an algorithm that enables data analysis using
+Carlo (MCMC)~\cite{MRR53, Has70} is a method that enables data analysis using
 Bayesian inference~\cite{BDA}. This thesis studies the combination of
-differential privacy and MCMC by introducing existing algorithms, developing
-improvements with new techniques in differential privacy, and finally comparing
-the algorithms on a variety of settings.
+differential privacy and MCMC by introducing existing algorithms, proving
+tighter privacy bounds for them, and developing two novel algorithms.
+Finally, the algorithms are compared on a variety of settings.
 
 Traditional approaches in preserving the privacy of data subjects in data
 analysis, such as simply omitting identifying information, or
-more advanced techniques such as \(k\)-anonymity~\cite{Sam01},
+more advanced techniques such as \(k\)-anonymity~\cite{SaS98, Sam01},
 can lead to compromises of private information. These leaks can result from
 the combination of an
 adversary having access to additional data and linking parts of the additional
-data and the private data, and the adversary having access to many
+data and the private data, or the adversary having access to many
 public results that use the same private dataset~\cite{DiN03}.
 
 Differential privacy~\cite{DMN06} is a notion of an algorithm that preserves
@@ -189,8 +191,14 @@ data to obtain a posterior distribution of the parameters.
 Computing the posterior distribution analytically is often not possible,
 so numerical methods are needed. Markov chain Monte Carlo (MCMC) is a general
 method of drawing
-samples from a given distribution, such as the posterior distribution. This allows
+samples from a given distribution, such as the posterior distribution.
+The sampling is done by first picking a proposal from a given proposal distribution,
+and then either choosing to accept or reject the proposal based on an acceptance
+test. The sample allows
 the analyst to gain information about the model parameters through the data.
+MCMC algorithms only require knowing an unnormalised form of the target distribution,
+which enables their use on a wide variety of models, as computing the unnormalised
+posterior is often much easier than computing the normalised posterior.
 
 Combining MCMC algorithms with differential privacy allows
 an analyst to conduct the comprehensive Bayesian inference that is
@@ -198,11 +206,21 @@ possible using MCMC while preserving the privacy of the data subjects through
 differential privacy. Two differentially private MCMC algorithms have been
 developed: the DP penalty algorithm of Yildirim and Ermis~\cite{YildirimE19},
 and the DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19}.
-Of these, the penalty algorithm is considerably simpler and more extensible,
+DP penalty builds on the earlier penalty algorithm~\cite{CeD99}, which was
+developed for physical simulations where it is difficult to compute even the
+unnormalised form of the target distribution, so the target
+must be approximated. DP Barker builds on an earlier algorithm that only
+uses a part of its input data at a time to reduce computational
+costs~\cite{SPC17}, which itself approximates the Barker algorithm~\cite{Barker65}
+to correct for the error from not using the full data. In DP Barker, not using the
+full data additionally amplifies the privacy of the algorithm,
+allowing it to run longer for a given privacy budget.
+Of these, the DP penalty algorithm is considerably simpler and more extensible,
 so the further development of differentially private MCMC algorithms in this
 thesis uses it as the basis.
 
-In 2019, Sommer et al. developed a technique of computing the privacy of
+In 2019, Sommer et al.~\cite{Sommer2019} developed a technique of
+computing the privacy of
 iterative algorithms that allows running the algorithms longer than the
 privacy accounting methods used by Yildirim and Ermis~\cite{YildirimE19} and
 Heikkilä et al.~\cite{HeikkilaJDH19}. This technique is applicable to the
@@ -228,23 +246,35 @@ There are other frameworks for DP Bayesian inference than DP MCMC, but none
 of them offers the full generality and theoretical guarantees that DP MCMC
 has. DP variational inference~\cite{JHD17} approximates the posterior
 distribution with a tractable distribution, but the approximating distribution
-may not be able to match the posterior. For exponential family models~\cite{ZRD16} and
-generalized linear models~\cite{KJK20},
-differentially private inference is possible by perturbing sufficient statistics,
-but these sets of models are limited. Simply sampling
+may not be able to match the posterior. For exponential
+family~\cite{BernsteinS18} and generalized linear models~\cite{KJK20},
+differentially private inference is possible by perturbing sufficient statistics
+or posterior parameterisations, but these sets of models are limited. Simply sampling
 from the exact posterior is differentially private under suitable
-conditions~\cite{DNZ17}, but for many models, exact sampling of the posterior
-is not possible. Stochastic gradient Langevin dynamics~\cite{WFS15} resemble
-MCMC, but they omit key Metropolis-Hastings acceptance test, which weakens
-their performance when compared with full MCMC.
+conditions~\cite{DNZ17, WFS15, ZRD16}, but for many models, exact sampling of the posterior
+is not possible.
+
+In the non-private setting, stochastic gradient MCMC
+algorithms~\cite{CFG14, DFB14} use the gradients of the target distribution
+to draw efficient proposals. To save computation time, the gradients are
+only computed over a subsample of the data, and the acceptance test is omitted,
+which introduces bias to the resulting posterior~\cite{Bet15}, especially in
+high dimensions.
+Differentially private variants of these algorithms~\cite{WFS15, LCL19} greatly
+benefit from privacy amplification from subsampling and omitting the
+acceptance test,
+but they inherit the bias from omitting the acceptance test, so all of the
+algorithm in this thesis include the acceptance test.
 
 This thesis begins with a more detailed, but nevertheless brief, introduction to
 differential privacy and MCMC in Chapter~\ref{background_chapter}.
 Chapter~\ref{dp_mcmc_chapter} considers the simpler differentially private
-MCMC algorithm: the existing algorithms DP penalty and DP Barker are introduced
+MCMC algorithms: the existing algorithms, DP penalty and DP Barker, are introduced
 in Sections~\ref{dp_penalty_section} and \ref{dp_barker_section},
-and the new improvements are discussed in Sections~\ref{dp_penalty_adp_section}
-and \ref{dp_minibatch_penalty_section}. Chapter~\ref{hmc_chapter} first
+the tighter privacy bound for DP penalty is developed in
+Section~\ref{dp_penalty_adp_section}
+and the minibatch DP penalty algorithm is developed in
+Section~\ref{dp_minibatch_penalty_section}. Chapter~\ref{hmc_chapter} first
 introduces HMC in Section~\ref{hmc_basics_section} and develops differentially
 private HMC in Section~\ref{dp_hmc_section}. The performance of the algorithms
 is compared on a wide variety of models. The models, and technical details
@@ -1548,6 +1578,24 @@ The proof requires handling randomised functions that are neither discrete or
 continuous, as the steps in the DP HMC leapfrog are partially random and
 partially deterministic.
 
+Measure theory is the study of \emph{measures}, which unify the concepts
+of length, area and volume of subsets of \(\R\), \(\R^{2}\) and
+\(\R^{3}\), the size of a finite set, probabilities of events, and other similar
+concepts. All of the aforementioned concepts assign a positive real number,
+or infinity, to a set. The empty set is assigned zero, and the assignments are
+additive: unions of disjoint sets are assigned the sum of the numbers assigned
+to each set in the union. While every finite set has a size, assigning
+length to all subsets of \(\R\) that has all the properties expected of lengths
+is not possible, so the range of a measure is often restricted to a collection of
+where a satisfactory assignment is possible.
+
+Before defining measures, some notation is needed. Denote the set of all
+non-negative real numbers with \(\R_{+}\), and denote
+\(\bar{\R}_{+} = \R_{+}\cup \{\infty\}\). In sums, the \(\infty\)-symbol
+behaves as expected: \(x + \infty = \infty\) for any \(x\in \R\) and
+\(\infty + \infty = \infty\). The set of all subsets of a set \(E\), called
+the \emph{powerset} of \(E\), is denoted by \(\mathcal{P}(E)\).
+
 \begin{definition}
   Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
   \(\mathcal{E}\) is called a \(\sigma\)-algebra on \(E\) if
@@ -1557,9 +1605,11 @@ partially deterministic.
     \item \(A_{1},A_{2},\dotsc \in \mathcal{E}
           \Rightarrow \bigcup_{i=1}^{\infty} A_{i}\in \mathcal{E}\)
   \end{enumerate}
-  The pair \((E, \mathcal{E})\) is called a measurable space when
-  \(\mathcal{E}\) is a \(\sigma\)-algebra on \(E\).
+  The pair \((E, \mathcal{E})\) is called a measurable space.
 \end{definition}
+The sets of a \(\sigma\)-algebra \(\mathcal{E}\) are called
+\(\mathcal{E}\)-measurable, or simply measurable if the corresponding
+\(\sigma\)-algebra is clear from the context.
 
 \begin{definition}
 	Let \((E, \mathcal{E})\) be a measurable space. A measure on \((E, \mathcal{E})\)
@@ -1574,25 +1624,173 @@ partially deterministic.
     = \sum_{i=1}^\infty\mu(A_{i})
     \]
   \end{enumerate}
-  A measure \(\mu\) with \(\mu(E) = 1\) is called a probability measure.
+  The triple \((E, \mathcal{E}, \mu)\) is called a measure space.
+  % A measure \(\mu\) with \(\mu(E) = 1\) is called a probability measure.
 \end{definition}
+
+The reason for restricting the domain of a measure to a \(\sigma\)-algebra
+is the impossibility of defining a length for all subsets of \(\R\): it is
+possible to assign a length to all \emph{Lebesgue-measurable} sets, which form
+a \(\sigma\)-algebra. The measure assigning length in \(\R\), area in \(\R^{2}\)
+and their counterparts in higher dimensions is called the
+\emph{Lebesgue measure}\footnote{
+  Technically the Lebesgue measures on \(\R^{d}\) for each \(d\in \N\) are
+  different measures.
+} and is denoted by \(\lambda\). For this thesis, it is sufficient to
+work with the \emph{Borel \(\sigma\)-algebra} of \(\R^{d}\), denoted by
+\(\mathcal{B}(\R^{d})\), which is
+the smallest \(\sigma\)-algebra of \(\R^{d}\) containing all the open sets
+of \(\R^{d}\). Members of \(\mathcal{B}(\R^{d})\) are called the Borel sets,
+and they include most sets one encounters in mathematics: all open, all closed
+sets and all sets obtained from them by countable numbers of set-theoretic
+operations like unions and intersections.
+
+Measure-theoretic concepts that involve functions, particularly the
+Lebesgue integral discussed later, typically require that the functions
+preserve the measurability of sets.
+\begin{definition}
+	Let \((E, \mathcal{E})\) and \((F, \mathcal{F})\) be measurable spaces
+  and let \(f\colon E\to F\). \(f\) is called
+  \(\mathcal{E}\)-\(\mathcal{F}\)-measurable if
+  \(B\in \mathcal{F}\Rightarrow f^{-1}B\in \mathcal{E}\).
+\end{definition}
+As with measurable sets, \(\mathcal{E}\)-\(\mathcal{F}\)-measurable functions
+are simply called measurable if \(\mathcal{E}\) and \(\mathcal{F}\) are
+clear from the context.
+Most functions that one comes across are measurable. In particular,
+the indicators of measurable sets are measurable, continuous functions are
+Borel-measurable, and compositions of measurable functions are measurable.
+
+One of the hallmarks of measure theory is the Lebesgue integral, which
+extends the Riemann integral to allow integration over all measurable functions,
+and allows integrating with respect to an arbitrary measure. The definition
+of the Lebesgue integral is fairly technical and is not given here.
+
+\begin{definition}
+	Let \((E, \mathcal{E}, \mu)\) be a measure space and let \(f\colon E\to \R_{+}\)
+  be a measurable function. The Lebesgue integral of \(f\) over a set
+  \(A\in \mathcal{E}\) with respect to \(\mu\) is denoted by
+  \[
+    \int_{A}\mu(\dx x)f(x).
+  \]
+\end{definition}
+Note that the integral was only defined for non-negative functions. It is possible
+to extend the definition to measurable real-valued functions,
+but the integral for non-negative function is sufficient for this thesis.
+
+\begin{theorem}
+  Useful properties of the Lebesgue integral:
+	\begin{enumerate}
+    \item For a measure space \((E, \mathcal{E}, \mu)\) and
+          \(A\in \mathcal{E}\), \(\int_{E}\mu(\dx x)1_{A}(x) = \mu(A)\).
+    \item For a measure space \((E, \mathcal{E}, \mu)\), measurable
+          \(f, g\colon E\to \R_{+}\), \(A\in \mathcal{E}\) and \(a, b\in \R_{+}\),
+          \(\int_{A} \mu(\dx x)(af(x) + bg(x))
+          = a\int_{A} \mu(\dx x) f(x) + b\int_{A} \mu(\dx x) g(x)\).
+    % \item For \(f_{1}, f_{2}, \dotsc \in M_{+}(\R_{d})\) where \(f_{i} \geq f_{j}\)
+    %       when \(i \geq j\), \(\lim_{i\to\infty}L(f_{i}) = L(\lim_{i\to\infty}f_{i})\).
+    \item For a Riemann-integrable function \(f\colon E\to \R_{+}\) and
+          \(a, b\in \R\) with \(a \leq b\),
+          \(\int_{[a, b]}\lambda(\dx x)f(x) = \int_{a}^{b}f(x)\dx x\),
+          where the integral on the right is a Riemann integral.
+    \item For a continuous random variable \(X\) on \(\R^{d}\) with
+          density \(\pi\), and \(A\in \mathcal{B}(\R^{d})\),
+          \(P(X\in A) = \int_{A}\lambda(\dx x)\pi(x)\).
+  \end{enumerate}
+\end{theorem}
+% Measure theory is a mathematical theory that seeks to generalise the
+% notions of length, areas, and volumes of subsets of \(\R\), \(\R^{2}\)
+% and \(\R^{3}\) to high dimensional spaces,
+% and unify them with other concepts that behave similarly, such as counts of
+% objects and probabilities.
+
+% The Lebesgue measure defines the notions of
+% length, area and volume in 1-, 2- and 3-dimensional spaces, and generalises
+% them to \(\R^{d}\). It turns out that even assigning a consistent length to all
+% subsets of \(\R\) is impossible, but there is a subset of subsets of \(\R\)
+% where the assignment of length is possible, the so-called Lebesgue-measurable
+% sets. The same holds true for \(\R^{d}\): it is not possible to measure all
+% subsets, only the Lebesgue measurable sets. The Lebesgue measure is characterised
+% by the following properties:
+% \begin{enumerate}
+%   \item \(\lambda(\emptyset) = 0\)
+%   \item Countable additivity: For disjoint Lebesgue-measurable
+%         \(A_{1}, A_{2}, \dotsc\),
+%         \(\lambda(\bigcup_{i=1}^{\infty} A_{i}) = \sum_{i=1}^{\infty}\lambda(A_{i})\).
+% 	\item Translation invariance: \(\lambda(\{a + x\mid a\in A\}) = \lambda(A)\) for
+%         any \(x\in \R^{d}\) and Lebesgue-measurable \(A\subset \R^{d}\).
+%   \item \(\lambda([0, 1]^{d}) = 1\).
+% \end{enumerate}
+
+% Properties (3) and (4) of the Lebesgue measure are due to the requirement that
+% Lebesgue measure must represent lengths in \(\R\), but properties (1) and (2)
+% hold in very different settings, some examples being probabilities and the
+% sizes of finite sets, so they are taken as the basis when defining general
+% measures on arbitrary sets. The issue of measurability from the Lebesgue measure
+% is also present in more general measures,
+
+\begin{definition}
+	Let \((E, \mathcal{E})\) be a measurable space. A Markov kernel on
+  \((E, \mathcal{E})\) is a function \(q\colon E\times \mathcal{E}\to [0, 1]\)
+  where
+  \begin{enumerate}
+    \item For all \(A\in \mathcal{E}\), the function \(q(\cdot, A)\) is
+          measurable.
+    \item
+          For all \(a\in E\), the function \(q(a, \cdot)\) is a probability
+          measure on \((E, \mathcal{E})\).
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}\label{markov_kernel_composition_lemma}
+	The composition of Markov kernels \(q_{1}\) and \(q_{2}\) on a measurable space
+  \((E, \mathcal{E})\) is given by
+  \[
+    (q_{2}\circ q_{1})(a, C) = \int_{E}q_{1}(a, \dx b)q_{2}(b, C)
+  \]
+\end{lemma}
 
 \begin{definition}
 	A Markov kernel \(q\) is reversible with respect to a measure \(\mu\)
   if
   \[
-    q(a, \dx b)\mu(\dx a) = q(b, \dx a)\mu(\dx b)
-  \]
-  \[
-    \int_{A}q(a, B)\mu(da) = \int_{B}q(b, A)\mu(db)
+    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b) = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)
   \]
 \end{definition}
+
+\begin{lemma}\label{reversible_integration_lemma}
+  Let \(q\) be a markov kernel reversible with respect to \(\mu\) and
+  let \(f\) be a measurable function. Then
+  \[
+    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
+    = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
+  \]
+\end{lemma}
+\begin{proof}
+	Let
+  \[
+    \nu_{1}(A, B) = \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)
+  \]
+  \[
+    \nu_{2}(A, B) = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)
+  \]
+  By the reversibility of \(q\) with respect to \(\mu\),
+  \(\nu_{1} = \nu_{2}\), so
+  \begin{align*}
+    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
+    &= \int_{A}\int_{B}\nu_{1}(\dx a, \dx b)f(a, b)
+    \\&= \int_{A}\int_{B}\nu_{2}(\dx a, \dx b)f(a, b)
+    \\&= \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
+    \qedhere
+  \end{align*}
+\end{proof}
 
 \begin{lemma}\label{composition_reversible_lemma}
 	If Markov kernels \(q_{1}\) and \(q_{2}\) are reversible with respect to a
   measure \(\mu\),
   \[
-    (q_{2}\circ q_{1})(a, \dx c) = (q_{1}\circ q_{2})(c, \dx a).
+    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
+    = \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
   \]
   For Markov kernels \(q_{1}\dotsc q_{k}\) reversible with respect to \(\mu\),
   \[
@@ -1604,16 +1802,28 @@ partially deterministic.
   respect to \(\mu\).
 \end{lemma}
 \begin{proof}
-  Because
+  Lemma~\ref{markov_kernel_composition_lemma} can be restated as
   \[
-    (q_{2}\circ q_{1})(a, \dx c) = \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c),
+    \int_{C}(q_{2}\circ q_{1})(a, \dx c) = \int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c).
   \]
+  Then
 	\begin{align*}
-    (q_{2}\circ q_{1})(a, \dx c)\mu(\dx a)
-    &= \int_{\R^{d}}q_{1}(a, \dx b)q_{2}(b, \dx c)\mu(\dx a)
-    \\&= \int_{\R^{d}}q_{1}(b, \dx a)q_{2}(b, \dx c)\mu(\dx b)
-    \\&= \int_{\R^{d}}q_{1}(b, \dx a)q_{2}(c, \dx b)\mu(\dx c)
-    \\&= (q_{1}\circ q_{2})(c, \dx a)\mu(\dx c).
+    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
+    &= \int_{A}\mu(\dx a)\int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c)
+    \\&= \int_{E}\mu(\dx b)\int_{A}q_{1}(b, \dx a)\int_{C}q_{2}(b, \dx c)
+    \\&= \int_{E}\mu(\dx b)\int_{C}q_{2}(b, \dx c)\int_{A}q_{1}(b, \dx a)
+    \\&= \int_{C}\mu(\dx c)\int_{E}q_{2}(c, \dx b)\int_{A}q_{1}(b, \dx a)
+    \\&= \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
+  \end{align*}
+  \begin{align*}
+    &\int_{A}\mu(\dx a)\int_{C}(q_{k}\circ\dotsb \circ q_{1})(a, \dx c)
+    \\=& \int_{A}\mu(\dx a)\int_{E}(q_{k-1}\circ \dotsb \circ q_{1})(a, \dx b)
+      \int_{C}q_{k}(b, \dx c)
+    \\=& \int_{E}\mu(\dx b)\int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
+      \int_{C}q_{k}(b, \dx c)
+    \\=& \int_{C}\mu(\dx c) \int_{E}q_{k}(c, \dx b)
+         \int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
+    \\=&\int_{C}\mu(\dx c)\int_{A}(q_{1}\circ\dotsb \circ q_{k})(c, \dx a)
   \end{align*}
   The claim for compositions of \(k\) Markov kernels follows by induction.
   When \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
@@ -1641,17 +1851,17 @@ partially deterministic.
   \]
   when moving from \(\theta\) to \(\theta'\) is
   \[
-    \iint_{A}\pi(\dx \theta)Q(\theta, \dx \theta')\alpha(\theta, \theta')
-    = \iint_{A}\pi(\dx \theta')Q(\theta', \dx \theta)\alpha(\theta', \theta)
+    \int_{A}\pi(\dx \theta)\int_{B}Q(\theta, \dx \theta')\alpha(\theta, \theta')
+    = \int_{B}\pi(\dx \theta')\int_{A}Q(\theta', \dx \theta)\alpha(\theta', \theta)
   \]
-  for all measurable sets \(A\subset \R^{d}\)~\cite{Tie98}.
+  for all measurable sets \(A, B\subset \R^{d}\)~\cite{Tie98}.
   For continuous \(\pi\) and \(Q\) reversible with respect to the Lebesque measure
   \begin{align*}
-    \iint_{A}\pi(\dx \theta)Q(\theta, \dx \theta')\alpha(\theta, \theta')
-    &= \iint_{A}\pi(\theta)Q(\theta, \dx \theta')\alpha(\theta, \theta')\dx\theta
-    \\&= \iint_{A}\min\{\pi(\theta), \pi(\theta')\}Q(\theta, \dx \theta')\dx\theta
-    \\&= \iint_{A}\min\{\pi(\theta'), \pi(\theta)\}Q(\theta', \dx \theta)\dx\theta'
-    \\&= \iint_{A}\pi(\dx \theta')Q(\theta', \dx \theta)\alpha(\theta', \theta).
+    \int_{A}\pi(\dx \theta)\int_{B}Q(\theta, \dx \theta')\alpha(\theta, \theta')
+    &= \int_{A}\dx \theta\int_{B}Q(\theta, \dx \theta')\pi(\theta)\alpha(\theta, \theta')
+    \\&= \int_{A}\dx\theta\int_{B}Q(\theta, \dx \theta')\min\{\pi(\theta), \pi(\theta')\}
+    \\&= \int_{B}\dx\theta'\int_{A}Q(\theta', \dx \theta)\min\{\pi(\theta'), \pi(\theta)\}
+    \\&= \int_{A}\pi(\dx \theta')\int_{B}Q(\theta', \dx \theta)\alpha(\theta', \theta).
     \qedhere
   \end{align*}
 \end{proof}
@@ -1698,16 +1908,16 @@ partially deterministic.
   \(\sigma^{2} = x^{2}\eta^{2}\sigma_{g}^{2}\). Then
   \[
     \int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p')) =
-    \int_{B}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})\delta_{\theta}(\dx \theta')\dx p'
+    \int_{B}\delta_{\theta}(\dx \theta')\dx p'\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
   \]
   Using Lemma~\ref{dirac_measure_reversible_lemma}
 	\begin{align*}
-    \int_{A}\int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))\dx(\theta, p)
-    &= \int_{A}\int_{B}\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
-      \delta_{\theta}(\dx \theta')\dx p'\dx(\theta, p)
-    \\&= \int_{B}\int_{A}\caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})
-      \delta_{\theta'}(\dx \theta)\dx p\dx(\theta', p')
-    \\&= \int_{B}\int_{A}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))\dx(\theta', p')
+    \int_{A}\dx(\theta, p)\int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
+    &= \int_{A}\dx(\theta, p)\int_{B}\delta_{\theta}(\dx \theta')\dx p'
+      \caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
+    \\&= \int_{B}\dx(\theta', p')\int_{A}\delta_{\theta'}(\dx \theta)\dx p
+    \caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})
+    \\&= \int_{B}\dx(\theta', p')\int_{A}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))
     \qedhere
   \end{align*}
 \end{proof}
@@ -2790,9 +3000,12 @@ privacy bounds.
 Tuning the parameters of an MCMC algorithm by hand is time consuming,
 even with a guideline on the optimal acceptance rate, and requires the user of
 the algorithm to know the guidelines and their applicability. Tuning the
-parameters automatically alleviates these problems. A variant of HMC called
-the No-U-turn sampler (NUTS)~\cite{HoG14} is able to tune both \(\eta\) and \(L\)
-automatically, which made HMC usable in automatic inference libraries such as
+parameters automatically alleviates these problems. In the context of HMC, these
+automatically tuned algorithms are called dynamic HMC algorithms. The most
+prominent dynamic HMC algorithms is the No-U-turn sampler (NUTS)~\cite{HoG14},
+that is able to tune both \(\eta\) and \(L\) automatically.
+The automatic tuning of both parameters made HMC usable in automatic inference
+libraries such as
 Stan~\cite{stan} that are typically used by applied practitioners who are not
 experts in MCMC algorithms. Extending NUTS and dynamic HMC algorithms that
 can tune some parameters automatically to the DP case is a potential avenue of
