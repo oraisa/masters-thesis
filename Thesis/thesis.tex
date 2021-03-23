@@ -283,8 +283,9 @@ The results of the experiments are presented in Chapter~\ref{experiment_chapter}
 
 \chapter{Background}\label{background_chapter}
 
-This chapter covers the basics of differential privacy, Bayesian inference
-and Markov chain Monte Carlo algorithms needed in the later chapters. To keep
+This chapter covers the basics of differential privacy, Bayesian inference,
+Markov chain Monte Carlo algorithms and measure theory
+needed in the later chapters. To keep
 the introduction brief, only directly needed concepts are covered, and much
 of the motivation behind the subjects is left out.
 
@@ -572,7 +573,7 @@ a given distribution~\cite{BDA}. While this can be done in many ways, this thesi
 focuses on a particular MCMC algorithm:
 \emph{Metropolis-Hastings} (MH)~\cite{MRR53, Has70}.
 
-At each iteration \(i\), the Metropolis-Hastings algorithm samples \(\theta_i\) 
+At each iteration \(i\), the Metropolis-Hastings algorithm samples \(\theta_i\)
 from a distribution \(\pi\) of \(\theta\)
 by first picking a proposal \(\theta'\) from a proposal 
 distribution \(q(\cdot \mid \theta_{i-1})\)~\cite{MRR53}, where \(\theta_{i-1}\) is the
@@ -589,9 +590,23 @@ and the proposal is accepted with probability \(\min\{1, r\}\).
 If the proposal is accepted, 
 \(\theta_i = \theta'\), otherwise \(\theta_i = \theta\).
 
-It can be shown that, with a suitable proposal distribution, the chain of 
-\(\theta_i\) values converges to \(\pi\)~\cite{Has70}. The Gaussian distribution centered
-at the current value is a commonly used proposal.
+It can be shown that, with a suitable proposal distribution, the chain of
+\(\theta_i\) values is \emph{ergodic} and has \(\pi\) as its \emph{invariant
+distribution}, which implies that the chain converges to \(\pi\)~\cite{Has70}.
+The invariance of \(\pi\) follows from the \emph{detailed balance condition}~\cite{Robert04}:
+\[
+  \pi(\theta)q(\theta'\mid \theta)\min\{1, r(\theta, \theta')\}
+  = \pi(\theta')q(\theta\mid \theta')\min\{1, r(\theta', \theta)\}.
+\]
+The ergodicity of the chain depends on the proposal distribution. Proving
+ergodicity in general can be difficult, but there is an easy to check
+sufficient condition: if the proposal allows moving to any state from any
+state with positive probability, the chain is called
+\emph{strongly irreducible}. Together with the detailed balance condition,
+strong irreducibility implies ergodicity~\cite{Robert04}. The Gaussian
+distribution centered
+at the current value is a commonly used proposal, which is clearly
+strongly irreducible.
 
 When MCMC is used in Bayesian inference, the distribution to approximate is 
 \[
@@ -648,6 +663,394 @@ algorithm used for Bayesian inference.
         dataset \(X\) as input.
     }
 \end{algorithm}
+
+\section{Measure Theory}
+
+Measure theory is the study of \emph{measures}, which unify the concepts
+of length, area and volume of subsets of \(\R\), \(\R^{2}\) and
+\(\R^{3}\), the number of elements of a finite set, probabilities of events,
+and other similar
+concepts. All of the aforementioned concepts assign a positive real number,
+or infinity, to a set, that measures the size of the set in some sense.
+In all cases, the measure of the empty set is zero, and measure is
+additive: the measure of a union of disjoint sets is the sum of the measures
+of each set in the union. Ideally, every subset would have a measure, like
+every finite set has a number of elements, but assigning a
+length to all subsets of \(\R\) in a way that has all the properties expected
+of lengths
+is not possible~\cite{Cin11}. Similar difficulties occur in higher dimensions and with
+continuous probability distributions, so the range of a measure is
+restricted to a collection of where a satisfactory assignment of measure is
+possible.
+
+Before defining measures, some notation is needed. Denote the set of all
+non-negative real numbers with \(\R_{+}\), and denote
+\(\bar{\R}_{+} = \R_{+}\cup \{\infty\}\). In sums, the \(\infty\)-symbol
+behaves as expected: \(x + \infty = \infty\) for any \(x\in \R\) and
+\(\infty + \infty = \infty\). The set of all subsets of a set \(E\), called
+the \emph{powerset} of \(E\), is denoted by \(\mathcal{P}(E)\).
+
+\begin{definition}
+  Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
+  \(\mathcal{E}\) is called a \(\sigma\)-algebra on \(E\) if
+  \begin{enumerate}
+    \item \(\emptyset \in \mathcal{E}\)
+    \item \(A\in \mathcal{E}\Rightarrow A^{C}\in \mathcal{E}\)
+    \item \(A_{1},A_{2},\dotsc \in \mathcal{E}
+          \Rightarrow \bigcup_{i=1}^{\infty} A_{i}\in \mathcal{E}\)
+  \end{enumerate}
+  The pair \((E, \mathcal{E})\) is called a measurable space.
+\end{definition}
+The sets of a \(\sigma\)-algebra \(\mathcal{E}\) are called
+\(\mathcal{E}\)-measurable, or simply measurable if the corresponding
+\(\sigma\)-algebra is clear from the context.
+
+\begin{definition}
+	Let \((E, \mathcal{E})\) be a measurable space. A measure on \((E, \mathcal{E})\)
+  is a function \(\mu\colon \mathcal{E}\to \bar{\R}_{+}\) such that
+  \begin{enumerate}
+    \item
+    \(\mu(\emptyset) = 0\)
+    \item
+    For any sequence of sets \(A_{1}, A_{2},\dotsc \in \mathcal{E}\)
+    \[
+    \quad \mu\left(\bigcup_{i=1}^{\infty} A_{i}\right)
+    = \sum_{i=1}^\infty\mu(A_{i})
+    \]
+  \end{enumerate}
+  The triple \((E, \mathcal{E}, \mu)\) is called a measure space.
+\end{definition}
+
+The reason for restricting the domain of a measure to a \(\sigma\)-algebra
+is the impossibility of defining a length for all subsets of \(\R\): it is
+possible to assign a length to all \emph{Lebesgue-measurable} sets, which form
+a \(\sigma\)-algebra~\cite{Cin11}. The measure assigning length in \(\R\),
+area in \(\R^{2}\) and their counterparts in higher dimensions is called the
+\emph{Lebesgue measure}\footnote{
+  Technically the Lebesgue measures on \(\R^{d}\) for each \(d\in \N\) are
+  different measures.
+} and is denoted by \(\lambda\).
+
+For this thesis, it is sufficient to
+work with the \emph{Borel \(\sigma\)-algebra} of \(\R^{d}\), denoted by
+\(\mathcal{B}(\R^{d})\), which is
+the smallest \(\sigma\)-algebra of \(\R^{d}\) containing all the open sets
+of \(\R^{d}\). Members of \(\mathcal{B}(\R^{d})\) are called the Borel sets,
+and they include most sets one encounters in mathematics: all open, all closed
+sets and all sets obtained from them by countable numbers of set-theoretic
+operations like unions and intersections~\cite{Cin11}. As \(\mathcal{B}(\R^{d})\) is the
+only \(\sigma\)-algebra used with \(\R^{d}\) in this thesis, the measurable space
+\((\R^{d}, \mathcal{B}(\R^{d}))\) is shortened to \(\R^{d}\) when this does not
+cause ambiguity.
+
+For measurable spaces \((E, \mathcal{E})\) and \((F, \mathcal{F})\),
+there is a \emph{product \(\sigma\)-algebra} \(\mathcal{E}\otimes \mathcal{F}\)
+on \(E\times F\) that is the smallest \(\sigma\)-algebra containing
+all sets of the form \(A\times B\) for \(A\in \mathcal{E}\) and
+\(B\in\mathcal{F}\). The product of \((E, \mathcal{E})\) with itself
+is denoted by \((E, \mathcal{E})^{2}\).
+
+A measure \(\mu\) on a measurable space \((E, \mathcal{E})\) is called
+a \emph{probability measure} if \(\mu(E) = 1\). \(\mu\) is called
+\emph{\(\sigma\)-finite} if there is a countable partition of \(E\)
+into measurable sets \(E_{1}, E_{2},\dotsc\) where \(\mu(E_{i}) < \infty\)
+for all \(i\in \N\).
+Many theorems in measure theory require \(\sigma\)-finiteness from the involved
+measures to ensure that they are not infinite for too many sets.
+All probability measures are clearly \(\sigma\)-finite, as is the Lebesgue
+measure~\cite{Cin11}.
+
+Measure-theoretic concepts that involve functions, particularly the
+Lebesgue integral discussed later, typically require that the functions
+preserve the measurability of sets.
+\begin{definition}
+	Let \((E, \mathcal{E})\) and \((F, \mathcal{F})\) be measurable spaces
+  and let \(f\colon E\to F\). \(f\) is called
+  \(\mathcal{E}\)-\(\mathcal{F}\)-measurable if
+  \(B\in \mathcal{F}\Rightarrow f^{-1}B\in \mathcal{E}\).
+\end{definition}
+As with measurable sets, \(\mathcal{E}\)-\(\mathcal{F}\)-measurable functions
+are simply called measurable if \(\mathcal{E}\) and \(\mathcal{F}\) are
+clear from the context.
+Most functions that one comes across are measurable. In particular,
+the indicators of measurable sets are measurable, continuous functions on
+are Borel-Borel-measurable, and compositions of measurable functions
+are measurable~\cite{Cin11}.
+
+One of the hallmarks of measure theory is the Lebesgue integral, which
+extends the Riemann integral to allow integration over all measurable functions,
+and allows integrating with respect to an arbitrary measure. The
+definition~\cite[Definition 4.3]{Cin11}
+of the Lebesgue integral is fairly technical and is not given here. Instead,
+the notation used with the integral is defined, and some properties of the
+integral are give in Theorem~\ref{lebesgue_integral_theorem}.
+
+\begin{definition}
+	Let \((E, \mathcal{E}, \mu)\) be a measure space and let \(f\colon E\to \R_{+}\)
+  be a measurable function. The Lebesgue integral of \(f\) over a set
+  \(A\in \mathcal{E}\) with respect to \(\mu\) is denoted by
+  \[
+    \int_{A}\mu(\dx x)f(x).
+  \]
+\end{definition}
+Note that the integral was only defined for non-negative functions. It is possible
+to extend the definition to measurable real-valued functions~\cite{Cin11},
+but the integral for non-negative functions is sufficient for this thesis.
+
+\begin{theorem}\label{lebesgue_integral_theorem}
+  Useful properties of the Lebesgue integral\cite{Cin11}:
+	\begin{enumerate}
+    \item For a measure space \((E, \mathcal{E}, \mu)\) and
+          \(A\in \mathcal{E}\), \(\int_{E}\mu(\dx x)1_{A}(x) = \mu(A)\).
+    \item For a measure space \((E, \mathcal{E}, \mu)\), measurable
+          \(f, g\colon E\to \R_{+}\), \(A\in \mathcal{E}\) and \(a, b\in \R_{+}\),
+          \(\int_{A} \mu(\dx x)(af(x) + bg(x))
+          = a\int_{A} \mu(\dx x) f(x) + b\int_{A} \mu(\dx x) g(x)\).
+    \item For a Riemann-integrable function \(f\colon \R\to \R_{+}\) and
+          \(a, b\in \R\) with \(a \leq b\),
+          \(\int_{[a, b]}\lambda(\dx x)f(x) = \int_{a}^{b}f(x)\dx x\),
+          where the integral on the right is a Riemann integral.
+    \item For a continuous random variable \(X\) on \(\R^{d}\) with
+          density \(\pi\) and \(A\in \mathcal{B}(\R^{d})\),
+          \(P(X\in A) = \int_{A}\lambda(\dx x)\pi(x)\).
+    \item Let \(\mu\) and \(\nu\) be \(\sigma\)-finite measures on
+          measure spaces \((E, \mathcal{E})\) and \((F, \mathcal{F})\),
+          respectively. Let \(f\colon E\times F\to \R_{+}\) be measurable.
+          Then
+          \[
+          \int_{A}\mu(\dx a)\int_{B}\nu(\dx b)f(a, b)
+          = \int_{B}\nu(\dx b)\int_{A}\mu(\dx a)f(a, b).
+          \]
+          for all \(A\in \mathcal{E}\) and \(B\in \mathcal{F}\).
+  \end{enumerate}
+\end{theorem}
+
+Randomised functions come up in several places in the study of MH algorithms.
+Each sample from an MH algorithm is obtained by evaluating a random function
+on the previous value, so the entire algorithm can be thought of as repeatedly
+composing that function, called the \emph{transition kernel}, with itself.
+Additionally, the proposal is also obtained
+from a random function on the previous value. The convergence of an MH
+algorithm can be studied by studying the properties of these functions.
+Formally, these randomised functions are \emph{Markov kernels},
+functions from values to probability measures on values.
+
+\begin{definition}
+	Let \((E, \mathcal{E})\) be a measurable space. A Markov kernel on
+  \((E, \mathcal{E})\) is a function \(q\colon E\times \mathcal{E}\to [0, 1]\)
+  where
+  \begin{enumerate}
+    \item For all \(A\in \mathcal{E}\), the function \(q(\cdot, A)\) is
+          measurable.
+    \item
+          For all \(a\in E\), the function \(q(a, \cdot)\) is a probability
+          measure.
+  \end{enumerate}
+\end{definition}
+
+\begin{lemma}\label{markov_kernel_composition_lemma}
+	The composition of Markov kernels \(q_{1}\) and \(q_{2}\) on a measurable space
+  \((E, \mathcal{E})\) is given by
+  \[
+    (q_{2}\circ q_{1})(a, C) = \int_{E}q_{1}(a, \dx b)q_{2}(b, C)
+  \]
+\end{lemma}
+\begin{proof}
+	See~\cite[Equation 6.5]{Cin11}.
+\end{proof}
+
+\begin{definition}\label{reversible_definition}
+	Let \((E, \mathcal{E})\) be a measurable space. A Markov kernel \(q\) on
+  \((E, \mathcal{E})\) is reversible with respect to a \(\sigma\)-finite
+  measure \(\mu\) on \((E, \mathcal{E})\)
+  if
+  \[
+    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b) = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)
+  \]
+  for all \(A, B\in \mathcal{E}\).
+\end{definition}
+
+\begin{lemma}\label{reversible_integration_lemma}
+  Let \(q\) be a markov kernel on a measurable space \((E, \mathcal{E})\)
+  reversible with respect to a \(\sigma\)-finite measure \(\mu\) on
+  \((E, \mathcal{E})\) and let \(f\colon E\times E\to \R_{+}\) be a
+  measurable function. Then
+  \[
+    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
+    = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
+  \]
+\end{lemma}
+
+\begin{proof}
+  Setting
+  \[
+    \nu_{1}(A\times B) = \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)
+  \]
+  \[
+    \nu_{2}(A\times B) = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)
+  \]
+  for \(A, B\in \mathcal{E}\) defines unique measures
+  \(\nu_{1}\) and \(\nu_{2}\) on
+  \((E, \mathcal{E})^{2}\)~\cite[Theorem 6.11]{Cin11}, which,
+  by Definition~\ref{reversible_definition}, are equal. Then
+  \begin{align*}
+    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
+    &= \int_{A}\int_{B}\nu_{1}(\dx a, \dx b)f(a, b)
+    \\&= \int_{A}\int_{B}\nu_{2}(\dx a, \dx b)f(a, b)
+    \\&= \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
+    \qedhere
+  \end{align*}
+\end{proof}
+
+\begin{lemma}\label{composition_reversible_lemma}
+	If Markov kernels \(q_{1}\) and \(q_{2}\) on \((E, \mathcal{E})\)
+  are reversible with respect to \(\sigma\)-finite a measure \(\mu\)
+  on \((E, \mathcal{E})\),
+  \[
+    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
+    = \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
+  \]
+  for all \(A, C\in \mathcal{E}\).
+\end{lemma}
+\begin{proof}
+  Lemma~\ref{markov_kernel_composition_lemma} can be restated as
+  \[
+    \int_{C}(q_{2}\circ q_{1})(a, \dx c) = \int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c).
+  \]
+  Then
+	\begin{align*}
+    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
+    &= \int_{A}\mu(\dx a)\int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c)
+    \\&= \int_{E}\mu(\dx b)\int_{A}q_{1}(b, \dx a)\int_{C}q_{2}(b, \dx c)
+    \\&= \int_{E}\mu(\dx b)\int_{C}q_{2}(b, \dx c)\int_{A}q_{1}(b, \dx a)
+    \\&= \int_{C}\mu(\dx c)\int_{E}q_{2}(c, \dx b)\int_{A}q_{1}(b, \dx a)
+    \\&= \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
+    \qedhere
+  \end{align*}
+\end{proof}
+\begin{lemma}\label{composition_reversible_multiple_lemma}
+  For Markov kernels \(q_{1}\dotsc q_{k}\) on \((E, \mathcal{E})\) reversible
+  with respect to a \(\sigma\)-finite measure \(\mu\) on \((E, \mathcal{E})\),
+  \[
+    \int_{A}\mu(\dx a)\int_{C}(q_{k}\circ \dotsb \circ q_{1})(a, \dx c)
+    = \int_{C}\mu(\dx a)\int_{A}(q_{1}\circ \dotsb \circ q_{k})(c, \dx a).
+  \]
+\end{lemma}
+\begin{proof}
+  The proof is by induction on \(k\). For \(k = 1\), the claim is the definition
+  of reversibility with respect to \(\mu\). If the claim holds for \(k - 1\),
+  \begin{align*}
+    &\int_{A}\mu(\dx a)\int_{C}(q_{k}\circ\dotsb \circ q_{1})(a, \dx c)
+    \\=& \int_{A}\mu(\dx a)\int_{E}(q_{k-1}\circ \dotsb \circ q_{1})(a, \dx b)
+      \int_{C}q_{k}(b, \dx c)
+    \\=& \int_{E}\mu(\dx b)\int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
+      \int_{C}q_{k}(b, \dx c)
+    \\=& \int_{C}\mu(\dx c) \int_{E}q_{k}(c, \dx b)
+         \int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
+    \\=&\int_{C}\mu(\dx c)\int_{A}(q_{1}\circ\dotsb \circ q_{k})(c, \dx a),
+  \end{align*}
+  so the claim holds for all \(k\in \N\) by induction.
+
+\end{proof}
+
+\begin{lemma}\label{composition_reversible_symmetric_lemma}
+  Let \(q_{1}\dotsc q_{k}\) be Markov kernels on \((E, \mathcal{E})\) reversible
+  with respect to a \(\sigma\)-finite measure \(\mu\) on \((E, \mathcal{E})\).
+  If \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
+  the composition \(q_{1}\circ \dotsb \circ q_{k}\) is reversible with
+  respect to \(\mu\).
+\end{lemma}
+\begin{proof}
+  Because \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
+  by Lemma~\ref{composition_reversible_multiple_lemma}
+  \begin{align*}
+    \int_{A}\mu(\dx a)\int_{C}(q_{k}\circ \dotsb \circ q_{1})(a, \dx c)
+    &= \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ \dotsb \circ q_{k})(c, \dx a)
+    \\&= \int_{C}\mu(\dx c)\int_{A}(q_{k}\circ \dotsb \circ q_{1})(c, \dx a).
+    \qedhere
+  \end{align*}
+\end{proof}
+
+Reversibility is linked to the theory of MH algorithms: the detailed balance
+condition is equivalent to the reversibility of the transition kernel of
+the MH algorithm with respect to the target distribution \(\pi\)~\cite{Tie98}.
+Additionally, if target is continuous, and the proposal is reversible with
+respect to the Lebesgue measure, the acceptance probability is simplified.
+
+\begin{lemma}\label{reversible_proposal_lemma}
+  For an MH-algorithm,
+  if the proposal Markov kernel \(q\) on \(\R^{n}\) is reversible with
+  respect to the
+  Lebesgue measure, the target distribution \(\pi\) is continuous and
+  \[
+    \alpha(\theta, \theta') = \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}\right\}
+  \]
+  is used as the acceptance probability when moving from \(\theta\) to \(\theta'\),
+  the algorithm has \(\pi\) as the invariant distribution.
+\end{lemma}
+\begin{proof}
+  With acceptance probability \(\alpha\), the algorithm has \(\pi\) as its
+  invariant distribution if the detailed balance condition,
+  \[
+    \int_{A}\pi(\dx \theta)\int_{B}q(\theta, \dx \theta')\alpha(\theta, \theta')
+    = \int_{B}\pi(\dx \theta')\int_{A}q(\theta', \dx \theta)\alpha(\theta', \theta)
+  \]
+  for all measurable sets \(A, B\subset \R^{d}\), holds~\cite{Tie98}.
+  For continuous \(\pi\) and \(q\) reversible with respect to the Lebesque measure,
+  \begin{align*}
+    \int_{A}\pi(\dx \theta)\int_{B}q(\theta, \dx \theta')\alpha(\theta, \theta')
+    &= \int_{A}\dx \theta\int_{B}q(\theta, \dx \theta')\pi(\theta)\alpha(\theta, \theta')
+    \\&= \int_{A}\dx\theta\int_{B}q(\theta, \dx \theta')\min\{\pi(\theta), \pi(\theta')\}
+    \\&= \int_{B}\dx\theta'\int_{A}q(\theta', \dx \theta)\min\{\pi(\theta'), \pi(\theta)\}
+    \\&= \int_{A}\pi(\dx \theta')\int_{B}q(\theta', \dx \theta)\alpha(\theta', \theta).
+    \qedhere
+  \end{align*}
+\end{proof}
+
+Deterministic and partially deterministic proposals studied in
+Chapter~\ref{hmc_chapter} require handling Markov kernels that are (partially)
+deterministic. This is made possible by the \emph{Dirac measure}, which is
+the probability measure for a degenerate random variable that always takes
+the same value.
+\begin{definition}
+	The Dirac measure \(\delta_{x}\) for \(x\in \R^{d}\) is a measure on \(\R^{d}\)
+  where
+  \[
+    \delta_{x}(A) = \begin{cases}
+      1 & \mathrm{if}\  x\in A\\
+      0 & \mathrm{if}\  x\notin A
+    \end{cases}
+  \]
+\end{definition}
+Based on the definition, \(\delta_{x}\) is the probability measure of a random
+variable that always has the value \(x\). As a Markov kernel, it represents
+the identity function. The Dirac measure can also represent the Markov kernel
+of any deterministic function \(f\) by \(\delta_{f(x)}\). It turns out that
+with a suitable \(f\), \(\delta_{f(x)}\) is reversible with respect to the
+Lebesgue measure, which is applied together with
+Lemma~\ref{reversible_proposal_lemma} in Section~\ref{hmc_basics_section}.
+
+\begin{lemma}\label{dirac_measure_reversible_lemma}
+  For a function \(f\colon \R^{d}\to \R^{d}\) that preserves Lebesgue measure and has
+  \(f^{-1} = f\),
+	the Dirac measure perturbed by \(f\), \(\delta_{f(x)}\), is reversible
+  with respect to the Lebesgue measure. As a special case,
+  the Dirac measure \(\delta_{x}\) is reversible with respect to the
+  Lebesgue measure.
+\end{lemma}
+\begin{proof}
+  Denote the Lebesgue measure by \(\lambda\). Because \(f\) preserves
+  Lebesgue measure and is injective,
+	\begin{align*}
+    \int_{A}\delta_{f(x)}(B)\dx x
+    &= \int_{A}1_{B}(f(x))\dx x
+    \\&= \lambda(A\cap f^{-1}(B))
+    \\&= \lambda(f^{-1}(A)\cap f^{-1}(f^{-1}((B))))
+    \\&= \lambda(f^{-1}(A)\cap B)
+    \\&= \int_{B}\delta_{f(x)}(A)\dx x
+  \end{align*}
+  The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
+\end{proof}
 
 \chapter{Differentially Private MCMC}\label{dp_mcmc_chapter}
 
@@ -1293,7 +1696,7 @@ that Metropolis-Hastings using a Gaussian distribution as the proposal, at the
 cost of higher computational requirements.
 
 This chapter first introduces HMC in the non-DP setting in Section~\ref{hmc_basics_section}.
-In Section~\ref{dp_hmc_section} the HMC is made differentially private using the 
+In Section~\ref{dp_hmc_section} HMC is made differentially private using the
 acceptance test of the penalty algorithm and adding noise to the proposal phase 
 appropriately.
 
@@ -1346,10 +1749,18 @@ have a physical analogue, but it can be useful for MCMC.
 
 Hamiltonian dynamics have three important properties~\cite{neal2012mcmc} 
 that make them useful as a
-proposal mechanism for MCMC. They are reversibility, 
-conservation of the Hamiltonian and conservation of volume.
+proposal mechanism for MCMC. They are \emph{invertibilityi}\footnote{
+  Invertibility is commonly called reversibility~\cite{neal2012mcmc}, but
+  calling it reversibility in this thesis risks conflating it with
+  the closely related concept of Markov kernel reversibility from
+  Definition~\ref{reversible_definition}.
+},
+\emph{conservation of the Hamiltonian} and
+\emph{conservation of the Lebesgue measure}\footnote{Also
+  known as conservation of volume.
+}.
 
-Reversibility means that the function \(T_t\) is injective, meaning that
+Invertibility means that the function \(T_t\) is injective, meaning that
 it has an inverse \(T_{-t}\) where \(T_t(\theta_1, p_1) = (\theta_2, p_2)\)
 implies that \(T_{-t}(\theta_2, p_2) = (\theta_1, p_1)\)~\cite{neal2012mcmc}.
 For the Hamiltonian of the particle moving on a surface, the inverse 
@@ -1365,16 +1776,17 @@ chain rule of derivatives:
     = 0.
 \]
 
-Conservation of volume in the \((\theta, p)\)-space follows from the fact that 
+Conservation of the Lebesgue measure in the \((\theta, p)\)-space follows
+from the fact that 
 the absolute value of the Jacobian determinant of \(T_t\) is 1 and the 
 injectivity of \(T_t\). A somewhat 
-lengthier proof for the Jacobian determinant of \(T_t\) is given by 
+lengthy proof for the Jacobian determinant of \(T_t\) is given by
 Neal~\cite{neal2012mcmc}. 
 
 To see why 
 having \(|\det J_f| = 1\), where \(J_f\) is the Jacobian matrix of an injective 
 continuously differentiable function \(f\), 
-implies \(f\) preserving volume, recall that the volume of a set 
+implies \(f\) preserving the Lebesgue measure, recall that the volume of a set
 \(A\) is given by 
 \[
     \int_A 1\dx x.
@@ -1386,7 +1798,7 @@ The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
 where the first equality follows from the change of variables formula.
 
 The leapfrog method does not conserve the Hamiltonian exactly, but it 
-preserves volumes and is reversible exactly~\cite{neal2012mcmc}. 
+preserves Lebesgue measure and is invertible exactly~\cite{neal2012mcmc}.
 These properties are important for its use as a proposal mechanism for MCMC.
 
 The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
@@ -1430,50 +1842,27 @@ is always accepted.
 
 In the second stage, Hamiltonian dynamics for the particle on a surface are 
 simulated with the leapfrog method, starting from the current value 
-of \(\theta\) and the proposed value of \(p\). The end result is a proposal 
-for both \(\theta\) and \(p\).
+of \(\theta\) and the proposed value of \(p\). After the simulation,
+\(p\) is negated, and the resulting \((\theta, p)\) pair is used as the
+proposed value.
 
-Recall that the MH acceptance test uses the ratio
+Because the proposal is deterministic, the Markov kernel for the
+proposal is \(\delta_{f(\theta, p)}\), where \(f(\theta, p)\) denotes the proposal
+of running the leapfrog simulation starting with \((\theta, p)\) and negating
+\(p\) after the simulation. The invertibility of the leapfrog simulation means
+that \(f = f^{-1}\). Together with the measure preservation of the leapfrog
+simulation, this means that \(f\) meets the conditions of
+Lemma~\ref{dirac_measure_reversible_lemma}. Combining this with
+Lemma~\ref{reversible_proposal_lemma} means that \(\pi\) is the invariant
+distribution of HMC when the acceptance probability is simply
 \[
-  r(\theta, p, \theta', p') = \frac{\pi(\theta, p)}{\pi(\theta', p')}
-  \frac{q(\theta, p\mid \theta', p')}{q(\theta', p'\mid \theta, p)}
-\]
-where \(\pi\) is the density of the target distribution and \(q\) is
-the density of the proposal distribution.
-
-For HMC, the leapfrog proposal \(l\)
-is deterministic, so \(q_{l}\) is a probability mass function where
-\(q_{l}(\theta', p'\mid \theta, p) = 1\) if the leapfrog simulation
-proposes \((\theta', p')\) when starting from \((\theta, p)\),
-and \(q_{l}(\theta', p'\mid \theta, p) = 0\) otherwise. For the leapfrog proposals,
-\(q_{l}(\theta', p'\mid \theta, p) = q_{l}(\theta, -p\mid \theta', -p')\).
-If the momentum \(p\) were negated after the leapfrog simulation, the
-resulting proposal \(l^{*}\) would have
-\(q_{l^{*}}(\theta', p'\mid \theta, p) = q(\theta, p\mid \theta', p')\).
-Then
-\[
-  r(\theta, p, \theta', p')
-  = \frac{\pi(\theta', p')}{\pi(\theta, p)}
-  \frac{q_{l^{*}}(\theta, p\mid \theta', p')}{q_{l^{*}}(\theta', p'\mid \theta, p)}
-  = \frac{\pi(\theta', p')}{\pi(\theta, p)},
-\]
-which means that the acceptance probability of the proposal is simply
-\[
-  \min\{1, r(\theta, p, \theta', p')\}
+  \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
   = \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
 \]
-In practice, the values of \(p\) are not saved, and
-\(H(\theta, p) = H(\theta, -p)\), so it does not matter whether
-\(l\) or \(l^{*}\) is used as the proposal.
 
-% Interestingly, this proof does not use the volume preservation of \(l\) or
-% \(l^{*}\).
-% In fact, the fact that
-% \(q_{l^{*}}(\theta', p'\mid \theta, p) = q(\theta, p\mid \theta', p')\)
-% means that \(l^{*}\) is it's own inverse. By the inverse function theorem,
-% \(J_{l^{*}}(\theta, p) = J_{l^{*}}(l^{*}(\theta, p))^{-1}\). This means that
-% \(\det J_{l^{*}}(\theta, p) = \frac{1}{
-% \det J_{l^{*}}(l^{*}(\theta, p))}\)
+Because of the deterministic proposal, the ergodicity of HMC cannot be
+proved with strong irreducibility, but it has been shown that HMC is
+ergodic under some conditions on \(U\)~\cite{DMS19}.
 
 If the simulation conserved \(H\) exactly, the acceptance probability would 
 always be 1. Because this is usually not possible, there is always some probability 
@@ -1532,22 +1921,31 @@ where
 \]
 denotes the clipped gradients summed over the data \(X\).
 
-The second leapfrog update equation is unchanged from the non-DP case,
-and remains both volume preserving and reversible
-by negating \(p\). Both the first and third equations apply the function
-\(l_{p}\colon \R^{2d}\to \R^{2d}\),
+Using the leapfrog update equations as is results in unnecessary evaluations
+of the gradients, as the last momentum update of a step and the first momentum
+update of the next step use the same gradients. Computing the same gradients
+and incurring their privacy cost
+twice can be avoided by writing the leapfrog simulation as
 \[
-  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
-    + \caln(0, \sigma_{g^{2}}))\right).
+  l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\dotsb
+  l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\circ l_{p_{1/2}}
 \]
-to \(\theta\) and \(p\).
-
-The Jacobian of \(l_{p}\) is
+where
 \[
-  J_{l_{p}}(\theta, p) =
+  l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p)
+\]
+and
+\[
+  l_{p_{x}}(\theta, p) = (\theta, p - \eta x(g(\theta) + \caln(0, \sigma_{g}^2))).
+\]
+
+Both \(l_{\theta}\) and \(l_{p_{x}}\) preserve measure, as \(l_{\theta}\) in
+unchanged from the non-DP case and the Jacobian of \(l_{p_{x}}\) is
+\[
+  J_{l_{p_{x}}}(\theta, p) =
   \begin{bmatrix}
     I_{d\times d} & 0_{d\times d} \\
-    J_{g}(\theta) & I_{d\times d}
+    \eta xJ_{g}(\theta) & I_{d\times d}
   \end{bmatrix},
 \]
 where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
@@ -1555,7 +1953,7 @@ zero matrices, respectively.
 It is possible that \(J_{g}(\theta)\) does not exist, but this can only happen
 in a null set\footnote{A set of zero Lebesgue measure.}, if \(g\) is
 sufficiently well-behaved. The non-existence of \(J_{g}(\theta)\) in a null set
-does not affect the volume preservation of \(l_{p}\).
+does not affect the volume preservation of \(l_{p_{x}}\).
 As \(g\) is a sum of clipped log-likelihood
 gradients and the log prior gradient, it suffices to show that the
 log-likelihood is sufficiently well-behaved, as the prior is already assumed
@@ -1564,329 +1962,23 @@ gives very general sufficient conditions for the log-likelihood, and proves
 that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
 the conditions.
 
-Because \(J_{l_{p}}(\theta, p)\) is triangular, \(\det J_{l_{p}}(\theta, p) = 1\)
-for all \(\theta\) and \(p\), which means that \(l_{p}\) preserves volume.
+Because \(J_{l_{p_{x}}}(\theta, p)\) is triangular, \(\det J_{l_{p_{x}}}(\theta, p) = 1\)
+for all \(\theta\) and \(p\), which means that \(l_{p_{x}}\) preserves volume.
 As the step updating \(\theta\) also preserves volume, the entire leapfrog
-simulation preserves volume.
+simulation preserves Lebesgue measure. Showing that the proposal of
+DP-HMC is reversible
+with respect to the Lebesgue measure requires more thought, as the individual
+leapfrog steps are partially deterministic.
 
-Showing that the ratio of proposal densities in \(r(\theta, p, \theta', p')\)
-is 1
-for the DP HMC leapfrog requires more though, as the simulation is no longer
-deterministic.
-
-The proof requires handling randomised functions that are neither discrete or
-continuous, as the steps in the DP HMC leapfrog are partially random and
-partially deterministic.
-
-Measure theory is the study of \emph{measures}, which unify the concepts
-of length, area and volume of subsets of \(\R\), \(\R^{2}\) and
-\(\R^{3}\), the size of a finite set, probabilities of events, and other similar
-concepts. All of the aforementioned concepts assign a positive real number,
-or infinity, to a set. The empty set is assigned zero, and the assignments are
-additive: unions of disjoint sets are assigned the sum of the numbers assigned
-to each set in the union. While every finite set has a size, assigning
-length to all subsets of \(\R\) that has all the properties expected of lengths
-is not possible, so the range of a measure is often restricted to a collection of
-where a satisfactory assignment is possible.
-
-Before defining measures, some notation is needed. Denote the set of all
-non-negative real numbers with \(\R_{+}\), and denote
-\(\bar{\R}_{+} = \R_{+}\cup \{\infty\}\). In sums, the \(\infty\)-symbol
-behaves as expected: \(x + \infty = \infty\) for any \(x\in \R\) and
-\(\infty + \infty = \infty\). The set of all subsets of a set \(E\), called
-the \emph{powerset} of \(E\), is denoted by \(\mathcal{P}(E)\).
-
-\begin{definition}
-  Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
-  \(\mathcal{E}\) is called a \(\sigma\)-algebra on \(E\) if
-  \begin{enumerate}
-    \item \(\emptyset \in \mathcal{E}\)
-    \item \(A\in \mathcal{E}\Rightarrow A^{C}\in \mathcal{E}\)
-    \item \(A_{1},A_{2},\dotsc \in \mathcal{E}
-          \Rightarrow \bigcup_{i=1}^{\infty} A_{i}\in \mathcal{E}\)
-  \end{enumerate}
-  The pair \((E, \mathcal{E})\) is called a measurable space.
-\end{definition}
-The sets of a \(\sigma\)-algebra \(\mathcal{E}\) are called
-\(\mathcal{E}\)-measurable, or simply measurable if the corresponding
-\(\sigma\)-algebra is clear from the context.
-
-\begin{definition}
-	Let \((E, \mathcal{E})\) be a measurable space. A measure on \((E, \mathcal{E})\)
-  is a function \(\mu\colon \mathcal{E}\to \bar{\R}_{+}\) such that
-  \begin{enumerate}
-    \item
-    \(\mu(\emptyset) = 0\)
-    \item
-    For any sequence of sets \(A_{1}, A_{2},\dotsc \in \mathcal{E}\)
-    \[
-    \quad \mu\left(\bigcup_{i=1}^{\infty} A_{i}\right)
-    = \sum_{i=1}^\infty\mu(A_{i})
-    \]
-  \end{enumerate}
-  The triple \((E, \mathcal{E}, \mu)\) is called a measure space.
-  % A measure \(\mu\) with \(\mu(E) = 1\) is called a probability measure.
-\end{definition}
-
-The reason for restricting the domain of a measure to a \(\sigma\)-algebra
-is the impossibility of defining a length for all subsets of \(\R\): it is
-possible to assign a length to all \emph{Lebesgue-measurable} sets, which form
-a \(\sigma\)-algebra. The measure assigning length in \(\R\), area in \(\R^{2}\)
-and their counterparts in higher dimensions is called the
-\emph{Lebesgue measure}\footnote{
-  Technically the Lebesgue measures on \(\R^{d}\) for each \(d\in \N\) are
-  different measures.
-} and is denoted by \(\lambda\). For this thesis, it is sufficient to
-work with the \emph{Borel \(\sigma\)-algebra} of \(\R^{d}\), denoted by
-\(\mathcal{B}(\R^{d})\), which is
-the smallest \(\sigma\)-algebra of \(\R^{d}\) containing all the open sets
-of \(\R^{d}\). Members of \(\mathcal{B}(\R^{d})\) are called the Borel sets,
-and they include most sets one encounters in mathematics: all open, all closed
-sets and all sets obtained from them by countable numbers of set-theoretic
-operations like unions and intersections.
-
-Measure-theoretic concepts that involve functions, particularly the
-Lebesgue integral discussed later, typically require that the functions
-preserve the measurability of sets.
-\begin{definition}
-	Let \((E, \mathcal{E})\) and \((F, \mathcal{F})\) be measurable spaces
-  and let \(f\colon E\to F\). \(f\) is called
-  \(\mathcal{E}\)-\(\mathcal{F}\)-measurable if
-  \(B\in \mathcal{F}\Rightarrow f^{-1}B\in \mathcal{E}\).
-\end{definition}
-As with measurable sets, \(\mathcal{E}\)-\(\mathcal{F}\)-measurable functions
-are simply called measurable if \(\mathcal{E}\) and \(\mathcal{F}\) are
-clear from the context.
-Most functions that one comes across are measurable. In particular,
-the indicators of measurable sets are measurable, continuous functions are
-Borel-measurable, and compositions of measurable functions are measurable.
-
-One of the hallmarks of measure theory is the Lebesgue integral, which
-extends the Riemann integral to allow integration over all measurable functions,
-and allows integrating with respect to an arbitrary measure. The definition
-of the Lebesgue integral is fairly technical and is not given here.
-
-\begin{definition}
-	Let \((E, \mathcal{E}, \mu)\) be a measure space and let \(f\colon E\to \R_{+}\)
-  be a measurable function. The Lebesgue integral of \(f\) over a set
-  \(A\in \mathcal{E}\) with respect to \(\mu\) is denoted by
-  \[
-    \int_{A}\mu(\dx x)f(x).
-  \]
-\end{definition}
-Note that the integral was only defined for non-negative functions. It is possible
-to extend the definition to measurable real-valued functions,
-but the integral for non-negative function is sufficient for this thesis.
-
-\begin{theorem}
-  Useful properties of the Lebesgue integral:
-	\begin{enumerate}
-    \item For a measure space \((E, \mathcal{E}, \mu)\) and
-          \(A\in \mathcal{E}\), \(\int_{E}\mu(\dx x)1_{A}(x) = \mu(A)\).
-    \item For a measure space \((E, \mathcal{E}, \mu)\), measurable
-          \(f, g\colon E\to \R_{+}\), \(A\in \mathcal{E}\) and \(a, b\in \R_{+}\),
-          \(\int_{A} \mu(\dx x)(af(x) + bg(x))
-          = a\int_{A} \mu(\dx x) f(x) + b\int_{A} \mu(\dx x) g(x)\).
-    % \item For \(f_{1}, f_{2}, \dotsc \in M_{+}(\R_{d})\) where \(f_{i} \geq f_{j}\)
-    %       when \(i \geq j\), \(\lim_{i\to\infty}L(f_{i}) = L(\lim_{i\to\infty}f_{i})\).
-    \item For a Riemann-integrable function \(f\colon E\to \R_{+}\) and
-          \(a, b\in \R\) with \(a \leq b\),
-          \(\int_{[a, b]}\lambda(\dx x)f(x) = \int_{a}^{b}f(x)\dx x\),
-          where the integral on the right is a Riemann integral.
-    \item For a continuous random variable \(X\) on \(\R^{d}\) with
-          density \(\pi\), and \(A\in \mathcal{B}(\R^{d})\),
-          \(P(X\in A) = \int_{A}\lambda(\dx x)\pi(x)\).
-  \end{enumerate}
-\end{theorem}
-% Measure theory is a mathematical theory that seeks to generalise the
-% notions of length, areas, and volumes of subsets of \(\R\), \(\R^{2}\)
-% and \(\R^{3}\) to high dimensional spaces,
-% and unify them with other concepts that behave similarly, such as counts of
-% objects and probabilities.
-
-% The Lebesgue measure defines the notions of
-% length, area and volume in 1-, 2- and 3-dimensional spaces, and generalises
-% them to \(\R^{d}\). It turns out that even assigning a consistent length to all
-% subsets of \(\R\) is impossible, but there is a subset of subsets of \(\R\)
-% where the assignment of length is possible, the so-called Lebesgue-measurable
-% sets. The same holds true for \(\R^{d}\): it is not possible to measure all
-% subsets, only the Lebesgue measurable sets. The Lebesgue measure is characterised
-% by the following properties:
-% \begin{enumerate}
-%   \item \(\lambda(\emptyset) = 0\)
-%   \item Countable additivity: For disjoint Lebesgue-measurable
-%         \(A_{1}, A_{2}, \dotsc\),
-%         \(\lambda(\bigcup_{i=1}^{\infty} A_{i}) = \sum_{i=1}^{\infty}\lambda(A_{i})\).
-% 	\item Translation invariance: \(\lambda(\{a + x\mid a\in A\}) = \lambda(A)\) for
-%         any \(x\in \R^{d}\) and Lebesgue-measurable \(A\subset \R^{d}\).
-%   \item \(\lambda([0, 1]^{d}) = 1\).
-% \end{enumerate}
-
-% Properties (3) and (4) of the Lebesgue measure are due to the requirement that
-% Lebesgue measure must represent lengths in \(\R\), but properties (1) and (2)
-% hold in very different settings, some examples being probabilities and the
-% sizes of finite sets, so they are taken as the basis when defining general
-% measures on arbitrary sets. The issue of measurability from the Lebesgue measure
-% is also present in more general measures,
-
-\begin{definition}
-	Let \((E, \mathcal{E})\) be a measurable space. A Markov kernel on
-  \((E, \mathcal{E})\) is a function \(q\colon E\times \mathcal{E}\to [0, 1]\)
-  where
-  \begin{enumerate}
-    \item For all \(A\in \mathcal{E}\), the function \(q(\cdot, A)\) is
-          measurable.
-    \item
-          For all \(a\in E\), the function \(q(a, \cdot)\) is a probability
-          measure on \((E, \mathcal{E})\).
-  \end{enumerate}
-\end{definition}
-
-\begin{lemma}\label{markov_kernel_composition_lemma}
-	The composition of Markov kernels \(q_{1}\) and \(q_{2}\) on a measurable space
-  \((E, \mathcal{E})\) is given by
-  \[
-    (q_{2}\circ q_{1})(a, C) = \int_{E}q_{1}(a, \dx b)q_{2}(b, C)
-  \]
-\end{lemma}
-
-\begin{definition}
-	A Markov kernel \(q\) is reversible with respect to a measure \(\mu\)
-  if
-  \[
-    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b) = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)
-  \]
-\end{definition}
-
-\begin{lemma}\label{reversible_integration_lemma}
-  Let \(q\) be a markov kernel reversible with respect to \(\mu\) and
-  let \(f\) be a measurable function. Then
-  \[
-    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
-    = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
-  \]
-\end{lemma}
-\begin{proof}
-	Let
-  \[
-    \nu_{1}(A, B) = \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)
-  \]
-  \[
-    \nu_{2}(A, B) = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)
-  \]
-  By the reversibility of \(q\) with respect to \(\mu\),
-  \(\nu_{1} = \nu_{2}\), so
-  \begin{align*}
-    \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
-    &= \int_{A}\int_{B}\nu_{1}(\dx a, \dx b)f(a, b)
-    \\&= \int_{A}\int_{B}\nu_{2}(\dx a, \dx b)f(a, b)
-    \\&= \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
-    \qedhere
-  \end{align*}
-\end{proof}
-
-\begin{lemma}\label{composition_reversible_lemma}
-	If Markov kernels \(q_{1}\) and \(q_{2}\) are reversible with respect to a
-  measure \(\mu\),
-  \[
-    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
-    = \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
-  \]
-  For Markov kernels \(q_{1}\dotsc q_{k}\) reversible with respect to \(\mu\),
-  \[
-    (q_{k}\circ \dotsb \circ q_{1})(a_{1}, \dx a_{k})
-    = (q_{1}\circ \dotsb \circ q_{k})(a_{k}, \dx a_{1}).
-  \]
-  If \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
-  the composition \(q_{1}\circ \dotsb \circ q_{k}\) is reversible with
-  respect to \(\mu\).
-\end{lemma}
-\begin{proof}
-  Lemma~\ref{markov_kernel_composition_lemma} can be restated as
-  \[
-    \int_{C}(q_{2}\circ q_{1})(a, \dx c) = \int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c).
-  \]
-  Then
-	\begin{align*}
-    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
-    &= \int_{A}\mu(\dx a)\int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c)
-    \\&= \int_{E}\mu(\dx b)\int_{A}q_{1}(b, \dx a)\int_{C}q_{2}(b, \dx c)
-    \\&= \int_{E}\mu(\dx b)\int_{C}q_{2}(b, \dx c)\int_{A}q_{1}(b, \dx a)
-    \\&= \int_{C}\mu(\dx c)\int_{E}q_{2}(c, \dx b)\int_{A}q_{1}(b, \dx a)
-    \\&= \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
-  \end{align*}
-  \begin{align*}
-    &\int_{A}\mu(\dx a)\int_{C}(q_{k}\circ\dotsb \circ q_{1})(a, \dx c)
-    \\=& \int_{A}\mu(\dx a)\int_{E}(q_{k-1}\circ \dotsb \circ q_{1})(a, \dx b)
-      \int_{C}q_{k}(b, \dx c)
-    \\=& \int_{E}\mu(\dx b)\int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
-      \int_{C}q_{k}(b, \dx c)
-    \\=& \int_{C}\mu(\dx c) \int_{E}q_{k}(c, \dx b)
-         \int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
-    \\=&\int_{C}\mu(\dx c)\int_{A}(q_{1}\circ\dotsb \circ q_{k})(c, \dx a)
-  \end{align*}
-  The claim for compositions of \(k\) Markov kernels follows by induction.
-  When \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
-  \[
-    (q_{k}\circ \dotsb \circ q_{1})(a_{1}, \dx a_{k})
-    = (q_{1}\circ \dotsb \circ q_{k})(a_{k}, \dx a_{1})
-    = (q_{k}\circ \dotsb \circ q_{1})(a_{k}, \dx a_{1}).
-    \qedhere
-  \]
-\end{proof}
-
-\begin{lemma}\label{reversible_proposal_lemma}
-  If the proposal kernel \(q\) is reversible with respect to the
-  Lebesque-measure and \(\pi\) is continuous,
-  \[
-    \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}\right\}
-  \]
-  is a valid MH acceptance probability.
-\end{lemma}
-\begin{proof}
-  The detailed balance condition on general measures
-  with acceptance probability
-  \[
-    \alpha(\theta, \theta') = \min\left\{1, \frac{\pi(\theta')}{\pi(\theta)}\right\}
-  \]
-  when moving from \(\theta\) to \(\theta'\) is
-  \[
-    \int_{A}\pi(\dx \theta)\int_{B}Q(\theta, \dx \theta')\alpha(\theta, \theta')
-    = \int_{B}\pi(\dx \theta')\int_{A}Q(\theta', \dx \theta)\alpha(\theta', \theta)
-  \]
-  for all measurable sets \(A, B\subset \R^{d}\)~\cite{Tie98}.
-  For continuous \(\pi\) and \(Q\) reversible with respect to the Lebesque measure
-  \begin{align*}
-    \int_{A}\pi(\dx \theta)\int_{B}Q(\theta, \dx \theta')\alpha(\theta, \theta')
-    &= \int_{A}\dx \theta\int_{B}Q(\theta, \dx \theta')\pi(\theta)\alpha(\theta, \theta')
-    \\&= \int_{A}\dx\theta\int_{B}Q(\theta, \dx \theta')\min\{\pi(\theta), \pi(\theta')\}
-    \\&= \int_{B}\dx\theta'\int_{A}Q(\theta', \dx \theta)\min\{\pi(\theta'), \pi(\theta)\}
-    \\&= \int_{A}\pi(\dx \theta')\int_{B}Q(\theta', \dx \theta)\alpha(\theta', \theta).
-    \qedhere
-  \end{align*}
-\end{proof}
-
-\begin{lemma}\label{dirac_measure_reversible_lemma}
-  For a function \(f\) that preserves Lebesgue measure and has
-  \(f^{-1} = f\),
-	the Dirac measure perturbed by \(f\), \(\delta_{f(x)}\), is reversible
-  with respect to the Lebesgue measure. As a special case,
-  the Dirac measure \(\delta_{x}\) is reversible with respect to the
-  Lebesgue measure.
-\end{lemma}
-\begin{proof}
-  Denote the Lebesgue measure by \(\lambda\). Because \(f\) preserves
-  Lebesgue measure and is injective,
-	\begin{align*}
-    \int_{A}\delta_{f(x)}(B)\dx x
-    &= \int_{A}1_{B}(f(x))\dx x
-    \\&= \lambda(A\cap f^{-1}(B))
-    \\&= \lambda(f^{-1}(A)\cap f^{-1}(f^{-1}((B))))
-    \\&= \lambda(f^{-1}(A)\cap B)
-    \\&= \int_{B}\delta_{f(x)}(A)\dx x
-  \end{align*}
-  The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
-\end{proof}
+With the momentum negation after the leapfrog simulation, the DP-HMC proposal
+can be written as
+\[
+  l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\dotsb
+  l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\circ l_{p_{1/2}}
+\]
+where \(l_{-}(\theta, p) = (\theta, -p)\). Reversibility of the proposal
+with respect to the Lebesgue measure can then shown by
+decomposing the sequence into parts that are individually reversible.
 
 \begin{lemma}\label{leapfrog_step_reversible_lemma}
   \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{x}}\) for any \(x\in \R\)
@@ -1900,8 +1992,8 @@ but the integral for non-negative function is sufficient for this thesis.
   \]
   which means that \(f^{-1} = f\). Because \(l_{\theta}\) and \(l_{-}\) preserve
   Lebesgue measure, \(f\) also preserves Lebesgue measure.
-  Because \(l_{\theta}\circ l_{-} = \delta_{f(\theta, p)}\),
-  Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
+  Then the Markov kernel for \(l_{\theta}\circ l_{-}\) is \(\delta_{f(\theta, p)}\),
+  so Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
   \(l_{\theta}\circ l_{l}\).
 
   For \(l_{-}\circ l_{p_{x}}\), denote \(f_{x}(\theta) = x\eta g(\theta)\) and
@@ -1910,7 +2002,9 @@ but the integral for non-negative function is sufficient for this thesis.
     \int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p')) =
     \int_{B}\delta_{\theta}(\dx \theta')\dx p'\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
   \]
-  Using Lemma~\ref{dirac_measure_reversible_lemma}
+  for \(B\in \mathcal{B}(\R^{2d})\).
+  Using Lemma~\ref{dirac_measure_reversible_lemma},
+  for any \(A, B\in \mathcal{B}(\R^{2d})\),
 	\begin{align*}
     \int_{A}\dx(\theta, p)\int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
     &= \int_{A}\dx(\theta, p)\int_{B}\delta_{\theta}(\dx \theta')\dx p'
@@ -1942,26 +2036,28 @@ but the integral for non-negative function is sufficient for this thesis.
   and \(l_{\theta}\circ l_{-}\), which are all reversible with respect to the
   Lebesgue measure by Lemma~\ref{leapfrog_step_reversible_lemma}.
   As the composition is symmetric,
-  Lemma~\ref{composition_reversible_lemma} extends the reversibility
+  Lemma~\ref{composition_reversible_symmetric_lemma} extends the reversibility
   with respect to the Lebesgue measure to the entire composition.
 \end{proof}
 
 \begin{theorem}
+  If
   \[
     \min\left\{1, \exp\left(H(\theta, p)
         - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
   \]
-  is a valid MH acceptance probability for DP-HMC.
+  is used as the acceptance probability for DP-HMC, the invariant distribution
+  is \(\pi\).
 \end{theorem}
 \begin{proof}
 Lemmas~\ref{reversible_proposal_lemma} and \ref{leapfrog_reversibility_lemma}
-together show that
+together show that when using
 \[
   \alpha(\theta, p, \theta', p')
   = \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
 \]
-is a valid acceptance probability if noise is not added to the log-likelihood
-ratios. Recall that in HMC
+as the acceptance probability, the invariant distribution is \(\pi\).
+Recall that in HMC
 \[
   \pi(\theta, p) \propto \exp(-H(\theta, p))
 \]
@@ -1980,162 +2076,24 @@ log-likelihood ratios and the penalty correction is applied,
   \]
 \end{proof}
 
-% A convenient way to handle such mixed random variables
-% is using \emph{generalised functions}, specifically the
-% \emph{Dirac delta function}. The Dirac delta function \(\delta_{x}\) for
-% \(x\in \R\) is a
-% generalized function with the property that \(\delta_{x}(y) = 0\) if
-% \(x \neq y\) and
-% \[
-%   \int_{\R} f(y)\delta_{x}(y) \dx y = f(x).
-% \]
-% Despite the name, the Dirac delta function is not a function by the usual
-% definition.
-
-% A generalised function can used as a density of a random variable, even if the
-% random variable is not continuous and does not have a density in the usual
-% sense. As with usual density function, for a generalised function \(f\) to be
-% a density of a random variable \(X\), it must have
-% \[
-%   \int_{\R} f(x)\dx x = 1.
-% \]
-% The probability that the value of \(X\) is in a given set \(A\) is then
-% \[
-%   P(X\in A) = \int_{A} f(x)\dx x.
-% \]
-
-% Let \(l\colon \R^{2d} \to \R^{2d}\) be a function giving a random
-% proposal \((\theta', p')\) for given \((\theta, p)\). Such random functions are called
-% \emph{proposal functions} in the following. Because \(l\) is a random function,
-% it has a (generalized) density \(q_{l}(\theta', p' \mid \theta, p)\).
-% The density of the composition of proposal functions \(l_{1}\) and \(l_{2}\)
-% is given by
-% \[
-%   q_{l_{2}\circ l_{1}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
-%   = \int_{\R^{2d}}\dx(\theta_{2}, p_{2})
-%   q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
-%   q_{l_{2}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2}).
-% \]
-
-% Now reversibility by negating \(p\) can be defined:
-% \begin{definition}\label{prop_revers_definition}
-%   A proposal function \(l\) is reversible by negating \(p\) if
-%   \[
-%     q_{l}(\theta', p'\mid \theta, p) = q_{l}(\theta, -p \mid \theta', -p')
-%   \]
-% \end{definition}
-% This can be simplified by defining \(\bar{l}\) as the the proposal
-% function that has density
-% \(q_{\bar{l}}(\theta', p'\mid \theta, p) = q_{l}(\theta, p\mid \theta', p')\),
-% and defining \(l_{-}\) as \(l_{-}(\theta, p) = (\theta, -p)\).
-% Definition~\ref{prop_revers_definition} can then be written as
-% \(\bar{l} = l_{-}\circ l\circ l_{-}\). The function \(\bar{l}\) only exists
-% if
-% \[
-%   \int_{\R^{2d}}q_{l}(\theta', p'\mid \theta, p)\dx(\theta, p) = 1
-% \]
-% which is true for random functions reversibly by negating \(p\).
-
-% \begin{lemma}\label{prop_fun_comp_lemma}
-%   Let \(l_{1}\) and \(l_{2}\) be proposal functions in \(\R^{2d}\) such that
-%   \(\bar{l_{1}}\) and \(\bar{l_{2}}\) exist.
-%   Then \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
-%   For a sequence \(l_{1}, \dotsc, l_{k}\) of proposal functions such that
-%   \(\bar{l_{i}}\) exists for \(1\leq i \leq k\),
-%   \(\overline{l_{k}\circ \dotsb \circ l_{1}} = \bar{l_{1}}\circ \dotsb \circ \bar{l_{k}}\).
-% \end{lemma}
-% \begin{proof}
-%   \begin{align*}
-% 	q_{\overline{l_{2}\circ l_{1}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
-%     &= q_{l_{2}\circ l_{1}}(\theta_{1}, p_{1}\mid \theta_{3}, p_{3})
-%     \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{l_{1}}(\theta_{2}, p_{2}\mid \theta_{3}, p_{3})
-%       q_{l_{2}}(\theta_{1}, p_{1}\mid \theta_{2}, p_{2})
-%     \\&= \int_{\R^{2d}} \dx(\theta_{2}, p_{2}) q_{\bar{l}_{1}}(\theta_{3}, p_{3}\mid \theta_{2}, p_{2})
-%       q_{\bar{l}_{2}}(\theta_{2}, p_{2}\mid \theta_{1}, p_{1})
-%     \\&= q_{\bar{l_{1}}\circ \bar{l_{2}}}(\theta_{3}, p_{3}\mid \theta_{1}, p_{1})
-%   \end{align*}
-%   which means that \(\overline{l_{2} \circ l_{1}} = \bar{l_{1}}\circ \bar{l_{2}}\).
-%   The claim for sequences follows by induction.
-% \end{proof}
-
-% \begin{theorem}\label{leapfrog_revers_theorem}
-%   The leapfrog simulation with noisy and clipped gradients is reversible by
-%   negating \(p\).
-% \end{theorem}
-% \begin{proof}
-%   The leapfrog simulation is a composition of proposal functions
-%   \(l_{p}\) and \(l_{\theta}\) where
-%   \[
-%     l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
-%       + \caln(0, \sigma_{g}^{2}))\right)
-%   \]
-%   and
-%   \[
-%     l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p).
-%   \]
-%   Specifically, the simulation is
-%   \[
-%     (l_{p} \circ l_{\theta}\circ l_{p})\circ
-%     \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})
-%   \]
-%   with \(L\) compositions of \(l_{p} \circ l_{\theta}\circ l_{p}\).
-%   Then
-%   \begin{align*}
-%     q_{l_{p}}(\theta', p'\mid \theta, p) &= \delta_{\theta'}(\theta)
-%     \cdot \caln\left(p'\mid p - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
-%     \\&= \delta_{\theta}(\theta')
-%     \cdot \caln\left(-p\mid -p' - \frac{\eta}{2}g(\theta'), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
-%     \\&= q_{l_{p}}(\theta, -p\mid \theta', -p')
-%   \end{align*}
-%   where the second equality uses the fact that if
-%   \(\delta_{\theta}(\theta')\neq 0\), \(\theta = \theta'\),
-%   and
-%   \begin{align*}
-% 	q_{l_{\theta}}(\theta, -p\mid \theta', -p')
-%     &= \delta_{\theta}(\theta' - \eta M^{-1}p')\cdot\delta_{-p}(-p')
-%     \\&= \delta_{\theta'}(\theta + \eta M^{-1}p)\cdot\delta_{p'}(p)
-% 	\\&= q_{l_{\theta}}(\theta', p'\mid \theta, p),
-%   \end{align*}
-%   which means that both \(l_{p}\) and \(l_{\theta}\) are reversible by
-%   negating \(p\). Then the reverse of the leapfrog composition can be
-%   written as
-%   \begin{align*}
-% 	\overline{(l_{p} \circ l_{\theta}\circ l_{p})\circ
-%     \dotsb \circ (l_{p}\circ l_{\theta}\circ l_{p})}
-%     &= (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}}) \circ \dotsb \circ
-%     (\bar{l_{p}}\circ \bar{l_{\theta}} \circ \bar{l_{p}})
-%     \\&= l_{-}\circ(l_{p}\circ l_{\theta} \circ l_{p}) \circ \dotsb \circ
-%     (l_{p}\circ l_{\theta} \circ l_{p})\circ l_{-},
-%   \end{align*}
-%   where the first equality uses Lemma~\ref{prop_fun_comp_lemma} and
-%   the fact that the sequence of compositions is symmetric.
-%   The second equality uses the fact that \(l_{p}\) and \(l_{\theta}\)
-%   are reversible by negating \(p\), and that \(l_{-}\) is its own inverse.
-%   This means that the leapfrog simulation with noisy and clipped gradients is
-%   reversible by negating \(p\).
-% \end{proof}
-
-% Because the leapfrog proposal \(l\) is reversible by negating p,
-% \(\bar{l} = l_{-} \circ l\circ l_{-}\). Denote \(l^{*} = l_{-}\circ l\).
-% Because \(\bar{l_{-}} = l_{-}\),
-% \(\bar{l^{*}} = \bar{l}\circ \bar{l_{-}}
-% = l_{-}\circ l\circ l_{-}\circ l_{-} = l^{*}\).
-% As in the non-DP case, using \(l^{*}\) as the proposal is equivalent to using
-% \(l\), and when using \(l^{*}\), \(r(\theta, p, \theta', p')\) simplifies
-% \[
-%   r(\theta, p, \theta', p')
-%   = \frac{\pi(\theta', p')}{\pi(\theta, p)}
-%   \frac{q_{l}(\theta, p\mid \theta', p')}{q_{l}(\theta', p'\mid \theta, p)}
-%   = \frac{\pi(\theta', p')}{\pi(\theta, p)}
-%   \frac{q_{l^{*}}(\theta, p\mid \theta', p')}{q_{\bar{l^{*}}}(\theta, p\mid \theta', p')}
-%   = \frac{\pi(\theta', p')}{\pi(\theta, p)}.
-% \]
-% For HMC,
-% \[
-%   \frac{\pi(\theta', p')}{\pi(\theta, p)} = \exp(H(\theta, p) - H(\theta', p')),
-% \]
-% so the acceptance probability from non-DP HMC, with the penalty correction for
-% the noise added to the log-likelihood, is correct for DP HMC.
+Proving the ergodicity of DP-HMC turns out to be easier than in the
+non-DP case as a result of adding noise to the proposal. Consider the
+last four updates of the proposal,
+\[
+  l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}.
+\]
+Denote the values of \((\theta, p)\) before the last four updates by \((\theta^{*}, p^{*})\) and
+the values after the updates by \((\theta', p')\).
+The first of these updates adds Gaussian noise to \(p\). In the next
+\(l_{\theta}\) step, the previous value of \(p\) is added to \(\theta\)
+after multiplication with a non-singular matrix, and the further updates
+do not change \(\theta\), so it is possible
+to obtain any value for \(\theta'\), no matter the starting value of
+\((\theta^{*}, p^{*})\). In the next \(l_{p_{1/2}}\) update, Gaussian noise is
+added to the value of \(p\) and the \(l_{-}\) update does not change the distribution
+of \(p\), so it is possible to obtain any value
+for \(p'\) from any \((\theta^{*}, p^{*})\). This means that
+DP-HMC is in fact strongly irreducible, and thus ergodic.
 
 If the friction term that corrects the dynamics is used, the equations of
 motion become~\cite{CFG14}
@@ -2160,18 +2118,6 @@ to
   \end{bmatrix}
 \]
 which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
-In addition, the proof of Theorem~\ref{leapfrog_revers_theorem} depends on the
-fact that on the right side of
-\[
-  q_{l_{p}}(\theta', p'\mid \theta, p)
-  = \delta_{\theta'}(\theta)\cdot \caln\left(p'\mid p
-    - \frac{\eta}{2}g(\theta), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right),
-  % = \delta_{\theta}(\theta')\cdot \caln\left(-p\mid -p'
-  %   - \frac{\eta}{2}g(\theta'), \frac{\eta^{2}}{4}\sigma_{g}^{2}\right)
-\]
-\(p\) and \(p'\) have the same multiplier. With the friction term, this is
-no longer the case, as the multiplier for \(p\) changes to
-\((1 - \frac{\eta}{4}\sigma_{g}^{2}M^{-1})\).
 This means that the acceptance test is no longer correct, so
 the friction term in not used in this thesis beyond this brief discussion,
 but finding a way to correct the acceptance test is a potential avenue for
@@ -2392,14 +2338,14 @@ while moving a substantial distance on the circle.
   \label{hmc_trajectory_fig}
 \end{figure}
 
-The DP Stochastic gradient Langevin dynamics (DP-SGLD) algorithm~\cite{WFS15}
-is similar to DP HMC, but omits the MH acceptance test. Instead, in DP-SGLD,
-the step size \(\eta\) must be lowered towards 0 with each iteration to maintain
-the asymptotic convergence guarantee. In practice, DP-SGLD is run for a finite
-number of iterations, so \(\eta\) does not decay to 0, and the algorithm
-does not sample from the correct posterior. With the inclusion of the
-acceptance test, MCMC algorithms can sample from the correct posterior, even
-when run for a finite time~\cite{BDA}, though this is not theoretically guaranteed.
+% The DP Stochastic gradient Langevin dynamics (DP-SGLD) algorithm~\cite{WFS15}
+% is similar to DP HMC, but omits the MH acceptance test. Instead, in DP-SGLD,
+% the step size \(\eta\) must be lowered towards 0 with each iteration to maintain
+% the asymptotic convergence guarantee. In practice, DP-SGLD is run for a finite
+% number of iterations, so \(\eta\) does not decay to 0, and the algorithm
+% does not sample from the correct posterior. With the inclusion of the
+% acceptance test, MCMC algorithms can sample from the correct posterior, even
+% when run for a finite time~\cite{BDA}, though this is not theoretically guaranteed.
 
 \chapter{Experimental Setup}\label{experiment_setup_chapter}
 
