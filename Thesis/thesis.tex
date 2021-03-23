@@ -33,7 +33,7 @@
 % STEP 2:
 % Set up all the information for the title page and the abstract form.
 % Replace parameters with your information.
-\title{Differentially Private Markov Chain Monte Carlo}
+\title{Differentially Private Metropolis-Hastings Algorithms}
 \author{Ossi Räisä}
 \date{\today}
 \prof{Associate Professor Antti Honkela}
@@ -114,12 +114,13 @@
 \begin{abstract}
   Differential privacy has over the past decade become a widely used framework
   for privacy-preserving machine learning. At the same time,
-  Markov chain Monte Carlo (MCMC) algorithms have become an increasingly popular method
+  Markov chain Monte Carlo (MCMC) algorithms, particularly Metropolis-Hastings (MH)
+  algorithms, have become an increasingly popular method
   of performing Bayesian inference. Surprisingly, their combination has not
   received much attention in the literature. This thesis introduces the
-  existing research on differentially private MCMC algorithms, proves tighter
+  existing research on differentially private MH algorithms, proves tighter
   privacy bounds for them using recent developments in differential privacy, and
-  develops two new differentially private MCMC algorithms:
+  develops two new differentially private MH algorithms:
   an algorithm using subsampling to lower privacy costs, and
   a differentially private variant of the Hamiltonian Monte
   Carlo algorithm. The privacy bounds of both new algorithms are proved, and
@@ -146,12 +147,15 @@ potential gains from analysing the data, and the risks associated with the
 analysis, grow. This makes analysis techniques that can ensure the privacy
 of the individuals important. Differential
 privacy~\cite{DMN06} is a formal definition attempting to capture the notion
-of a data analysis algorithm that preserves privacy. Markov chain Monte
-Carlo (MCMC)~\cite{MRR53, Has70} is a method that enables data analysis using
+of a data analysis algorithm that preserves privacy.
+Metropolis-Hastings (MH) algorithms~\cite{MRR53, Has70} are a particular class of
+Markov chain Monte Carlo (MCMC)~\cite{Robert04} algorithms.
+MCMC is a computational method that enables data analysis using
 Bayesian inference~\cite{BDA}. This thesis studies the combination of
-differential privacy and MCMC by introducing existing algorithms, proving
+differential privacy and MH algorithms by introducing existing algorithms, proving
 tighter privacy bounds for them, and developing two novel algorithms.
-Finally, the algorithms are compared on a variety of settings.
+Finally, both the existing and the new algorithms are compared on a variety of
+settings.
 
 Traditional approaches in preserving the privacy of data subjects in data
 analysis, such as simply omitting identifying information, or
@@ -190,22 +194,29 @@ a data analyst to update his prior knowledge of the parameters based on observed
 data to obtain a posterior distribution of the parameters.
 Computing the posterior distribution analytically is often not possible,
 so numerical methods are needed. Markov chain Monte Carlo (MCMC) is a general
-method of drawing
-samples from a given distribution, such as the posterior distribution.
-The sampling is done by first picking a proposal from a given proposal distribution,
+method of drawing samples from a given distribution, such as the
+posterior distribution. Metropolis-Hastings algorithms are a particular class
+of MCMC algorithms, where
+the sampling is done by first picking a proposal from a given proposal distribution,
 and then either choosing to accept or reject the proposal based on an acceptance
 test. The sample allows
 the analyst to gain information about the model parameters through the data.
-MCMC algorithms only require knowing an unnormalised form of the target distribution,
+MH algorithms only require knowing an unnormalised form of the target distribution,
 which enables their use on a wide variety of models, as computing the unnormalised
 posterior is often much easier than computing the normalised posterior.
 
-Combining MCMC algorithms with differential privacy allows
+Combining MH algorithms with differential privacy allows
 an analyst to conduct the comprehensive Bayesian inference that is
-possible using MCMC while preserving the privacy of the data subjects through
-differential privacy. Two differentially private MCMC algorithms have been
-developed: the DP penalty algorithm of Yildirim and Ermis~\cite{YildirimE19},
-and the DP Barker algorithm of Heikkilä et al.~\cite{HeikkilaJDH19}.
+possible using MH while preserving the privacy of the data subjects through
+differential privacy. One differentially private MH algorithm has been
+developed: the DP penalty algorithm of Yildirim and Ermis~\cite{YildirimE19}.
+A closely related algorithm is the DP Barker algorithm of
+Heikkilä et al.~\cite{HeikkilaJDH19}, which uses the Barker
+acceptance~\cite{Barker65} test instead of the MH acceptance test
+that MH algorithms use. Although DP Barker is not technically an MH algorithm,
+it is much close to DP penalty than other DP MCMC algorithms due to the
+acceptance test it performs.
+
 DP penalty builds on the earlier penalty algorithm~\cite{CeD99}, which was
 developed for physical simulations where it is difficult to compute even the
 unnormalised form of the target distribution, so the target
@@ -227,23 +238,23 @@ Heikkilä et al.~\cite{HeikkilaJDH19}. This technique is applicable to the
 DP penalty algorithm, but not the DP Barker algorithm, although new developments
 of the technique~\cite{KJH20} may be applicable to it.
 
-As an MCMC algorithm, DP penalty is very simple, so developing differentially
-private variants of more advanced MCMC algorithm may result in more effective
-algorithms. This thesis derives a differentially private version of
+As an MH algorithm, DP penalty is very simple, so developing differentially
+private variants of more advanced MH algorithms may be fruithful. This thesis
+develops a differentially private version of
 Hamiltonian Monte Carlo (HMC)~\cite{neal2012mcmc, DKP87}, which is able to make
 better use of the structure of the statistical model being sampled than DP penalty.
 However, with differential privacy, this comes with a privacy cost, so it is
 not clear that differentially private HMC is more effective than DP penalty.
 
-Another way to lower the privacy cost of a differentially private MCMC
+Another way to lower the privacy cost of a differentially private
 algorithm is only using a portion of the data at each iteration, instead of
 the full dataset. This technique, called subsampling or minibatching, is used
 by DP Barker, but it is also applicable to DP penalty. As subsampling will
 decrease the accuracy of the algorithm, it is not guaranteed to improve results
 over existing algorithms.
 
-There are other frameworks for DP Bayesian inference than DP MCMC, but none
-of them offers the full generality and theoretical guarantees that DP MCMC
+There are other frameworks for DP Bayesian inference than DP MH, but none
+of them offers the full generality and theoretical guarantees that DP MH
 has. DP variational inference~\cite{JHD17} approximates the posterior
 distribution with a tractable distribution, but the approximating distribution
 may not be able to match the posterior. For exponential
@@ -254,22 +265,24 @@ from the exact posterior is differentially private under suitable
 conditions~\cite{DNZ17, WFS15, ZRD16}, but for many models, exact sampling of the posterior
 is not possible.
 
-In the non-private setting, stochastic gradient MCMC
-algorithms~\cite{CFG14, DFB14} use the gradients of the target distribution
+Several non-MH DP MCMC algorithms~\cite{WFS15, LCL19} based on
+stochastic gradient MCMC algorithms~\cite{WellingT11, CFG14, DFB14} have been developed.
+First developed in the non-private setting, stochastic gradient MCMC
+algorithms use the gradients of the target density
 to draw efficient proposals. To save computation time, the gradients are
 only computed over a subsample of the data, and the acceptance test is omitted,
 which introduces bias to the resulting posterior~\cite{Bet15}, especially in
 high dimensions.
-Differentially private variants of these algorithms~\cite{WFS15, LCL19} greatly
-benefit from privacy amplification from subsampling and omitting the
-acceptance test,
+The differentially private variants of these algorithms~\cite{WFS15, LCL19} greatly
+benefit from privacy amplification from subsampling and and the lowered
+privacy cost from omitting the acceptance test,
 but they inherit the bias from omitting the acceptance test, so all of the
 algorithm in this thesis include the acceptance test.
 
 This thesis begins with a more detailed, but nevertheless brief, introduction to
-differential privacy and MCMC in Chapter~\ref{background_chapter}.
+differential privacy and MH in Chapter~\ref{background_chapter}.
 Chapter~\ref{dp_mcmc_chapter} considers the simpler differentially private
-MCMC algorithms: the existing algorithms, DP penalty and DP Barker, are introduced
+MH algorithms: the existing algorithms, DP penalty and DP Barker, are introduced
 in Sections~\ref{dp_penalty_section} and \ref{dp_barker_section},
 the tighter privacy bound for DP penalty is developed in
 Section~\ref{dp_penalty_adp_section}
@@ -544,7 +557,7 @@ all \(x\). As this thesis only uses the Gaussian mechanism and
 thus only needs to clip the \(l_{2}\)-norm, the superscript \(p\) is always
 \(2\) and the notation \(\clip_{b} = \clip_{b}^{2}\) is used.
 
-\section{Bayesian Inference and Markov Chain Monte Carlo}\label{MCMC_background}
+\section{Bayesian Inference and the Metropolis-Hastings Algorithm}\label{MCMC_background}
 
 In Bayesian inference, the parameters \(\theta\) of a statistical model are
 inferred from 
@@ -565,11 +578,11 @@ cases difficult to compute~\cite{BDA}. In such cases the posterior cannot be fea
 computed. However, many of the commonly used summary statistics of the posterior, 
 such as the mean, variance and credible intervals, can be approximated from 
 a sample of the posterior. \emph{Markov chain Monte Carlo}
-(MCMC)~\cite{MRR53} is a widely used method to obtain such samples.
+(MCMC) is a widely used method to obtain such samples.
 
 MCMC algorithms sequentially sample values of \(\theta\)
 with the goal of eventually having the chain of sampled values converge to 
-a given distribution~\cite{BDA}. While this can be done in many ways, this thesis 
+a given distribution~\cite{Robert04}. While this can be done in many ways, this thesis
 focuses on a particular MCMC algorithm:
 \emph{Metropolis-Hastings} (MH)~\cite{MRR53, Has70}.
 
@@ -1028,7 +1041,7 @@ the identity function. The Dirac measure can also represent the Markov kernel
 of any deterministic function \(f\) by \(\delta_{f(x)}\). It turns out that
 with a suitable \(f\), \(\delta_{f(x)}\) is reversible with respect to the
 Lebesgue measure, which is applied together with
-Lemma~\ref{reversible_proposal_lemma} in Section~\ref{hmc_basics_section}.
+Lemma~\ref{reversible_proposal_lemma} in Chapter~\ref{hmc_chapter}.
 
 \begin{lemma}\label{dirac_measure_reversible_lemma}
   For a function \(f\colon \R^{d}\to \R^{d}\) that preserves Lebesgue measure and has
@@ -1052,7 +1065,7 @@ Lemma~\ref{reversible_proposal_lemma} in Section~\ref{hmc_basics_section}.
   The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
 \end{proof}
 
-\chapter{Differentially Private MCMC}\label{dp_mcmc_chapter}
+\chapter{Differentially Private MH}\label{dp_mcmc_chapter}
 
 As seen in Section~\ref{DP_background}, an algorithm can be made differentially 
 private by adding Gaussian noise its output. The noise could also be added
@@ -1063,7 +1076,7 @@ value also hold for releasing the final result of the algorithm.
 In 2019, Yildirim and Ermis~\cite{YildirimE19} realised that if Gaussian noise
 is added to the exact value of \(\lambda\) from Equation~\ref{lambda_equation},
 the noise can be corrected for,
-yielding a differentially private MCMC algorithm, called DP penalty,
+yielding a differentially private MH algorithm, called DP penalty,
 which converges to 
 the correct distribution. In the same year, Heikkilä et al.~\cite{HeikkilaJDH19}
 developed another DP MCMC algorithm, called DP Barker, which uses subsampling 
@@ -1692,7 +1705,7 @@ an acceptance test would not be needed, but exact simulation of the moving parti
 is typically not possible, so a Metropolis-Hastings acceptance test is used
 for proposals generated by the simulation. Despite imperfections, the simulation can generate long jumps
 that stay in areas of high probability, giving HMC a higher acceptance rate 
-that Metropolis-Hastings using a Gaussian distribution as the proposal, at the 
+than Metropolis-Hastings using a Gaussian distribution as the proposal, at the
 cost of higher computational requirements.
 
 This chapter first introduces HMC in the non-DP setting in Section~\ref{hmc_basics_section}.
@@ -1842,7 +1855,7 @@ is always accepted.
 
 In the second stage, Hamiltonian dynamics for the particle on a surface are 
 simulated with the leapfrog method, starting from the current value 
-of \(\theta\) and the proposed value of \(p\). After the simulation,
+of \(\theta\) and value of \(p\) from the previous stage. After the simulation,
 \(p\) is negated, and the resulting \((\theta, p)\) pair is used as the
 proposed value.
 
@@ -2349,11 +2362,11 @@ while moving a substantial distance on the circle.
 
 \chapter{Experimental Setup}\label{experiment_setup_chapter}
 
-To compare the performance of the DP MCMC algorithms, they were run on
+To compare the performance of the DP MH algorithms, they were run on
 several models. This chapter introduces these models in Sections~\ref{gauss_model},
 \ref{banana_section} and \ref{circle_section}. The practicalities, such as
 the hyperparameter values of the model and the initialisation of the
-MCMC algorithms, are considered in Section~\ref{practical_section}.
+algorithms, are considered in Section~\ref{practical_section}.
 Finally, the main performance
 metric used in the experiments is introduced in Section~\ref{mmd_section}.
 The results of the experiments are discussed in Chapter~\ref{experiment_chapter}.
@@ -2439,7 +2452,6 @@ The Gaussian distribution is a special case of the banana distribution,
 as setting \(a = 0\) makes \(g\) the identity function. Similarly, setting
 \(a = 0\) turns the Bayesian banana model into a Gaussian model.
 
-
 \section{Circle Model}\label{circle_section}
 
 Random walk MH algorithms may struggle with posteriors which are concentrated
@@ -2522,7 +2534,7 @@ the circle model does not give a method to generate the data points
 in the experiments of Chapter~\ref{experiment_chapter} were sampled
 from a normal distribution with mean 3 and variance 1.
 
-\section{Practicalities of Running the MCMC Algorithms}\label{practical_section}
+\section{Practicalities of Running the Comparison}\label{practical_section}
 
 Eight sets of model hyperparameters were used in the experiments.
 The varied hyperparameters are shown in
@@ -2544,7 +2556,7 @@ The true values of \(\theta\) in all experiment except the circle are
 \(\theta_{2} = 3\) and \(\theta_{i} = 0\) for \(i \neq 2\).
 
 All experiments ran 20 chains for each value
-of \(\epsilon\) for DP MCMC experiments, or clip bound for clipping experiments,
+of \(\epsilon\) for DP MH experiments, or clip bound for clipping experiments,
 for each algorithm included. Each of the
 20 chains had a different starting point,
 % chosen from a Gaussian
@@ -2639,14 +2651,14 @@ to handle samples of different sizes.
 
 \chapter{Experiments}\label{experiment_chapter}
 
-This chapter contains the experiments performed on both non-DP and DP MCMC
+This chapter contains the experiments performed on both non-DP and DP MH
 algorithms. Section~\ref{accounting_comparison_section} compares the
 zCDP, RDP and ADP based privacy accounting methods that are available
 for DP penalty, minibatch DP Penalty and DP HMC.
 Section~\ref{clipping_experiments}
 examines the effect clipping log-likelihood ratios, which is necessary for
-DP MCMC algorithms, but may adversely affect their convergence.
-Section~\ref{dp_mcmc_comparison} compares the different DP MCMC algorithms
+DP MH algorithms, but may adversely affect their convergence.
+Section~\ref{dp_mcmc_comparison} compares the different DP MH algorithms
 on several models.
 
 \section{Comparing Privacy Accounting Methods}\label{accounting_comparison_section}
@@ -2694,7 +2706,7 @@ improve the performance of DP Barker.
 \section{The Effects of Clipping}\label{clipping_experiments}
 
 The this section looks at the effect of clipping log-likelihood ratios,
-which is necessary for DP MCMC algorithms, but may affect their convergence
+which is necessary for DP MH algorithms, but may affect their convergence
 to the correct posterior.
 Both HMC and random walk Metropolis-Hastings (RWMH)\footnote{Metropolis-Hastings using the Gaussian
 distribution as the proposal distributions.}
@@ -2740,12 +2752,16 @@ even lower, so future research should look into clipping in other models.
     \label{clip_effect_fig}
 \end{figure}
 
-\section{Comparison of DP MCMC Algorithms}\label{dp_mcmc_comparison}
+\section{Comparison of DP MH Algorithms}\label{dp_mcmc_comparison}
 
-The experiments in this section compare the DP MCMC algorithms discussed in this
+The experiments in this section compare the DP MH algorithms discussed in this
 thesis. The compared algorithms are the DP penalty algorithm with and without
 GWMH and OCU~\cite{YildirimE19}
-(Section~\ref{dp_penalty_section}), the DP Barker algorithm~\cite{HeikkilaJDH19}
+(Section~\ref{dp_penalty_section}), the DP Barker
+algorithm~\cite{HeikkilaJDH19}\footnote{
+  While DP Barker is not technically an MH algorithm, is still uses the
+  Barker acceptance test, and is very close to DP MH algorithms.
+}
 (Section~\ref{dp_barker_section}), the minibatch DP penalty algorithm, again
 with and without GWMH and OCU (Section~\ref{dp_minibatch_penalty_section}), and
 DP HMC (Section~\ref{dp_hmc_section}).
@@ -2882,9 +2898,9 @@ there is very large variance in clipping.
 \chapter{Conclusions}\label{conclusion_chapter}
 
 The results of the experiments of Section~\ref{dp_mcmc_comparison} show that
-using DP MCMC for Bayesian inference is possible, but will require large
+using DP MH for Bayesian inference is possible, but will require large
 datasets, especially with complex models. With the already fairly large datasets
-with \(10^{5} \leq n \leq 2\cdot 10^{5}\), the DP MCMC algorithms were able to
+with \(10^{5} \leq n \leq 2\cdot 10^{5}\), the DP MH algorithms were able to
 achieve significantly lower MMDs with increasing \(\epsilon\) on most models,
 but the algorithms only got close to the baseline MMDs from samples of the
 true posterior on the simplest models, the flat and tempered bananas. This also
@@ -2893,10 +2909,10 @@ reasonable values of \(\epsilon\) like 1 and 2 was much worse. The circle model
 is the only exception, where performance with \(\epsilon = 1\) was reasonable.
 The experiments done by Heikkilä et al.~\cite{HeikkilaJDH19}
 and Yildirim and Ermis~\cite{YildirimE19} have similar results: good performance
-of DP MCMC with a reasonable \(\epsilon \leq 2\) requires a large dataset with
-\(n \geq 10^{5}\).
+of a DP MH algorithm with a reasonable \(\epsilon \leq 2\) requires a large
+dataset with \(n \geq 10^{5}\).
 
-When comparing the different DP MCMC algorithms, the results of
+When comparing the different DP MH algorithms, the results of
 Section~\ref{dp_mcmc_comparison} show that neither DP HMC or DP penalty is
 clearly better than the other, as both algorithms beat the other on some models.
 The usefulness of OCU+GWHM for DP penalty is also debatable, as DP penalty
@@ -2904,13 +2920,13 @@ OCU+GWMH only clearly beat DP penalty on the 30-dimensional Gaussian. The only
 clear conclusion from the comparisons is that the minibatch algorithms are
 only useful with tempered posteriors, and even there they are not better
 than the algorithms using the full data, so subsampling the log-likelihood ratios
-does not seem to be a useful addition to DP MCMC, which is surprising, as
+does not seem to be a useful addition to DP MH, which is surprising, as
 subsampling significantly lowers the privacy cost of releasing the log-likelihood
 ratio.
 
 The failure of subsampling log-likelihood ratios does not imply that subsampling
 HMC gradients will not be useful. Gradient subsampling has been done with
-non-DP HMC~\cite{CFG14} to reduce computation time, and using subsampling
+non-DP HMC~\cite{CFG14, DFB14} to reduce computation time, and using subsampling
 in the DP setting is a potential direction for future research. However,
 naive gradient subsampling in HMC has been shown to fail in high
 dimensions~\cite{Bet15}, so additional methods to control the error from subsampling
@@ -2918,13 +2934,13 @@ are likely needed, such as the friction term~\cite{CFG14} briefly discussed in
 Section~\ref{dp_hmc_section}, or the Nosé-Hoover thermostat~\cite{DFB14} that
 dynamically adjusts the friction.
 
-The large number of parameters DP MCMC algorithms have compared to non-DP
-MCMC makes tuning them particularly difficult. DP HMC is the clearest example
+The large number of parameters DP MH algorithms have compared to non-DP
+MH makes tuning them particularly difficult. DP HMC is the clearest example
 of this, where 4 parameters tune the different trade-offs between privacy and
 accuracy, in addition to the parameters of HMC, which are already known to
 be difficult to tune in the non-DP case~\cite{neal2012mcmc}.
 
-Several methods and guidelines for tuning the parameters of non-DP MCMC algorithms
+Several methods and guidelines for tuning the parameters of non-DP MH algorithms
 have been developed. The simplest of these are heuristic guidelines or in some
 cases proofs~\cite{RGG97} of optimal acceptance rates. For MH with a Gaussian
 proposal and a suitable target distribution, it has been shown that the optimal
@@ -2933,17 +2949,17 @@ target approaches infinity~\cite{RGG97}. For HMC, a \(65\%\) acceptance rate
 is recommended~\cite{neal2012mcmc}. These guidelines can be used to tune the
 proposal variance,
 or, in the case of HMC, \(\eta\), until the algorithm has the desired acceptance
-rate. They can be used when tuning DP MCMC algorithms, and were used to some
+rate. They can be used when tuning DP MH algorithms, and were used to some
 extent in tuning the parameters for the experiments of this thesis, but it
-is not clear how well these guidelines apply to DP MCMC algorithms.
-Yildirim and Ermis show that the DP penalty algorithm has a lower acceptance
+is not clear how well these guidelines apply under DP.
+Yildirim and Ermis show that DP penalty has a lower acceptance
 rate than the non-DP MH algorithm with the same proposal~\cite{YildirimE19},
 so the optimal
-acceptance rates of DP MCMC algorithms are likely lower their non-DP
+acceptance rates of DP MH algorithms are likely lower their non-DP
 counterparts, but the exact optimal acceptance rates will likely depend on the
 privacy bounds.
 
-Tuning the parameters of an MCMC algorithm by hand is time consuming,
+Tuning the parameters of an MH algorithm by hand is time consuming,
 even with a guideline on the optimal acceptance rate, and requires the user of
 the algorithm to know the guidelines and their applicability. Tuning the
 parameters automatically alleviates these problems. In the context of HMC, these
@@ -2953,13 +2969,13 @@ that is able to tune both \(\eta\) and \(L\) automatically.
 The automatic tuning of both parameters made HMC usable in automatic inference
 libraries such as
 Stan~\cite{stan} that are typically used by applied practitioners who are not
-experts in MCMC algorithms. Extending NUTS and dynamic HMC algorithms that
+experts in MCMC algorithms. Extending NUTS and other dynamic HMC algorithms that
 can tune some parameters automatically to the DP case is a potential avenue of
 future research. The empirical results on clipping in
 Section~\ref{clipping_experiments} may be usable as guidelines for tuning the
 clip bounds, perhaps even automatically.
 
-A fundamental difficulty in tuning DP MCMC algorithms is the fact that the
+A fundamental difficulty in tuning DP MH algorithms is the fact that the
 metrics used to tune the algorithm, such as acceptance and clipping rates,
 cannot be released without incurring a privacy cost and adding noise to the
 metrics. Even tuning the algorithm
@@ -2971,20 +2987,20 @@ publicly available data, and only using the private data with the final paramete
 but this risks overfitting the parameters to the tuning dataset and having
 poor performance on the private dataset.
 This thesis largely ignores these issues for the sake of comparing
-the algorithms, but potential users of DP MCMC on real private data should not
+the algorithms, but potential users of DP MH on real private data should not
 ignore them, which makes developing automatic methods for tuning parameters
 that allow computing the privacy cost of tuning
 even more important than in the non-DP case.
 
 Other practical issues that the experiments of Section~\ref{dp_mcmc_comparison}
-ignore are the initialisation of the DP MCMC algorithm, and the fact that
+ignore are the initialisation of the algorithms, and the fact that
 computer implementations cannot sample from continuous distributions exactly.
-In existing work, DP MCMC algorithms have been initialised using a point
+In existing work, DP MH algorithms have been initialised using a point
 estimate obtained from another DP method with very low privacy
 cost~\cite{HeikkilaJDH19, WFS15}. The initialisation method used
 Section~\ref{dp_mcmc_comparison} mimics the effects of using a point estimate by
 choosing random values around the true parameter values. This is unlikely to
-affect the comparisons of the DP MCMC algorithms, as all of the algorithms
+affect the comparisons of the DP MH algorithms, as all of the algorithms
 would use the same method to obtain the point estimate in any case.
 
 The issue of sampling continuous distributions on computers for DP were first
@@ -2997,18 +3013,18 @@ which means that actual implementations of the algorithms in this thesis may
 not have their theoretical DP guarantees. Recently, the differential privacy
 of a discrete variant of the Gaussian distribution has been
 analysed~\cite{C0S20}. Using a discrete distribution instead of a continuous one
-sidesteps floating point issues, but in the context of DP MCMC, the penalty
+sidesteps floating point issues, but in the context of DP MH, the penalty
 correction requires adding continuous Gaussian noise. Investigating the effect
 of using discrete Gaussian noise instead with the penalty algorithm is another
 potential avenue of future research.
 
-The results presented in this thesis show that DP MCMC is a viable way to
+The results presented in this thesis show that DP MH is a viable way to
 conduct DP Bayesian inference with large enough datasets. There are still
-issues that should be investigated before deploying DP MCMC with real
+issues that should be investigated before deploying DP MH with real
 private data, but they are likely solvable, and most, like parameter tuning,
 and inexact sampling, also affect other methods of DP Bayesian inference.
-The benefits of MCMC over other Bayesian inference methods are present in the
-DP setting, so research into the many unknowns of DP MCMC is likely to be
+The benefits of MH over other Bayesian inference methods are present in the
+DP setting, so research into the many unknowns of DP MH is likely to be
 fruitful.
 
 % STEP 5:
