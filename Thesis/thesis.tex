@@ -38,7 +38,7 @@
 \date{\today}
 \prof{Associate Professor Antti Honkela}
 \censors{Associate Professor Antti Honkela}{Doctor Antti Koskela}{}
-\keywords{Differential privacy, Markov chain Monte Carlo, Hamiltonian Monte Carlo}
+\keywords{Differential privacy, Metropolis-Hastings, Markov chain Monte Carlo, Hamiltonian Monte Carlo}
 \depositeplace{}
 \additionalinformation{}
 
@@ -76,9 +76,10 @@
     urlcolor=cyan           % color of external links
 }
 
-\newtheorem{lemma}{Lemma}
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}[chapter]
+\newtheorem{theorem}[lemma]{Theorem}
+\newtheorem{definition}[lemma]{Definition}
+\newtheorem{corollary}[lemma]{Corollary}
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -679,6 +680,16 @@ algorithm used for Bayesian inference.
 
 \section{Measure Theory}
 
+The study of Hamiltonian Monte Carlo (HMC) in Chapter~\ref{hmc_chapter},
+requires a framework for studying Metropolis-Hastings algorithms
+that have non-continuous proposal distributions, which is not provided
+by the theory presented in Section~\ref{MCMC_background} that only handles
+continuous proposal distributions.
+This section introduces measure theoretic probability theory, in particular
+the theory of Markov kernels, that does provide a sufficiently general
+framework for the study of HMC. As with the other sections in this chapter,
+the introduction is very limited, only covering concepts used in this thesis.
+
 Measure theory is the study of \emph{measures}, which unify the concepts
 of length, area and volume of subsets of \(\R\), \(\R^{2}\) and
 \(\R^{3}\), the number of elements of a finite set, probabilities of events,
@@ -700,8 +711,10 @@ Before defining measures, some notation is needed. Denote the set of all
 non-negative real numbers with \(\R_{+}\), and denote
 \(\bar{\R}_{+} = \R_{+}\cup \{\infty\}\). In sums, the \(\infty\)-symbol
 behaves as expected: \(x + \infty = \infty\) for any \(x\in \R\) and
-\(\infty + \infty = \infty\). The set of all subsets of a set \(E\), called
+\(\infty + \infty = \infty\). Subtracting infinity is not defined.
+The set of all subsets of a set \(E\), called
 the \emph{powerset} of \(E\), is denoted by \(\mathcal{P}(E)\).
+The indicator function of a set \(A\) is denoted by \(1_{A}\).
 
 \begin{definition}
   Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
@@ -725,7 +738,7 @@ The sets of a \(\sigma\)-algebra \(\mathcal{E}\) are called
     \item
     \(\mu(\emptyset) = 0\)
     \item
-    For any sequence of sets \(A_{1}, A_{2},\dotsc \in \mathcal{E}\)
+    For any sequence of disjoint sets \(A_{1}, A_{2},\dotsc \in \mathcal{E}\)
     \[
     \quad \mu\left(\bigcup_{i=1}^{\infty} A_{i}\right)
     = \sum_{i=1}^\infty\mu(A_{i})
@@ -742,7 +755,7 @@ area in \(\R^{2}\) and their counterparts in higher dimensions is called the
 \emph{Lebesgue measure}\footnote{
   Technically the Lebesgue measures on \(\R^{d}\) for each \(d\in \N\) are
   different measures.
-} and is denoted by \(\lambda\).
+} and is denoted by \(m\).
 
 For this thesis, it is sufficient to
 work with the \emph{Borel \(\sigma\)-algebra} of \(\R^{d}\), denoted by
@@ -780,13 +793,13 @@ preserve the measurability of sets.
 	Let \((E, \mathcal{E})\) and \((F, \mathcal{F})\) be measurable spaces
   and let \(f\colon E\to F\). \(f\) is called
   \(\mathcal{E}\)-\(\mathcal{F}\)-measurable if
-  \(B\in \mathcal{F}\Rightarrow f^{-1}B\in \mathcal{E}\).
+  \(B\in \mathcal{F}\Rightarrow f^{-1}(B)\in \mathcal{E}\).
 \end{definition}
 As with measurable sets, \(\mathcal{E}\)-\(\mathcal{F}\)-measurable functions
 are simply called measurable if \(\mathcal{E}\) and \(\mathcal{F}\) are
 clear from the context.
 Most functions that one comes across are measurable. In particular,
-the indicators of measurable sets are measurable, continuous functions on
+the indicators of measurable sets are measurable, continuous functions
 are Borel-Borel-measurable, and compositions of measurable functions
 are measurable~\cite{Cin11}.
 
@@ -806,12 +819,18 @@ integral are give in Theorem~\ref{lebesgue_integral_theorem}.
     \int_{A}\mu(\dx x)f(x).
   \]
 \end{definition}
+The measure \(\mu\) to integrate over is placed right next to the integral sign, which
+makes the nested nested integrals encountered later much more readable than the
+common approach of placing
+the function \(f\) next to the integral sign. The variable that is integrated
+over is indicated by the differential symbol \(\dx x\) inside the parenthesis
+after the measure \(\mu\).
 Note that the integral was only defined for non-negative functions. It is possible
-to extend the definition to measurable real-valued functions~\cite{Cin11},
+to extend the definition to certain measurable real-valued functions~\cite{Cin11},
 but the integral for non-negative functions is sufficient for this thesis.
 
 \begin{theorem}\label{lebesgue_integral_theorem}
-  Useful properties of the Lebesgue integral\cite{Cin11}:
+  Useful properties of the Lebesgue integral~\cite{Cin11}:
 	\begin{enumerate}
     \item For a measure space \((E, \mathcal{E}, \mu)\) and
           \(A\in \mathcal{E}\), \(\int_{E}\mu(\dx x)1_{A}(x) = \mu(A)\).
@@ -821,11 +840,11 @@ but the integral for non-negative functions is sufficient for this thesis.
           = a\int_{A} \mu(\dx x) f(x) + b\int_{A} \mu(\dx x) g(x)\).
     \item For a Riemann-integrable function \(f\colon \R\to \R_{+}\) and
           \(a, b\in \R\) with \(a \leq b\),
-          \(\int_{[a, b]}\lambda(\dx x)f(x) = \int_{a}^{b}f(x)\dx x\),
+          \(\int_{[a, b]}m(\dx x)f(x) = \int_{a}^{b}f(x)\dx x\),
           where the integral on the right is a Riemann integral.
     \item For a continuous random variable \(X\) on \(\R^{d}\) with
           density \(\pi\) and \(A\in \mathcal{B}(\R^{d})\),
-          \(P(X\in A) = \int_{A}\lambda(\dx x)\pi(x)\).
+          \(P(X\in A) = \int_{A}m(\dx x)\pi(x)\).
     \item Let \(\mu\) and \(\nu\) be \(\sigma\)-finite measures on
           measure spaces \((E, \mathcal{E})\) and \((F, \mathcal{F})\),
           respectively. Let \(f\colon E\times F\to \R_{+}\) be measurable.
@@ -872,6 +891,25 @@ functions from values to probability measures on values.
 	See~\cite[Equation 6.5]{Cin11}.
 \end{proof}
 
+A measure \(\mu\) and a Markov kernel \(q\), both on a measurable space
+\((E, \mathcal{E})\) can be used to define a measure on
+\((E, \mathcal{E})^{2}\). If \(\mu\) is \(\sigma\)-finite, it suffices to
+define the measure on sets of the form \(A\times B\) for
+\(A, B\in \mathcal{E}\)~\cite{Cin11}.
+This property is central to the following discussion, and is formalised below.
+\begin{theorem}\label{product_measure_theorem}
+	Let \(\mu\) be a \(\sigma\)-finite measure and \(q\) be a Markov kernel,
+  both on a measurable space \((E, \mathcal{E})\). Then there exists a
+  unique measure \(\nu\) on \((E, \mathcal{E})^{2}\) such that
+  \[
+    \nu(A\times B) = \int_{A}\mu(\dx a)\int_{B}q(a, \dx b).
+  \]
+  for all \(A, B \in \mathcal{E}\).
+\end{theorem}
+\begin{proof}
+	See~\cite[Theorem 6.11]{Cin11}.
+\end{proof}
+
 \begin{definition}\label{reversible_definition}
 	Let \((E, \mathcal{E})\) be a measurable space. A Markov kernel \(q\) on
   \((E, \mathcal{E})\) is reversible with respect to a \(\sigma\)-finite
@@ -883,8 +921,25 @@ functions from values to probability measures on values.
   for all \(A, B\in \mathcal{E}\).
 \end{definition}
 
+Definition~\ref{reversible_definition} is central to the results in
+Chapter~\ref{hmc_chapter}, so looking into it in detail is warranted.
+Let \((E, \mathcal{E})\) be a measurable space and let,
+\[
+  \nu_{1}(A\times B) = \int_{A}\mu(\dx a)\int_{B}q(a, \dx b).
+\]
+where \(A, B\in \mathcal{E}\). By Theorem~\ref{product_measure_theorem},
+this defines a unique measure \(\nu_{1}\) on \((E, \mathcal{E})^{2}\).
+In this way, the equality in Definition~\ref{reversible_definition} can be
+seen as an equality between two measures. On the left side is the measure
+\(\nu_{1}\), and on the right side is a measure \(\nu_{2}\),
+both on \((E, \mathcal{E})^{2}\), where
+\(\nu_{2}(A\times B) = \nu_{1}(B\times A)\).
+Definition~\ref{reversible_definition} requires that \(\nu_{1} = \nu_{2}\),
+in other words, that reversing the order of the pairs in a set does not change the
+\(\nu\)-measure of that set.
+
 \begin{lemma}\label{reversible_integration_lemma}
-  Let \(q\) be a markov kernel on a measurable space \((E, \mathcal{E})\)
+  Let \(q\) be a Markov kernel on a measurable space \((E, \mathcal{E})\)
   reversible with respect to a \(\sigma\)-finite measure \(\mu\) on
   \((E, \mathcal{E})\) and let \(f\colon E\times E\to \R_{+}\) be a
   measurable function. Then
@@ -904,7 +959,7 @@ functions from values to probability measures on values.
   \]
   for \(A, B\in \mathcal{E}\) defines unique measures
   \(\nu_{1}\) and \(\nu_{2}\) on
-  \((E, \mathcal{E})^{2}\)~\cite[Theorem 6.11]{Cin11}, which,
+  \((E, \mathcal{E})^{2}\) by Theorem~\ref{product_measure_theorem}, which,
   by Definition~\ref{reversible_definition}, are equal. Then
   \begin{align*}
     \int_{A}\mu(\dx a)\int_{B}q(a, \dx b)f(a, b)
@@ -915,41 +970,19 @@ functions from values to probability measures on values.
   \end{align*}
 \end{proof}
 
-\begin{lemma}\label{composition_reversible_lemma}
-	If Markov kernels \(q_{1}\) and \(q_{2}\) on \((E, \mathcal{E})\)
-  are reversible with respect to \(\sigma\)-finite a measure \(\mu\)
-  on \((E, \mathcal{E})\),
-  \[
-    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
-    = \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
-  \]
-  for all \(A, C\in \mathcal{E}\).
-\end{lemma}
-\begin{proof}
-  Lemma~\ref{markov_kernel_composition_lemma} can be restated as
-  \[
-    \int_{C}(q_{2}\circ q_{1})(a, \dx c) = \int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c).
-  \]
-  Then
-	\begin{align*}
-    \int_{A}\mu(\dx a)\int_{C}(q_{2}\circ q_{1})(a, \dx c)
-    &= \int_{A}\mu(\dx a)\int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c)
-    \\&= \int_{E}\mu(\dx b)\int_{A}q_{1}(b, \dx a)\int_{C}q_{2}(b, \dx c)
-    \\&= \int_{E}\mu(\dx b)\int_{C}q_{2}(b, \dx c)\int_{A}q_{1}(b, \dx a)
-    \\&= \int_{C}\mu(\dx c)\int_{E}q_{2}(c, \dx b)\int_{A}q_{1}(b, \dx a)
-    \\&= \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ q_{2})(c, \dx a).
-    \qedhere
-  \end{align*}
-\end{proof}
 \begin{lemma}\label{composition_reversible_multiple_lemma}
   For Markov kernels \(q_{1}\dotsc q_{k}\) on \((E, \mathcal{E})\) reversible
   with respect to a \(\sigma\)-finite measure \(\mu\) on \((E, \mathcal{E})\),
   \[
     \int_{A}\mu(\dx a)\int_{C}(q_{k}\circ \dotsb \circ q_{1})(a, \dx c)
-    = \int_{C}\mu(\dx a)\int_{A}(q_{1}\circ \dotsb \circ q_{k})(c, \dx a).
+    = \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ \dotsb \circ q_{k})(c, \dx a).
   \]
 \end{lemma}
 \begin{proof}
+  Lemma~\ref{markov_kernel_composition_lemma} can be restated as
+  \begin{equation}\label{markov_kernel_composition_equation}
+    \int_{C}(q_{2}\circ q_{1})(a, \dx c) = \int_{E}q_{1}(a, \dx b)\int_{C}q_{2}(b, \dx c).
+  \end{equation}
   The proof is by induction on \(k\). For \(k = 1\), the claim is the definition
   of reversibility with respect to \(\mu\). If the claim holds for \(k - 1\),
   \begin{align*}
@@ -958,16 +991,28 @@ functions from values to probability measures on values.
       \int_{C}q_{k}(b, \dx c)
     \\=& \int_{E}\mu(\dx b)\int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
       \int_{C}q_{k}(b, \dx c)
+    \\=& \int_{E}\mu(\dx b)\int_{C}q_{k}(b, \dx c)
+         \int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
     \\=& \int_{C}\mu(\dx c) \int_{E}q_{k}(c, \dx b)
          \int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
     \\=&\int_{C}\mu(\dx c)\int_{A}(q_{1}\circ\dotsb \circ q_{k})(c, \dx a),
   \end{align*}
-  so the claim holds for all \(k\in \N\) by induction.
-
+  where the first equality uses Equation~\ref{markov_kernel_composition_equation},
+  the second equality uses the induction hypothesis for \(k - 1\),
+  the third equality uses uses Theorem~\ref{lebesgue_integral_theorem} (5)
+  to change the order of integration, the fourth uses
+  Lemma~\ref{reversible_integration_lemma}
+  to swap the integration variables for two leftmost integrals
+  and the last uses equation~\ref{markov_kernel_composition_equation} again.
+  Thus the claim holds for all \(k\in \N_{+}\) by induction.
 \end{proof}
 
+If the composition \(q_{k}\circ \dotsb \circ q_{1}\) is symmetric,
+Lemma~\ref{composition_reversible_multiple_lemma} becomes a statement on the
+reversibility of the composition. More formally:
+
 \begin{lemma}\label{composition_reversible_symmetric_lemma}
-  Let \(q_{1}\dotsc q_{k}\) be Markov kernels on \((E, \mathcal{E})\) reversible
+  Let \(q_{1},\dotsc, q_{k}\) be Markov kernels on \((E, \mathcal{E})\) reversible
   with respect to a \(\sigma\)-finite measure \(\mu\) on \((E, \mathcal{E})\).
   If \(q_{1}\circ \dotsb \circ q_{k} = q_{k}\circ \dotsb \circ q_{1}\),
   the composition \(q_{1}\circ \dotsb \circ q_{k}\) is reversible with
@@ -988,7 +1033,8 @@ Reversibility is linked to the theory of MH algorithms: the detailed balance
 condition is equivalent to the reversibility of the transition kernel of
 the MH algorithm with respect to the target distribution \(\pi\)~\cite{Tie98}.
 Additionally, if target is continuous, and the proposal is reversible with
-respect to the Lebesgue measure, the acceptance probability is simplified.
+respect to the Lebesgue measure, the acceptance probability is simplified, as
+shown below.
 
 \begin{lemma}\label{reversible_proposal_lemma}
   For an MH-algorithm,
@@ -1008,13 +1054,18 @@ respect to the Lebesgue measure, the acceptance probability is simplified.
     \int_{A}\pi(\dx \theta)\int_{B}q(\theta, \dx \theta')\alpha(\theta, \theta')
     = \int_{B}\pi(\dx \theta')\int_{A}q(\theta', \dx \theta)\alpha(\theta', \theta)
   \]
-  for all measurable sets \(A, B\subset \R^{d}\), holds~\cite{Tie98}.
+  for all \(A, B\in \mathcal{B}(\R^{d})\), holds~\cite{Tie98}\footnote{
+    Tierney~\cite{Tie98} states the detailed balance condition as an equality
+    of measures, which, by Theorem~\ref{product_measure_theorem}, can be
+    expressed as an equality of integrals.
+  }.
   For continuous \(\pi\) and \(q\) reversible with respect to the Lebesque measure,
+  for all \(A, B\in \mathcal{B}(\R^{d})\),
   \begin{align*}
     \int_{A}\pi(\dx \theta)\int_{B}q(\theta, \dx \theta')\alpha(\theta, \theta')
-    &= \int_{A}\dx \theta\int_{B}q(\theta, \dx \theta')\pi(\theta)\alpha(\theta, \theta')
-    \\&= \int_{A}\dx\theta\int_{B}q(\theta, \dx \theta')\min\{\pi(\theta), \pi(\theta')\}
-    \\&= \int_{B}\dx\theta'\int_{A}q(\theta', \dx \theta)\min\{\pi(\theta'), \pi(\theta)\}
+    &= \int_{A}m(\dx \theta)\int_{B}q(\theta, \dx \theta')\pi(\theta)\alpha(\theta, \theta')
+    \\&= \int_{A}m(\dx\theta)\int_{B}q(\theta, \dx \theta')\min\{\pi(\theta), \pi(\theta')\}
+    \\&= \int_{B}m(\dx\theta')\int_{A}q(\theta', \dx \theta)\min\{\pi(\theta'), \pi(\theta)\}
     \\&= \int_{A}\pi(\dx \theta')\int_{B}q(\theta', \dx \theta)\alpha(\theta', \theta).
     \qedhere
   \end{align*}
@@ -1052,17 +1103,40 @@ Lemma~\ref{reversible_proposal_lemma} in Chapter~\ref{hmc_chapter}.
   Lebesgue measure.
 \end{lemma}
 \begin{proof}
-  Denote the Lebesgue measure by \(\lambda\). Because \(f\) preserves
+  Denote the Lebesgue measure by \(m\). Because \(f\) preserves
   Lebesgue measure and is injective,
 	\begin{align*}
-    \int_{A}\delta_{f(x)}(B)\dx x
-    &= \int_{A}1_{B}(f(x))\dx x
-    \\&= \lambda(A\cap f^{-1}(B))
-    \\&= \lambda(f^{-1}(A)\cap f^{-1}(f^{-1}((B))))
-    \\&= \lambda(f^{-1}(A)\cap B)
-    \\&= \int_{B}\delta_{f(x)}(A)\dx x
+    \int_{A}m(\dx x)\delta_{f(x)}(B)
+    &= \int_{A}m(\dx x)1_{B}(f(x))
+    \\&= m(A\cap f^{-1}(B))
+    \\&= m(f^{-1}(A)\cap f^{-1}(f^{-1}(B)))
+    \\&= m(f^{-1}(A)\cap B)
+    \\&= \int_{B}m(\dx x)\delta_{f(x)}(A)
   \end{align*}
   The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
+\end{proof}
+
+Another useful property of the Dirac measure is the fact that integrating
+over it evaluates the integrated function~\cite{Cin11}: for any measurable
+\(f\colon \R^{d}\to \R_{+}\) and \(x_{0}\in \R^{d}\),
+\[
+  \int_{\R^{d}}\delta_{x_{0}}(\dx x)f(x) = f(x_{0}).
+\]
+This property has a simple generalisation when integrating over a set \(A\):
+\begin{lemma}\label{dirac_evaluation_lemma}
+	For any measurable \(f\colon \R^{d}\to \R_{+}\), \(A\in \mathcal{B}(\R^{d})\)
+  and \(x_{0}\in \R^{d}\),
+  \[
+    \int_{A}\delta_{x_{0}}(\dx x)f(x) = 1_{A}(x_{0})f(x_{0}).
+  \]
+\end{lemma}
+\begin{proof}
+  \[
+    \int_{A}\delta_{x_{0}}(\dx x)f(x)
+    = \int_{\R^{d}}\delta_{x_{0}}(\dx x)\, 1_{A}(x)f(x)
+    = 1_{A}(x_{0})f(x_{0}).
+    \qedhere
+  \]
 \end{proof}
 
 \chapter{Differentially Private MH}\label{dp_mcmc_chapter}
@@ -1076,7 +1150,7 @@ value also hold for releasing the final result of the algorithm.
 In 2019, Yildirim and Ermis~\cite{YildirimE19} realised that if Gaussian noise
 is added to the exact value of \(\lambda\) from Equation~\ref{lambda_equation},
 the noise can be corrected for,
-yielding a differentially private MH algorithm, called DP penalty,
+yielding a DP MH algorithm, called DP penalty,
 which converges to 
 the correct distribution. In the same year, Heikkilä et al.~\cite{HeikkilaJDH19}
 developed another DP MCMC algorithm, called DP Barker, which uses subsampling 
@@ -1096,7 +1170,7 @@ algorithm.
 \section{Differentially Private MH with the Penalty Algorithm}\label{dp_penalty_section}
 
 In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
-Metropolis-Hastings called the penalty 
+the MH algorithm called the penalty
 algorithm, where only a noisy approximation of \(\lambda\) is known. The
 original algorithm was
 developed for simulations in physics where computing \(\lambda\)
@@ -1799,14 +1873,16 @@ Neal~\cite{neal2012mcmc}.
 To see why 
 having \(|\det J_f| = 1\), where \(J_f\) is the Jacobian matrix of an injective 
 continuously differentiable function \(f\), 
-implies \(f\) preserving the Lebesgue measure, recall that the volume of a set
+implies \(f\) preserving the Lebesgue measure, recall that the measure of a set
 \(A\) is given by 
 \[
-    \int_A 1\dx x.
+    m(A) = \int_A m(\dx x)\, 1.
 \]
 The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
 \[
-    \int_{f(A)}1\dx x = \int_{A}|\det J_f(x)|\dx x = \int_A 1\dx x.
+  m(f(A)) = \int_{f(A)}m(\dx x)\,1
+  = \int_{A}m(\dx x)|\det J_f(x)| = \int_A m(\dx x)\,1
+  = m(A).
 \]
 where the first equality follows from the change of variables formula.
 
@@ -1886,6 +1962,7 @@ but in practice the errors in different steps tend to cancel each
 other~\cite{neal2012mcmc}, meaning 
 that the acceptance probability mainly depends on \(\eta\).
 
+% \newpage
 \section{Differential Privacy with HMC}\label{dp_hmc_section}
 
 HMC only uses the model log-likelihood, and thus the data, through \(U\).
@@ -1975,7 +2052,8 @@ gives very general sufficient conditions for the log-likelihood, and proves
 that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
 the conditions.
 
-Because \(J_{l_{p_{x}}}(\theta, p)\) is triangular, \(\det J_{l_{p_{x}}}(\theta, p) = 1\)
+Because \(J_{l_{p_{x}}}(\theta, p)\) is triangular and the diagonal consists
+of only ones, \(\det J_{l_{p_{x}}}(\theta, p) = 1\)
 for all \(\theta\) and \(p\), which means that \(l_{p_{x}}\) preserves volume.
 As the step updating \(\theta\) also preserves volume, the entire leapfrog
 simulation preserves Lebesgue measure. Showing that the proposal of
@@ -2010,23 +2088,51 @@ decomposing the sequence into parts that are individually reversible.
   \(l_{\theta}\circ l_{l}\).
 
   For \(l_{-}\circ l_{p_{x}}\), denote \(f_{x}(\theta) = x\eta g(\theta)\) and
-  \(\sigma^{2} = x^{2}\eta^{2}\sigma_{g}^{2}\). Then
-  \[
-    \int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p')) =
-    \int_{B}\delta_{\theta}(\dx \theta')\dx p'\caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
-  \]
-  for \(B\in \mathcal{B}(\R^{2d})\).
-  Using Lemma~\ref{dirac_measure_reversible_lemma},
-  for any \(A, B\in \mathcal{B}(\R^{2d})\),
-	\begin{align*}
-    \int_{A}\dx(\theta, p)\int_{B}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
-    &= \int_{A}\dx(\theta, p)\int_{B}\delta_{\theta}(\dx \theta')\dx p'
-      \caln(p'\mid -p + f_{x}(\theta), \sigma^{2})
-    \\&= \int_{B}\dx(\theta', p')\int_{A}\delta_{\theta'}(\dx \theta)\dx p
-    \caln(p\mid -p' + f_{x}(\theta'), \sigma^{2})
-    \\&= \int_{B}\dx(\theta', p')\int_{A}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))
-    \qedhere
+  \(\sigma^{2} = x^{2}\eta^{2}\sigma_{g}^{2}\). Denote the density function
+  of the \(d\)-dimensional normal distribution with mean \(\mu\) and covariance
+  \(\Sigma\) by \(\caln(\cdot \mid \mu, \Sigma)\).
+  Then
+  \begin{align*}
+    \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
+    &= \int_{C}\delta_{\theta}(\dx \theta')
+      \int_{D}m(\dx p')\caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
+      \\&= 1_{C}(\theta)\int_{D}m(\dx p')\caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
   \end{align*}
+  for \(C, D\in \mathcal{B}(\R^{d})\). The second equality follows from
+  Lemma~\ref{dirac_evaluation_lemma}.
+  The normal distribution has a shift-invariance property: for any \(x, y\in \R^{d}\)
+  \[
+    \caln(x\mid \mu, \Sigma) = \caln(x + y\mid \mu + y, \Sigma),
+  \]
+  which is a consequence of the fact that the density of the normal distribution
+  only depends on \(x\) and \(\mu\) through \(x - \mu\).
+  Then,
+  for any \(A, B, C, D\in \mathcal{B}(\R^{d})\),
+	\begin{align*}
+    &\int_{A}m(\dx\theta)\int_{B}m(\dx p)\int_{C\times D}
+      (l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
+    \\=& \int_{A}m(\dx \theta)\int_{B}m(\dx p)\int_{C}\delta_{\theta}(\dx \theta')
+         \int_{D}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
+    \\=& \int_{A}m(\dx \theta)\int_{C}\delta_{\theta}(\dx \theta')\int_{B}m(\dx p)
+         \int_{D}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m(\dx p)
+         \int_{D}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m(\dx p)
+         \int_{D}m(\dx p') \caln_{d}(p\mid -p' + f_{x}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m(\dx \theta')1_{A}(\theta')\int_{B}m(\dx p)
+         \int_{D}m(\dx p') \caln_{d}(p\mid -p' + f_{x}(\theta'), \sigma^{2}I)
+    \\=& \int_{C}m(\dx \theta')\int_{D}m(\dx p')1_{A}(\theta')
+          \int_{B}m(\dx p)\caln_{d}(p\mid -p' + f_{x}(\theta'), \sigma^{2}I)
+    \\=& \int_{C}m(\dx\theta')\int_{D}m(\dx p')\int_{A\times B}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))
+  \end{align*}
+  where the second equality uses Theorem~\ref{lebesgue_integral_theorem} (5)
+  to change the order of integration,
+  the third uses Lemma~\ref{reversible_integration_lemma} on the two leftmost
+  integrals,
+  the fourth uses the shift-invariance of the normal distribution,
+  the fifth uses Lemma~\ref{dirac_evaluation_lemma} and
+  the sixth uses Theorem~\ref{lebesgue_integral_theorem} (5) to rearrange the
+  term in the integrals.
 \end{proof}
 
 \begin{lemma}\label{leapfrog_reversibility_lemma}
@@ -2090,8 +2196,13 @@ log-likelihood ratios and the penalty correction is applied,
 \end{proof}
 
 Proving the ergodicity of DP-HMC turns out to be easier than in the
-non-DP case as a result of adding noise to the proposal. Consider the
-last four updates of the proposal,
+non-DP case as a result of adding noise to the proposal, which makes the
+algorithm strongly irreducible, as shown below.
+\begin{theorem}
+	DP-HMC is strongly irreducible and ergodic.
+\end{theorem}
+\begin{proof}
+Consider the last four updates of the proposal,
 \[
   l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}.
 \]
@@ -2106,7 +2217,8 @@ to obtain any value for \(\theta'\), no matter the starting value of
 added to the value of \(p\) and the \(l_{-}\) update does not change the distribution
 of \(p\), so it is possible to obtain any value
 for \(p'\) from any \((\theta^{*}, p^{*})\). This means that
-DP-HMC is in fact strongly irreducible, and thus ergodic.
+DP-HMC is strongly irreducible, and thus ergodic.
+\end{proof}
 
 If the friction term that corrects the dynamics is used, the equations of
 motion become~\cite{CFG14}
@@ -2446,7 +2558,7 @@ for testing DP MCMC algorithms.
   See Appendix~\ref{banana_posterior_theorem_proof}.
 \end{proof}
 \newcounter{banana_posterior_theorem_number}
-\setcounter{banana_posterior_theorem_number}{\value{theorem}}
+\setcounter{banana_posterior_theorem_number}{\value{lemma}}
 
 The Gaussian distribution is a special case of the banana distribution,
 as setting \(a = 0\) makes \(g\) the identity function. Similarly, setting
@@ -2478,11 +2590,10 @@ value. In this case, for a single data point \(r\) and any \(a > 0\),
 \begin{align*}
   \int_{\R^{2}}p(r\mid x, y)\dx x\dx y
   &= \int_{\R^{2}}e^{-a(x^{2} + y^{2} - r^{2})^{2}}\dx x\dx y
-  \\&= \int_{0}^{2\pi}\dx \phi \int_{0}^{\infty}\dx t
-  \cdot te^{-a(t^{2}(\cos^{2} \phi + \sin^{2} \phi) - r^{2})^{2}}
-  \\&= \int_{0}^{2\pi}\dx \phi \int_{0}^{\infty}\dx t
-  \cdot te^{-a(t^{2} - r^{2})^{2}}
-  \\&= \int_{0}^{2\pi}\dx \phi \int_{0}^{\infty}\dx u\cdot e^{-a(u - r^{2})^{2}}
+  \\&= \int_{0}^{2\pi}\int_{0}^{\infty}
+  te^{-a(t^{2}(\cos^{2} \phi + \sin^{2} \phi) - r^{2})^{2}} \dx t\dx \phi
+  \\&= \int_{0}^{2\pi} \int_{0}^{\infty} te^{-a(t^{2} - r^{2})^{2}}\dx t\dx \phi
+  \\&= \int_{0}^{2\pi} \int_{0}^{\infty} e^{-a(u - r^{2})^{2}}\dx u\dx \phi
   \\&< \infty,
 \end{align*}
 as, on the second to last line, the inner integral is over an unnormalised
@@ -2513,17 +2624,17 @@ the circle.
 It remains to show that the mean of the circle is actually the origin. It turns
 out that this is fairly simple. For the mean of the \(x\)-coordinate
 \begin{align*}
-  E_{x} &= \int_{\R}\dx x\cdot x\int_{\R} \dx y p(r\mid x, y)
-  \\&= \int_{-\infty}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
-  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  \\&= \int_{0}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
-  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  + \int_{-\infty}^{0}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
-  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  \\&= \int_{0}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
-  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
-  - \int_{0}^{\infty}\dx x\cdot x\int_{-\infty}^{\infty}\dx y
-  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}
+  E_{x} &= \int_{\R} x\int_{\R} p(r\mid x, y)\dx x\dx y
+  \\&= \int_{-\infty}^{\infty} x\int_{-\infty}^{\infty}
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}\dx x\dx y
+  \\&= \int_{0}^{\infty} x\int_{-\infty}^{\infty}
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}\dx x\dx y
+  + \int_{-\infty}^{0}x\int_{-\infty}^{\infty}
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}\dx x\dx y
+  \\&= \int_{0}^{\infty} x\int_{-\infty}^{\infty}
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}\dx x\dx y
+  - \int_{0}^{\infty} x\int_{-\infty}^{\infty}
+  \prod_{i} e^{-a(x^{2} + y^{2} - r_{i}^{2})^{2}}\dx x\dx y
   \\&= 0.
 \end{align*}
 The mean of the \(y\)-coordinate is calculated similarly.
@@ -3046,9 +3157,9 @@ fruitful.
 \chapter{Proof of Theorem~\ref{banana_posterior_theorem}}\label{banana_posterior_theorem_proof}
 
 \newcounter{temp_counter}
-\setcounter{temp_counter}{\value{theorem}}
-\setcounter{theorem}{\value{banana_posterior_theorem_number}}
-\addtocounter{theorem}{-1}
+\setcounter{temp_counter}{\value{lemma}}
+\setcounter{lemma}{\value{banana_posterior_theorem_number}}
+\addtocounter{lemma}{-1}
 \begin{theorem}
     Let
     \begin{align*}
@@ -3196,7 +3307,7 @@ fruitful.
         \qedhere
     \]
 \end{proof}
-\setcounter{theorem}{\value{temp_counter}}
+\setcounter{lemma}{\value{temp_counter}}
 
 \chapter{Differentiability of the \(\clip\)-function}\label{clip_diff_chapter}
 
