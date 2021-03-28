@@ -685,9 +685,9 @@ The study of Hamiltonian Monte Carlo (HMC) in Chapter~\ref{hmc_chapter},
 requires a framework for studying Metropolis-Hastings algorithms
 that have non-continuous proposal distributions, which is not provided
 by the theory presented in Section~\ref{MCMC_background} that only handles
-continuous proposal distributions.
-This section introduces measure theoretic probability theory, in particular
-the theory of Markov kernels, that does provide a sufficiently general
+continuous proposals.
+This section introduces tools from measure theory, in particular
+the Markov kernels, that do provide a sufficiently general
 framework for the study of HMC. As with the other sections in this chapter,
 the introduction is very limited, only covering concepts used in this thesis.
 
@@ -708,16 +708,20 @@ continuous probability distributions, so the range of a measure is
 restricted to a collection of where a satisfactory assignment of measure is
 possible.
 
-Before defining measures, some notation is needed. Denote the set of all
+Before defining measures, some notation is needed. Denote the set of
+natural numbers excluding zero by \(\N_{1}\), the set of
 non-negative real numbers with \(\R_{+}\), and denote
 \(\bar{\R}_{+} = \R_{+}\cup \{\infty\}\). In sums, the \(\infty\)-symbol
 behaves as expected: \(x + \infty = \infty\) for any \(x\in \R\) and
 \(\infty + \infty = \infty\). Subtracting infinity is not defined.
 The set of all subsets of a set \(E\), called
 the \emph{powerset} of \(E\), is denoted by \(\mathcal{P}(E)\).
-The subsets of \(\mathcal{P}(E)\) are also called collections to
+Subsets of \(\mathcal{P}(E)\) are also called collections to
 differentiate them from subsets of \(E\).
 The indicator function of a set \(A\) is denoted by \(1_{A}\).
+The Cartesian product \(E_{1}\times E_{2}\dotsb \times E_{d}\)
+is denoted by \(\bigtimes_{i=1}^{d}E_{i}\) and when \(E_{i} = E\) for
+all \(i\in \N_{1}\), \(\bigtimes_{i=1}^{d}E = E^{d}\).
 
 \begin{definition}
   Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
@@ -758,10 +762,9 @@ is the impossibility of defining a length for all subsets of \(\R\): it is
 possible to assign a length to all \emph{Lebesgue-measurable} sets, which form
 a \(\sigma\)-algebra~\cite{Cin11}. The measure assigning length in \(\R\),
 area in \(\R^{2}\) and their counterparts in higher dimensions is called the
-\emph{Lebesgue measure}\footnote{
-  Technically the Lebesgue measures on \(\R^{d}\) for each \(d\in \N\) are
-  different measures.
-} and is denoted by \(m\).
+\emph{Lebesgue measure}. Lebesgue measure on \(\R^{d}\) is denoted by
+\(m_{d}\), but the subscript \(d\) is dropped if the dimension is clear
+from context.
 
 For this thesis, it is sufficient to
 work with the \emph{Borel \(\sigma\)-algebra} of \(\R^{d}\), denoted by
@@ -775,25 +778,129 @@ only \(\sigma\)-algebra used with \(\R^{d}\) in this thesis, the measurable spac
 \((\R^{d}, \mathcal{B}(\R^{d}))\) is shortened to \(\R^{d}\) when this does not
 cause ambiguity.
 
-For measurable spaces \((E, \mathcal{E})\) and \((F, \mathcal{F})\),
-there is a \emph{product \(\sigma\)-algebra} \(\mathcal{E}\otimes \mathcal{F}\)
-on \(E\times F\) that is the \(\sigma\)-algebra generated
-by the collection of sets of the form \(A\times B\) for \(A\in \mathcal{E}\) and
-\(B\in\mathcal{F}\). The product of \((E, \mathcal{E})\) with itself
-is denoted by \((E, \mathcal{E})^{2}\), and the product or measurable
-spaces \((E_{i}, \mathcal{E}_{i})\) for \(1\leq i \leq d\) is denoted by
-\(\bigotimes_{i}^{d}\mathcal{E}_{i}\).
-
 A measure \(\mu\) on a measurable space \((E, \mathcal{E})\) is called
 a \emph{probability measure} if \(\mu(E) = 1\). \(\mu\) is called \emph{finite}
 if \(\mu(E) < \infty\) and
 \emph{\(\sigma\)-finite} if there is a countable partition of \(E\)
 into measurable sets \(E_{1}, E_{2},\dotsc\) where \(\mu(E_{i}) < \infty\)
-for all \(i\in \N\).
+for all \(i\in \N_{1}\).
 Many theorems in measure theory require \(\sigma\)-finiteness from the involved
 measures to ensure that they are not infinite for too many sets.
-All probability measures are clearly \(\sigma\)-finite, as is the Lebesgue
-measure~\cite{Cin11}.
+All probability measures are clearly finite and \(\sigma\)-finite,
+and the Lebesgue measure is \(\sigma\)-finite but not finite~\cite{Cin11}.
+
+For measurable spaces \((E, \mathcal{E})\) and \((F, \mathcal{F})\),
+there is a \emph{product \(\sigma\)-algebra} \(\mathcal{E}\otimes \mathcal{F}\)
+on \(E\times F\) that is the \(\sigma\)-algebra generated
+by the collection of sets of the form \(A\times B\) for \(A\in \mathcal{E}\) and
+\(B\in\mathcal{F}\). The product extends to products of more than one
+\(\sigma\)-algebra, denoted by \(\bigotimes_{i}^{d}\mathcal{E}_{i}\) for
+\(\sigma\)-algebrals \(\mathcal{E}_{i}\) for \(1\leq i \leq d\).
+The measurable space \((E\times F, \mathcal{E}\otimes \mathcal{F})\) is called
+the \emph{product measurable space} of \((E, \mathcal{E})\) and \((F, \mathcal{F})\).
+This extends to products of multiple measurable spaces:
+\((\bigtimes_{i=1}^{d}E_{i}, \bigotimes_{i=1}^{d}\mathcal{E}_{i})\) is the
+product of the measurable spaces \((E_{i}, \mathcal{E}_{i})\) for
+\(1\leq i \leq d\).
+The measurable space \((\bigtimes_{i=1}^{d}E, \bigotimes_{i=1}^{d}\mathcal{E})\)
+is denoted by \((E, \mathcal{E})^{d}\).
+
+If \(\mu\) is a measure on
+\((E, \mathcal{E})\) and \(\nu\) is a measure on \((F, \mathcal{F})\) and both
+are \(\sigma\)-finite, the
+\emph{product measure} of \(\mu\) and \(\nu\) is the unique measure \(\mu\times\nu\)
+on \((E\times F, \mathcal{E}\otimes \mathcal{F})\) that
+has \((\mu\times\nu)(A\times B) = \mu(A)\nu(B)\) for \(A\in \mathcal{E}\) and
+\(B\in \mathcal{F}\)~\cite{Cin11}. The product
+\(\mu\times \mu\times \dotsb \times \mu\) with \(d - 1\) products is denoted by
+\(\mu^{d}\). Both product measurable spaces and product measures act on
+\(\R^{d}\) and the Lebesgue measure as expected:
+\((\R^{d}, \mathcal{B}(\R^{d})) = (\R, \mathcal{B}(\R))^{d}\) and
+\(m_{d} = m_{1}^{d}\)~\cite{Cin11}.
+
+The equality of two \(\sigma\)-finite measures on a product measurable space
+comes down to
+their equality on sets that are cartesian products of sets from the measurable
+spaces forming the product measurable space, if the measures are
+\(\sigma\)-finite in a specific way. This is stated precisely in
+Lemma~\ref{product_measurable_space_equality_lemma}, but the main machinery
+used in its proof is presented first:
+
+\begin{definition}
+	Let \(E\) be a set. A set \(\mathcal{C}\subset \mathcal{P}(E)\) is
+  called a p-system if \(A\cap B\in \mathcal{C}\) for all
+  \(A, B\in \mathcal{C}\).
+\end{definition}
+\begin{lemma}\label{p_system_measure_equality_lemma}
+	Let \((E, \mathcal{E})\) be a measurable space and let
+  \(\mu\) and \(\nu\) be finite measures on \((E, \mathcal{E})\).
+  Let \(\mathcal{C}\) be a p-system generating \(\mathcal{E}\).
+  If \(\mu(A) = \nu(A)\) for all \(A\in \mathcal{C}\), \(\mu = \nu\).
+\end{lemma}
+\begin{proof}
+	See~\cite[Proposition 3.7]{Cin11}.
+\end{proof}
+\begin{lemma}\label{product_measurable_space_equality_lemma}
+	Let \(\mu\) and \(\nu\) be measures on \((E, \mathcal{E})^{d}\) with
+  a countable partition of \(E^{d}\) into sets \(B_{i}\) for \(i\in N_{1}\)
+  of the form
+  \(B_{i} = \bigtimes_{j=1}^{d}C_{j}^{i}\) with
+  \(C_{i}^{j}\in \mathcal{E}\) for all \(i, j\in N_{1}\) such that
+  \(\mu(B_{i}) < \infty\) and \(\nu(B_{i}) < \infty\). Then \(\mu = \nu\)
+  if and only if
+  \[
+    \mu\left(\bigtimes_{j=1}^{d}A_{j}\right)
+    = \nu\left(\bigtimes_{j=1}^{d}A_{j}\right)
+  \]
+  for all \(A_{1},\dotsc, A_{d} \in \mathcal{E}\).
+\end{lemma}
+\begin{proof}
+	Clearly, if \(\mu = \nu\),
+  \[
+    \mu\left(\bigtimes_{j=1}^{d}A_{j}\right)
+    = \nu\left(\bigtimes_{j=1}^{d}A_{j}\right).
+  \]
+  for all \(A_{1},\dotsc, A_{d} \in \mathcal{E}\).
+
+  To prove the other direction, note that sets of the form
+  \(\bigtimes_{j=1}^{d}A_{j}\) form a p-system that generates
+  \(\bigotimes_{j=1}^{d}\mathcal{E}\). Denote \((\mu| B)(A) =\mu(A\cap B)\)
+  for \(A, B\in \mathcal{E}\).
+  Then \(\mu| B\) is a measure on \((E, \mathcal{E})^{d}\)~\cite{Cin11}.
+  Now the measures \(\mu|B_{i}\) and \(\nu|B_{i}\) are finite because
+  \((\mu|B_{i})(A) = \mu(A\cap B_{i}) \leq \mu(B_{i}) < \infty\) for any
+  \(A\in \bigotimes_{j=1}^{d}\mathcal{E}^{d}\), the same holds for \(\nu|B_{i}\)
+  and
+  \begin{align*}
+    (\mu|B_{i})\left(\bigtimes_{j=1}^{d}A_{j}\right)
+    &= \mu\left(\left(\bigtimes_{j=1}^{d}A_{j}\right)
+      \cap \left(\bigtimes_{j=1}^{d}C_{j}^{i}\right)\right)
+    \\&= \mu\left(\bigtimes_{j=1}^{d}(A_{j} \cap C_{j}^{i})\right)
+    \\&= \nu\left(\bigtimes_{j=1}^{d}(A_{j} \cap C_{j}^{i})\right)
+    \\&= (\nu|B_{i})\left(\bigtimes_{j=1}^{d}A_{j}\right)
+  \end{align*}
+  for all \(A_{1}, \dotsc, A_{d}\in \mathcal{E}\), where the second equality
+  uses the identity
+  \(\left(\bigtimes_{j=1}^{d}S_{j}\right)
+  \cap\left(\bigtimes_{j=1}^{d} T_{j}\right)
+  = \bigtimes_{j=1}^{d}(S_{j}\cap T_{j})\)
+  for all sets \(S_{j}\) and \(T_{j}\)
+  and the third equality uses the assumption that
+  \(\mu\left(\bigtimes_{j=1}^{d}D_{j}\right)
+  = \nu\left(\bigtimes_{j=1}^{d} D_{j}\right)\)
+  for all \(D_{1},\dotsc,D_{d}\in \mathcal{E}\) with
+  \(D_{j} = A_{j}\cap C_{j}^{i}\).
+  By Lemma~\ref{p_system_measure_equality_lemma},
+  \(\mu|B_{i} = \nu|B_{i}\) for all \(i\in N_{1}\). Then
+  \[
+    \mu(A) = \mu(E^{d}\cap A)
+    = \mu\left(\bigcup_{i=1}^{\infty}(B_{i}\cap A)\right)
+    = \sum_{i=1}^{\infty}(\mu|B_{i})(A)
+    = \sum_{i=1}^{\infty}(\nu|B_{i})(A)
+    = \nu(A)
+  \]
+  for any \(A\in \bigotimes_{i=1}^{d}\mathcal{E}\), so \(\mu = \nu\).
+\end{proof}
 
 Measure-theoretic concepts that involve functions, particularly the
 Lebesgue integral discussed later, typically require that the functions
@@ -843,6 +950,9 @@ but the integral for non-negative functions is sufficient for this thesis.
 	\begin{enumerate}
     \item For a measure space \((E, \mathcal{E}, \mu)\) and
           \(A\in \mathcal{E}\), \(\int_{E}\mu(\dx x)1_{A}(x) = \mu(A)\).
+    \item For a measure space \((E, \mathcal{E}, \mu)\),
+          a measurable function \(f\colon E\to\R_{+}\) and \(A\in \mathcal{E}\),
+          \(\int_{A}\mu(\dx x)f(x) = \int_{E}\mu(\dx x)1_{A}(x)f(x)\).
     \item For a measure space \((E, \mathcal{E}, \mu)\), measurable
           \(f, g\colon E\to \R_{+}\), \(A\in \mathcal{E}\) and \(a, b\in \R_{+}\),
           \(\int_{A} \mu(\dx x)(af(x) + bg(x))
@@ -853,7 +963,9 @@ but the integral for non-negative functions is sufficient for this thesis.
           where the integral on the right is a Riemann integral.
     \item For a continuous random variable \(X\) on \(\R^{d}\) with
           density \(\pi\) and \(A\in \mathcal{B}(\R^{d})\),
-          \(P(X\in A) = \int_{A}m(\dx x)\pi(x)\).
+          \(P(X\in A) = \int_{A}m(\dx x)\pi(x)\). For a measurable
+          function \(f\colon \R^{d}\to \R_{+}\),
+          \(\int_{A}\pi(\dx x)f(x) = \int_{A}m(\dx x)\pi(x)f(x)\).
     \item Let \(\mu\) and \(\nu\) be \(\sigma\)-finite measures on
           measure spaces \((E, \mathcal{E})\) and \((F, \mathcal{F})\),
           respectively. Let \(f\colon E\times F\to \R_{+}\) be measurable.
@@ -906,6 +1018,7 @@ A measure \(\mu\) and a Markov kernel \(q\), both on a measurable space
 define the measure on sets of the form \(A\times B\) for
 \(A, B\in \mathcal{E}\)~\cite{Cin11}.
 This property is central to the following discussion, and is formalised below.
+
 \begin{theorem}\label{product_measure_theorem}
 	Let \(\mu\) be a \(\sigma\)-finite measure and \(q\) be a Markov kernel,
   both on a measurable space \((E, \mathcal{E})\). Then there exists a
@@ -919,65 +1032,11 @@ This property is central to the following discussion, and is formalised below.
 	See~\cite[Theorem 6.11]{Cin11}.
 \end{proof}
 
-\begin{definition}
-	Let \(E\) be a set. A set \(\mathcal{C}\subset \mathcal{P}(E)\) is
-  called a p-system if \(A\cap B\in \mathcal{C}\) for all
-  \(A, B\in \mathcal{C}\).
-\end{definition}
-\begin{lemma}\label{p_system_measure_equality_lemma}
-	Let \((E, \mathcal{E})\) be a measurable space and let
-  \(\mu\) and \(\nu\) be finite measures on \((E, \mathcal{E})\).
-  Let \(\mathcal{C}\) be a p-system generating \(\mathcal{E}\).
-  If \(\mu(A) = \nu(A)\) for all \(A\in \mathcal{C}\), \(\mu = \nu\).
-\end{lemma}
-\begin{proof}
-	See~\cite[Proposition 3.7]{Cin11}.
-\end{proof}
-\begin{lemma}
-	Let \(\mu\) and \(\nu\) be measures on \((E, \mathcal{E})^{d}\) with
-  countable partition of \(E\) into sets \(B_{i}\) for \(i\in \N_{+}\)
-  of the form
-  \(B_{i} = \bigtimes_{j=1}^{d}A_{j}^{i}\) with
-  \(A_{i}^{j}\in \mathcal{E}\) for all \(i, j\in \N_{+}\) such that
-  \(\mu(B_{i}) < \infty\) and \(\nu(B_{i}) < \infty\). Then \(\mu = \nu\)
-  if and only if
-  \[
-    \mu\left(\bigtimes_{i=1}^{d}A_{i}\right)
-    = \nu\left(\bigtimes_{i=1}^{d}A_{i}\right)
-  \]
-  for all \(A_{j} \in \mathcal{E}\).
-\end{lemma}
-\begin{proof}
-	Clearly, if \(\mu = \nu\),
-  \[
-    \mu\left(\bigtimes_{i=1}^{d}A_{i}\right)
-    = \nu\left(\bigtimes_{i=1}^{d}A_{i}\right).
-  \]
-  for all \(A_{j} \in \mathcal{E}\).
-
-  To prove the other direction, note that sets of the form
-  \(\bigtimes_{i=1}^{d}A_{i}\) form a p-system that generates
-  \(\bigotimes_{i=1}^{d}\mathcal{E}\). Denote \((\mu| B)(A) =\mu(A\cap B)\)
-  for \(A, B\in \mathcal{E}\).
-  Then \(\mu| B\) is a measure on \((E, \mathcal{E})^{d}\)~\cite{Cin11}.
-  Now the measures \(\mu|B_{i}\) and \(\nu|B_{i}\) are finite
-  and
-  \[
-    (\mu|B_{i})\left(\bigtimes_{i=1}^{d}A_{i}\right)
-    = (\nu|B_{i})\left(\bigtimes_{i=1}^{d}A_{i}\right)
-  \]
-  for all \(A_{i}\in \mathcal{E}\). By Lemma~\ref{p_system_measure_equality_lemma},
-  \(\mu|B_{i} = \nu|B_{i}\) for all \(i\in \N_{+}\). Then
-  \[
-    \mu(A) = \mu(E\cap A)
-    = \mu\left(\bigcup_{i=1}^{\infty}(B_{i}\cap A)\right)
-    = \sum_{i=1}^{\infty}(\mu|B_{i})(A)
-    = \sum_{i=1}^{\infty}(\nu|B_{i})(A)
-    = \nu(A)
-  \]
-  for any \(A\in \bigotimes_{i=1}^{d}\mathcal{E}\), so \(\mu = \nu\).
-\end{proof}
-
+A central concept for the theory of MH algorithms is the reversibility of
+Markov kernels with respect to a measure \(\mu\), which can be used
+to express the detailed balance condition for general proposal and target
+distribution, and is used to simplify the acceptance probability in
+Lemma~\ref{reversible_proposal_lemma}.
 \begin{definition}\label{reversible_definition}
 	Let \((E, \mathcal{E})\) be a measurable space. Let \(q\) be a Markov kernel,
   let \(\mu\) be a \(\sigma\)-finite measure, both on \((E, \mathcal{E})\) and
@@ -993,6 +1052,11 @@ This property is central to the following discussion, and is formalised below.
   \(\nu_{1} = \nu_{2}\).
 \end{definition}
 
+Because of Theorem~\ref{product_measure_theorem}, the equations for
+\(\nu_{1}\) and \(\nu_{2}\) in definition \ref{reversible_definition} define
+unique measures on \((E, \mathcal{E})^{2}\). Theorem~\ref{product_measure_theorem}
+also allows checking that \(\nu_{1} = \nu_{2}\) through an equality of
+integrals:
 \begin{lemma}\label{reversible_check_lemma}
 	Let \((E, \mathcal{E})\) be a measurable space, and let \(q\) be a Markov
   kernel and \(\mu\) be a \(\sigma\)-finite measure, both on \((E, \mathcal{E})\).
@@ -1031,6 +1095,9 @@ This property is central to the following discussion, and is formalised below.
   \(\nu_{1} = \nu_{2}\).
 \end{proof}
 
+If the Markov kernel is defined on a product measurable space,
+Lemma~\ref{product_measurable_space_equality_lemma} allows factoring
+the integrals in Lemma~\ref{reversible_check_lemma} further:
 \begin{lemma}\label{reversible_check_product_lemma}
 	Let \((E, \mathcal{E})\) be a measurable space, and let \(q\) be a Markov
   kernel on \((E, \mathcal{E})^{2}\) and \(\mu\) be a \(\sigma\)-finite measure
@@ -1051,7 +1118,7 @@ This property is central to the following discussion, and is formalised below.
   \]
   where \(\mu^{2}\) is the unique measure defined by
   \[
-    \mu^{2}(A\times B) = \int_{A}\mu(\dx a)\int_{B}\mu(\dx b).
+    \mu^{2}(A\times B) = \mu(A)\mu(B) = \int_{A}\mu(\dx a)\int_{B}\mu(\dx b).
   \]
   for \(A, B\in \mathcal{E}\). Reversibility of \(q\) with respect to
   \(\mu^{2}\) is now equivalent to \(\nu_{1} = \nu_{2}\).
@@ -1085,10 +1152,9 @@ This property is central to the following discussion, and is formalised below.
     \\&= \int_{C}\mu(\dx c)\int_{D}\mu(\dx d)\int_{A\times B}q((c, d), \dx(a, b)).
     \\&= \nu_{2}(A\times B\times C\times D).
   \end{align*}
-  % \(\nu_{1}\) and \(\nu_{2}\) are measures on \((E, \mathcal{E})^{4}\),
   As \(\mu\) is \(\sigma\)-finite, there is a countable partition \(E_{i}\) of \(E\)
-  such that \(\mu(E_{i}) < \infty\) for all \(i\in \N_{+}\). Then
-  \(E_{i}\times E_{j}\times E_{k}\times E_{l}\) for \(i, j, k, l\in \N_{+}\) is a
+  such that \(\mu(E_{i}) < \infty\) for all \(i\in N_{1}\). Then
+  \(E_{i}\times E_{j}\times E_{k}\times E_{l}\) for \(i, j, k, l\in N_{1}\) is a
   countable partition of \(E^{4}\), and
   \begin{align*}
     \nu_{1}(E_{i}\times E_{j}\times E_{k}\times E_{l})
@@ -1102,10 +1168,12 @@ This property is central to the following discussion, and is formalised below.
     \\&\leq \int_{E_{k}}\mu(\dx c)\int_{E_{l}}\mu(\dx d)
     \\&< \infty.
   \end{align*}
-  Then Lemma~\ref{reversible_check_product_lemma} shows that
+  Then Lemma~\ref{product_measurable_space_equality_lemma} shows that
   \(\nu_{1} = \nu_{2}\).
 \end{proof}
 
+The equation used to check reversibility in Lemma~\ref{reversible_check_lemma}
+also applies if an arbitrary measurable function is included on both sides:
 \begin{lemma}\label{reversible_integration_lemma}
   Let \(q\) be a Markov kernel on a measurable space \((E, \mathcal{E})\)
   reversible with respect to a \(\sigma\)-finite measure \(\mu\) on
@@ -1116,7 +1184,6 @@ This property is central to the following discussion, and is formalised below.
     = \int_{B}\mu(\dx b)\int_{A}q(b, \dx a)f(a, b)
   \]
 \end{lemma}
-
 \begin{proof}
   Setting
   \[
@@ -1138,6 +1205,8 @@ This property is central to the following discussion, and is formalised below.
   \end{align*}
 \end{proof}
 
+For a composition of reversible Markov kernels is not necessarily reversible,
+but an equality similar to Lemma~\ref{reversible_check_lemma} still holds:
 \begin{lemma}\label{composition_reversible_multiple_lemma}
   For Markov kernels \(q_{1}\dotsc q_{k}\) on \((E, \mathcal{E})\) reversible
   with respect to a \(\sigma\)-finite measure \(\mu\) on \((E, \mathcal{E})\),
@@ -1167,12 +1236,12 @@ This property is central to the following discussion, and is formalised below.
   \end{align*}
   where the first equality uses Equation~\ref{markov_kernel_composition_equation},
   the second equality uses the induction hypothesis for \(k - 1\),
-  the third equality uses uses Theorem~\ref{lebesgue_integral_theorem} (5)
+  the third equality uses uses Theorem~\ref{lebesgue_integral_theorem} (6)
   to change the order of integration, the fourth uses
   Lemma~\ref{reversible_integration_lemma}
   to swap the integration variables for two leftmost integrals
-  and the last uses equation~\ref{markov_kernel_composition_equation} again.
-  Thus the claim holds for all \(k\in \N_{+}\) by induction.
+  and the last uses Equation~\ref{markov_kernel_composition_equation} again.
+  Thus the claim holds for all \(k\in N_{1}\) by induction.
 \end{proof}
 
 If the composition \(q_{k}\circ \dotsb \circ q_{1}\) is symmetric,
@@ -1193,8 +1262,8 @@ reversibility of the composition. More formally:
     \int_{A}\mu(\dx a)\int_{C}(q_{k}\circ \dotsb \circ q_{1})(a, \dx c)
     &= \int_{C}\mu(\dx c)\int_{A}(q_{1}\circ \dotsb \circ q_{k})(c, \dx a)
     \\&= \int_{C}\mu(\dx c)\int_{A}(q_{k}\circ \dotsb \circ q_{1})(c, \dx a).
-    \qedhere
   \end{align*}
+  and the claim follows from Lemma~\ref{reversible_check_lemma}.
 \end{proof}
 
 Reversibility is linked to the theory of MH algorithms: the detailed balance
@@ -1224,7 +1293,7 @@ shown below.
   \]
   for all \(A, B\in \mathcal{B}(\R^{d})\), holds~\cite{Tie98}\footnote{
     Tierney~\cite{Tie98} states the detailed balance condition as an equality
-    of measures, which, by Theorem~\ref{product_measure_theorem}, can be
+    of measures, which, by Lemma~\ref{product_measurable_space_equality_lemma}, can be
     expressed as an equality of integrals.
   }.
   For continuous \(\pi\) and \(q\) reversible with respect to the Lebesque measure,
@@ -1271,16 +1340,28 @@ Lemma~\ref{reversible_proposal_lemma} in Chapter~\ref{hmc_chapter}.
   Lebesgue measure.
 \end{lemma}
 \begin{proof}
-  Denote the Lebesgue measure by \(m\). Because \(f\) preserves
-  Lebesgue measure and is injective,
+  Denote the Lebesgue measure by \(m\). Because \(f\) and \(f^{-1}\) preserve
+  Lebesgue measure
 	\begin{align*}
     \int_{A}m(\dx x)\delta_{f(x)}(B)
     &= \int_{A}m(\dx x)1_{B}(f(x))
     \\&= m(A\cap f^{-1}(B))
+    \\&= m(f^{-1}(A\cap f^{-1}(B)))
     \\&= m(f^{-1}(A)\cap f^{-1}(f^{-1}(B)))
     \\&= m(f^{-1}(A)\cap B)
     \\&= \int_{B}m(\dx x)\delta_{f(x)}(A)
   \end{align*}
+  where the first equality uses the identity \(\delta_{t}(B) = 1_{B}(t)\)
+  for any \(t\in \R^{d}\) the second uses
+  Theorem~\ref{lebesgue_integral_theorem} (1, 2) and the identity
+  \(1_{S}(t)1_{T}(t) = 1_{S\cap T}(t)\) for any \(t\in \R^{d}\) and
+  \(S, T\subset \R^{d}\),
+  the third uses the fact that \(f^{-1}\) preserves Lebesgue measure,
+  the fourth uses the identity \(f^{-1}(S\cap T) = f^{-1}(S)\cap f^{-1}(T)\),
+  the fifth uses the fact that \(f^{-1} = f\), and the last uses
+  the first and second equalities backward.
+  Now the reversibility of \(\delta_{f(x)}\) with respect to the Lebesgue measure
+  follows from Lemma~\ref{reversible_check_lemma}.
   The special case of \(\delta_{x}\) is obtained by setting \(f(x) = x\).
 \end{proof}
 
@@ -2169,11 +2250,12 @@ which means that the acceptance probability is no longer valid.
 
 The leapfrog update equations with noisy and clipped gradients become
 \begin{align*}
-  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(g(\theta_{i}) + \caln(0, \sigma_{g}^{2})) \\
+  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(g(\theta_{i}) + \xi) \\
   \theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2} \\
-  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \caln(0, \sigma_{g}^{2})),
+  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \xi)),
 \end{align*}
 where
+\(\xi \sim \caln_{d}(0, \sigma_{g}^{2}I)\) and
 \[
   g(\theta) = \sum_{x\in X}\clip_{b}(\nabla \ln p(x\mid \theta)) + \nabla\ln p(\theta)
 \]
@@ -2185,8 +2267,8 @@ update of the next step use the same gradients. Computing the same gradients
 and incurring their privacy cost
 twice can be avoided by writing the leapfrog simulation as
 \[
-  l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\dotsb
-  l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\circ l_{p_{1/2}}
+  l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\dotsb
+  l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\circ l_{p_{t_{2}}}
 \]
 where
 \[
@@ -2194,16 +2276,17 @@ where
 \]
 and
 \[
-  l_{p_{x}}(\theta, p) = (\theta, p - \eta x(g(\theta) + \caln(0, \sigma_{g}^2))).
+  l_{p_{t}}(\theta, p) = (\theta, p - t(g(\theta) + \xi)).
 \]
-
-Both \(l_{\theta}\) and \(l_{p_{x}}\) preserve measure, as \(l_{\theta}\) in
-unchanged from the non-DP case and the Jacobian of \(l_{p_{x}}\) is
+where
+\(\xi \sim \caln_{d}(0, \sigma_{g}^2I)\), \(t_{1} = \eta\) and \(t_{2} = \frac{\eta}{2}\).
+Both \(l_{\theta}\) and \(l_{p_{t}}\) preserve measure, as \(l_{\theta}\) in
+unchanged from the non-DP case and the Jacobian of \(l_{p_{t}}\) is
 \[
-  J_{l_{p_{x}}}(\theta, p) =
+  J_{l_{p_{t}}}(\theta, p) =
   \begin{bmatrix}
     I_{d\times d} & 0_{d\times d} \\
-    \eta xJ_{g}(\theta) & I_{d\times d}
+    tJ_{g}(\theta) & I_{d\times d}
   \end{bmatrix},
 \]
 where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
@@ -2211,7 +2294,7 @@ zero matrices, respectively.
 It is possible that \(J_{g}(\theta)\) does not exist, but this can only happen
 in a null set\footnote{A set of zero Lebesgue measure.}, if \(g\) is
 sufficiently well-behaved. The non-existence of \(J_{g}(\theta)\) in a null set
-does not affect the volume preservation of \(l_{p_{x}}\).
+does not affect the volume preservation of \(l_{p_{t}}\).
 As \(g\) is a sum of clipped log-likelihood
 gradients and the log prior gradient, it suffices to show that the
 log-likelihood is sufficiently well-behaved, as the prior is already assumed
@@ -2220,9 +2303,9 @@ gives very general sufficient conditions for the log-likelihood, and proves
 that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
 the conditions.
 
-Because \(J_{l_{p_{x}}}(\theta, p)\) is triangular and the diagonal consists
-of only ones, \(\det J_{l_{p_{x}}}(\theta, p) = 1\)
-for all \(\theta\) and \(p\), which means that \(l_{p_{x}}\) preserves volume.
+Because \(J_{l_{p_{t}}}(\theta, p)\) is triangular and the diagonal consists
+of only ones, \(\det J_{l_{p_{t}}}(\theta, p) = 1\)
+for all \(\theta\) and \(p\), which means that \(l_{p_{t}}\) preserves volume.
 As the step updating \(\theta\) also preserves volume, the entire leapfrog
 simulation preserves Lebesgue measure. Showing that the proposal of
 DP-HMC is reversible
@@ -2232,54 +2315,69 @@ leapfrog steps are partially deterministic.
 With the momentum negation after the leapfrog simulation, the DP-HMC proposal
 can be written as
 \[
-  l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\dotsb
-  l_{\theta}\circ l_{p_{1}}\circ l_{\theta}\circ l_{p_{1/2}}
+  l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\dotsb
+  l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\circ l_{p_{t_{2}}}
 \]
 where \(l_{-}(\theta, p) = (\theta, -p)\). Reversibility of the proposal
 with respect to the Lebesgue measure can then shown by
 decomposing the sequence into parts that are individually reversible.
 
 \begin{lemma}\label{leapfrog_step_reversible_lemma}
-  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{x}}\) for any \(x\in \R\)
+  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{t}}\) for any \(x\in \R\)
   are reversible with respect to the Lebesgue measure.
 \end{lemma}
 \begin{proof}
   Starting with \(l_{\theta}\circ l_{l}\), denote
-  \(f(\theta, p) = (\theta - \eta M^{-1}p, -p)\). Then
+  \(f(\theta, p) = (l_{\theta}\circ l_{-})(\theta, p)
+  = (\theta - \eta M^{-1}p, -p)\). Then
   \[
     f(f(\theta, p)) = f(\theta - \eta M^{-1}p, -p) = (\theta, p)
   \]
   which means that \(f^{-1} = f\). Because \(l_{\theta}\) and \(l_{-}\) preserve
   Lebesgue measure, \(f\) also preserves Lebesgue measure.
-  Then the Markov kernel for \(l_{\theta}\circ l_{-}\) is \(\delta_{f(\theta, p)}\),
+  The Markov kernel for \(l_{\theta}\circ l_{-}\) is \(\delta_{f(\theta, p)}\),
   so Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
   \(l_{\theta}\circ l_{l}\).
 
-  For \(l_{-}\circ l_{p_{x}}\), some care with product measurable spaces is
-  required. \(l_{-}\circ l_{p_{x}}\) is a Markov kernel on \(\R^{2d}\),
-  so the claim of the reversibility of \(l_{-}\circ l_{p_{x}}\) with respect
-  to the Lebesgue measure is a claim about measures in \(\R^{4d}\).
-  Because \(\mathcal{B}(\R^{4d}) = \mathcal{B}(\R^{d})\otimes\mathcal{B}(\R^{d})
-  \otimes\mathcal{B}(\R^{d})\otimes\mathcal{B}(\R^{d})\), by
+  For \(l_{-}\circ l_{p_{t}}\), recall that
+  \[
+    (l_{-}\circ l_{p_{t}})(\theta, p) = (\theta, -p + t(g(\theta) + \xi))
+  \]
+  where \(\xi \sim \caln(0, \sigma_{g}^{2})\).
+  \(l_{-}\circ l_{p_{t}}\) is a Markov kernel on \(\R^{2d}\),
+  so the measures \(\nu_{1}\) and \(\nu_{2}\) in
+  Definition~\ref{reversible_definition} are measures on \(\R^{4d}\), and
+  the Lebesgue measure in the claim is specifically \(m_{2d}\).
+
+  Because \((\R^{2d}, \mathcal{B}(\R^{2d})) = (\R^{d}, \mathcal{B}(\R^{d}))^{2}\)
+  and \(m_{2d} = m_{d}^{2}\), by
   Lemma~\ref{reversible_check_product_lemma} it is sufficient to show that
   \begin{align*}
-    &\int_{A}m(\dx \theta)\int_{B}m(\dx p)
+    &\int_{A}m_{d}(\dx \theta)\int_{B}m_{d}(\dx p)
     \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx (\theta', p'))
-    \\= &\int_{C}m(\dx \theta')\int_{D}m(\dx p')
+    \\= &\int_{C}m_{d}(\dx \theta')\int_{D}m_{d}(\dx p')
     \int_{A\times B}(l_{-}\circ l_{p_{x}})(\theta', p', \dx (\theta, p))
   \end{align*}
-  Denote \(f_{x}(\theta) = x\eta g(\theta)\) and
-  \(\sigma^{2} = x^{2}\eta^{2}\sigma_{g}^{2}\). Denote the density function
+  for all \(A, B, C, D\in \mathcal{B}(\R^{d})\).
+  Denote \(f_{t}(\theta) = t g(\theta)\) and
+  \(\sigma^{2} = t^{2}\sigma_{g}^{2}\). Denote the density function
   of the \(d\)-dimensional normal distribution with mean \(\mu\) and covariance
-  \(\Sigma\) by \(\caln(\cdot \mid \mu, \Sigma)\).
+  \(\Sigma\) by \(\caln_{d}(\cdot \mid \mu, \Sigma)\).
   Then
-  \begin{align*}
+  \begin{align}
     \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
-    &= \int_{C}\delta_{\theta}(\dx \theta')
-      \int_{D}m(\dx p')\caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
-      \\&= 1_{C}(\theta)\int_{D}m(\dx p')\caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
-  \end{align*}
-  for \(C, D\in \mathcal{B}(\R^{d})\). The second equality follows from
+    &= \begin{cases}
+         0 &\text{if } \theta \notin C \\
+         \int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+         & \text{if } \theta \in C
+    \end{cases}
+    \\&= 1_{C}(\theta)\int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+      \label{leapfrog_p_update_equality_2}
+    \\&= \int_{C}\delta_{\theta}(\dx \theta')
+      \int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+      \label{leapfrog_p_update_equality_1}
+  \end{align}
+  for \(C, D\in \mathcal{B}(\R^{d})\). The third equality follows from
   Lemma~\ref{dirac_evaluation_lemma}.
   The normal distribution has a shift-invariance property: for any \(x, y\in \R^{d}\)
   \[
@@ -2290,49 +2388,33 @@ decomposing the sequence into parts that are individually reversible.
   Then,
   for any \(A, B, C, D\in \mathcal{B}(\R^{d})\),
 	\begin{align*}
-    &\int_{A}m(\dx\theta)\int_{B}m(\dx p)\int_{C\times D}
-      (l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
-    \\=& \int_{A}m(\dx \theta)\int_{B}m(\dx p)\int_{C}\delta_{\theta}(\dx \theta')
-         \int_{D}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
-    \\=& \int_{A}m(\dx \theta)\int_{C}\delta_{\theta}(\dx \theta')\int_{B}m(\dx p)
-         \int_{D}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
-    \\=& \int_{C}m(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m(\dx p)
-         \int_{D}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)
-    \\=& \int_{C}m(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m(\dx p)
-         \int_{D}m(\dx p') \caln_{d}(p\mid -p' + f_{x}(\theta), \sigma^{2}I)
-    \\=& \int_{C}m(\dx \theta')1_{A}(\theta')\int_{B}m(\dx p)
-         \int_{D}m(\dx p') \caln_{d}(p\mid -p' + f_{x}(\theta'), \sigma^{2}I)
-    \\=& \int_{C}m(\dx \theta')\int_{D}m(\dx p')1_{A}(\theta')
-         \int_{B}m(\dx p)\caln_{d}(p\mid -p' + f_{x}(\theta'), \sigma^{2}I)
-    \\=& \int_{C}m(\dx\theta')\int_{D}m(\dx p')
-         \int_{A\times B}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))
+    &\int_{A}m_{d}(\dx\theta)\int_{B}m_{d}(\dx p)\int_{C\times D}
+      (l_{-}\circ l_{p_{t}})(\theta, p, \dx(\theta', p'))
+    \\=& \int_{A}m_{d}(\dx \theta)\int_{B}m_{d}(\dx p)\int_{C}\delta_{\theta}(\dx \theta')
+         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{A}m_{d}(\dx \theta)\int_{C}\delta_{\theta}(\dx \theta')\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p\mid -p' + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')1_{A}(\theta')\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p\mid -p' + f_{t}(\theta'), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')\int_{D}m_{d}(\dx p')1_{A}(\theta')
+         \int_{B}m_{d}(\dx p)\caln_{d}(p\mid -p' + f_{t}(\theta'), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx\theta')\int_{D}m_{d}(\dx p')
+         \int_{A\times B}(l_{-}\circ l_{p_{t}})(\theta', p', \dx(\theta, p))
   \end{align*}
-  % \begin{align*}
-  %   &\int_{\R^{d}}m(\dx\theta)\int_{\R^{d}}m(\dx p)\int_{\R^{d}\times \R^{d}}
-  %     (l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx \theta)\int_{\R^{d}}m(\dx p)\int_{\R^{d}}\delta_{\theta}(\dx \theta')
-  %        \int_{\R^{d}}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx \theta)\int_{\R^{d}}\delta_{\theta}(\dx \theta')\int_{\R^{d}}m(\dx p)
-  %        \int_{\R^{d}}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx \theta')\int_{\R^{d}}\delta_{\theta'}(\dx \theta)\int_{\R^{d}}m(\dx p)
-  %        \int_{\R^{d}}m(\dx p') \caln_{d}(p'\mid -p + f_{x}(\theta), \sigma^{2}I)f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx \theta')\int_{\R^{d}}\delta_{\theta'}(\dx \theta)\int_{\R^{d}}m(\dx p)
-  %        \int_{\R^{d}}m(\dx p') \caln_{d}(p\mid -p' + f_{x}(\theta), \sigma^{2}I)f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx \theta')1_{\R^{d}}(\theta')\int_{\R^{d}}m(\dx p)
-  %        \int_{\R^{d}}m(\dx p') \caln_{d}(p\mid -p' + f_{x}(\theta'), \sigma^{2}I)f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx \theta')\int_{\R^{d}}m(\dx p')1_{A}(\theta')
-  %        \int_{\R^{d}}m(\dx p)\caln_{d}(p\mid -p' + f_{x}(\theta'), \sigma^{2}I)f(\theta, p, \theta', p')
-  %   \\=& \int_{\R^{d}}m(\dx\theta')\int_{\R^{d}}m(\dx p')
-  %        \int_{\R^{d}\times \R^{d}}(l_{-}\circ l_{p_{x}})(\theta', p', \dx(\theta, p))f(\theta, p, \theta', p')
-  % \end{align*}
-  where the second equality uses Theorem~\ref{lebesgue_integral_theorem} (5)
+  where the first equality uses Equation~\ref{leapfrog_p_update_equality_1},
+  the second equality uses Theorem~\ref{lebesgue_integral_theorem} (6)
   to change the order of integration,
   the third uses Lemma~\ref{reversible_integration_lemma} on the two leftmost
   integrals,
   the fourth uses the shift-invariance of the normal distribution,
-  the fifth uses Lemma~\ref{dirac_evaluation_lemma} and
-  the sixth uses Theorem~\ref{lebesgue_integral_theorem} (5) to rearrange the
-  term in the integrals.
+  the fifth uses Lemma~\ref{dirac_evaluation_lemma},
+  the sixth uses Theorem~\ref{lebesgue_integral_theorem} (6) to rearrange the
+  term in the integrals and the last equality uses
+  Equation~\ref{leapfrog_p_update_equality_2}.
 \end{proof}
 
 \begin{lemma}\label{leapfrog_reversibility_lemma}
@@ -2359,7 +2441,10 @@ decomposing the sequence into parts that are individually reversible.
   with respect to the Lebesgue measure to the entire composition.
 \end{proof}
 
-\begin{theorem}
+Reversibility of proposal with respect to the Lebesgue measure can now be
+used to show that DP-HMC has the correct invariant distribution using
+Lemma~\ref{reversible_proposal_lemma}:
+\begin{theorem}\label{dp_hmc_invariant_theorem}
   If
   \[
     \min\left\{1, \exp\left(H(\theta, p)
@@ -2375,7 +2460,9 @@ together show that when using
   \alpha(\theta, p, \theta', p')
   = \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
 \]
-as the acceptance probability, the invariant distribution is \(\pi\).
+as the acceptance probability, where \(\pi\) is any continuous
+probability distirbution on \(\R^{2d}\), the invariant distribution
+of DP-HMC is \(\pi\).
 Recall that in HMC
 \[
   \pi(\theta, p) \propto \exp(-H(\theta, p))
@@ -2398,7 +2485,7 @@ log-likelihood ratios and the penalty correction is applied,
 Proving the ergodicity of DP-HMC turns out to be easier than in the
 non-DP case as a result of adding noise to the proposal, which makes the
 algorithm strongly irreducible, as shown below.
-\begin{theorem}
+\begin{theorem}\label{dp_hmc_ergodicity_theorem}
 	DP-HMC is strongly irreducible and ergodic.
 \end{theorem}
 \begin{proof}
@@ -2420,12 +2507,19 @@ for \(p'\) from any \((\theta^{*}, p^{*})\). This means that
 DP-HMC is strongly irreducible, and thus ergodic.
 \end{proof}
 
+Together, Theorems~\ref{dp_hmc_invariant_theorem} and \ref{dp_hmc_ergodicity_theorem}
+show that DP-HMC converges to the same target distribution as HMC, though
+the convergence is slower than in HMC, as clipping and adding noise to
+gradients gradient, and adding noise to the log-likelihoods all lower the
+acceptance rate of DP-HMC.
+
 If the friction term that corrects the dynamics is used, the equations of
 motion become~\cite{CFG14}
 \begin{align*}
   \frac{d\theta}{dt} &= M^{-1}p \\
-  \frac{dp}{dt} &= -\nabla U(\theta) - \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \caln(0, \sigma_{g}^{2})
+  \frac{dp}{dt} &= -\nabla U(\theta) - \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \sigma_{g}B_{d}
 \end{align*}
+where \(B_{d}\) denotes the \(d\)-dimensional Brownian motion.
 The equation for \(\theta\) is unchanged, but the equation for \(p\) has the
 additional term \(-\frac{1}{2}\sigma_{g}^{2}M^{-1}p\).
 For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p}\) changes
@@ -2448,7 +2542,7 @@ the friction term in not used in this thesis beyond this brief discussion,
 but finding a way to correct the acceptance test is a potential avenue for
 future research.
 
-\begin{algorithm}[H]
+\begin{algorithm}
     \SetAlgoLined
     \(G_{1,0} = g_{b_{g}}(\theta_{0}) + \caln(0, \sigma_{g}^{2})\)\\
     \For{\(1 \leq i \leq k\)}{
