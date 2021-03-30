@@ -35,7 +35,7 @@ rule accountant_comparison_figure:
 
 rule hmc_trajectory_figure:
     input: "plot_hmc_trajectory.py"
-    output: "../Thesis.figures/hmc_trajectory.pdf"
+    output: "../Thesis/figures/hmc_trajectory.pdf"
     shell: "python {input}"
 
 rule grad_clipping_figure:

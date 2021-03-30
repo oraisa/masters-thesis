@@ -22,7 +22,7 @@ params = hmc.HMCParams(
     grad_clip = 0.0015,
 )
 
-res = hmc.hmc(problem, epsilon, delta, params)
+res = hmc.hmc(problem, np.array((0, 1)), epsilon, delta, params)
 
 samples = res.chain
 n_samples = samples.shape[0]
@@ -56,7 +56,7 @@ def plot_anim_frame(ind, ax):
 
 
 def plot_frames(start_i):
-    fig, ax = plt.subplots(4, 3, figsize=(6, 8))
+    fig, ax = plt.subplots(4, 3, figsize=(1.5 * 3, 1.5 * 4))
     for i in range(4):
         for j in range(3):
             ind = start_i + (3 * i + j) * 4
