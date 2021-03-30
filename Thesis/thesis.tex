@@ -151,8 +151,8 @@ of the individuals important. Differential
 privacy~\cite{DMN06} is a formal definition attempting to capture the notion
 of a data analysis algorithm that preserves privacy.
 Metropolis-Hastings (MH) algorithms~\cite{MRR53, Has70} are a particular class of
-Markov chain Monte Carlo (MCMC)~\cite{Robert04} algorithms.
-MCMC is a computational method that enables data analysis using
+Markov chain Monte Carlo (MCMC)~\cite{Robert04} algorithms, which
+enable data analysis using
 Bayesian inference~\cite{BDA}. This thesis studies the combination of
 differential privacy and MH algorithms by introducing existing algorithms, proving
 tighter privacy bounds for them, and developing two novel algorithms.
@@ -195,9 +195,9 @@ parameters. Bayesian inference is based on Bayes' theorem, which allows
 a data analyst to update his prior knowledge of the parameters based on observed
 data to obtain a posterior distribution of the parameters.
 Computing the posterior distribution analytically is often not possible,
-so numerical methods are needed. Markov chain Monte Carlo (MCMC) is a general
+so numerical methods are needed. MCMC is a general
 method of drawing samples from a given distribution, such as the
-posterior distribution. Metropolis-Hastings algorithms are a particular class
+posterior distribution. MH algorithms are a particular class
 of MCMC algorithms, where
 the sampling is done by first picking a proposal from a given proposal distribution,
 and then either choosing to accept or reject the proposal based on an acceptance
@@ -217,7 +217,8 @@ Heikkilä et al.~\cite{HeikkilaJDH19}, which uses the Barker
 acceptance~\cite{Barker65} test instead of the MH acceptance test
 that MH algorithms use. Although DP Barker is not technically an MH algorithm,
 it is much close to DP penalty than other DP MCMC algorithms due to the
-acceptance test it performs.
+acceptance test it performs, and is included in the discussion on DP MH
+algorithms in this thesis.
 
 DP penalty builds on the earlier penalty algorithm~\cite{CeD99}, which was
 developed for physical simulations where it is difficult to compute even the
@@ -521,7 +522,7 @@ is not tight. As a result, computing
 ADP bounds for the Gaussian mechanism through RDP or zCDP, and converting
 the resulting bounds to ADP with Theorem~\ref{other_dp_to_adp} does not
 result in a tight bound. The difference of the two methods of computing ADP bounds
-on the MCMC algorithms considered in this thesis is shown in
+on the MH algorithms considered in this thesis is shown in
 Section~\ref{accounting_comparison_section}.
 
 When the dataset is a table, the query \(f\) of the Gaussian mechanism is
@@ -530,7 +531,7 @@ specifically
 \[
   f(X) = \sum_{x\in X} g(x)
 \]
-for dataset \(X\).
+where \(x\in X\) denotes that \(x\) a a row of the dataset \(X\).
 For the substitute neighborhood relation \(f\),
 \[
   \Delta_{p}f = \sup_{X\sim X'}||f(X) - f(X')||_{p}
@@ -572,7 +573,7 @@ Bayes' theorem relates the \emph{posterior} belief of \(\theta\),
 observed data \(X\), and the likelihood of the data \(p(X\mid \theta)\) as follows:
 \[
     p(\theta \mid X) = \frac{p(X \mid \theta)p(\theta)}
-    {\int p(X\mid \theta)p(\theta)\dx\theta}.
+    {\int p(X\mid \theta')p(\theta')\dx\theta'}.
 \]
 It is theoretically possible to compute \(p(\theta \mid X)\) given any 
 likelihood, prior and data, but the integral in the denominator is in many 
@@ -588,7 +589,7 @@ a given distribution~\cite{Robert04}. While this can be done in many ways, this 
 focuses on a particular MCMC algorithm:
 \emph{Metropolis-Hastings} (MH)~\cite{MRR53, Has70}.
 
-At each iteration \(i\), the Metropolis-Hastings algorithm samples \(\theta_i\)
+At each iteration \(i\), the MH algorithm samples \(\theta_i\)
 from a distribution \(\pi\) of \(\theta\)
 by first picking a proposal \(\theta'\) from a proposal 
 distribution \(q(\cdot \mid \theta_{i-1})\)~\cite{MRR53}, where \(\theta_{i-1}\) is the
@@ -616,7 +617,7 @@ The invariance of \(\pi\) follows from the \emph{detailed balance condition}~\ci
 The ergodicity of the chain depends on the proposal distribution. Proving
 ergodicity in general can be difficult, but there is an easy to check
 sufficient condition: if the proposal allows moving to any state from any
-state with positive probability, the chain is called
+state with positive probability, or probability density, the chain is called
 \emph{strongly irreducible}. Together with the detailed balance condition,
 strong irreducibility implies ergodicity~\cite{Robert04}. The Gaussian
 distribution centered
@@ -640,15 +641,15 @@ log-space, which makes the acceptance probability
 \end{equation}
 
 The dataset \(X\) is typically a table with \(n\) independent rows.
-The likelihood is given as \(p(x_j\mid \theta)\)
-for row \(x_j\). Independence of the rows means that 
+The likelihood is given as \(p(x\mid \theta)\)
+for row \(x\). Independence of the rows means that
 \[
-    p(X\mid \theta) = \prod_{j=1}^n p(x_j\mid \theta),
+    p(X\mid \theta) = \prod_{x\in X} p(x\mid \theta),
 \]
 which means that the log-likelihood ratio term of \(\lambda\) is
 \[
     \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
-    = \sum_{j=1}^n \ln\frac{p(x_j\mid \theta')}{p(x_j\mid \theta)}.
+    = \sum_{x\in X} \ln\frac{p(x\mid \theta')}{p(x\mid \theta)}.
 \]
 Algorithm~\ref{MH_algo} puts all of this together to summarise the MH 
 algorithm used for Bayesian inference.
@@ -659,7 +660,7 @@ algorithm used for Bayesian inference.
         denote \(\theta = \theta_{i-1}\)\\
         sample \(\theta' \sim q(\cdot \mid \theta)\)\\
         \(\ln \frac{p(X\mid \theta')}{p(X\mid \theta)} =
-            \sum_{j=1}^n (\ln p(x_j \mid \theta') - \ln p(x_j\mid \theta))
+            \sum_{x\in X} (\ln p(x \mid \theta') - \ln p(x\mid \theta))
         \)\\
         \(\lambda = \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
         + \ln p(\theta') - \ln p(\theta)
@@ -681,13 +682,13 @@ algorithm used for Bayesian inference.
 
 \section{Measure Theory}
 
-The study of Hamiltonian Monte Carlo (HMC) in Chapter~\ref{hmc_chapter},
-requires a framework for studying Metropolis-Hastings algorithms
+The study of Hamiltonian Monte Carlo (HMC) in Chapter~\ref{hmc_chapter}
+requires a framework for studying MH algorithms
 that have non-continuous proposal distributions, which is not provided
 by the theory presented in Section~\ref{MCMC_background} that only handles
 continuous proposals.
 This section introduces tools from measure theory, in particular
-the Markov kernels, that do provide a sufficiently general
+Markov kernels, that do provide a sufficiently general
 framework for the study of HMC. As with the other sections in this chapter,
 the introduction is very limited, only covering concepts used in this thesis.
 
@@ -869,8 +870,8 @@ used in its proof is presented first:
   Then \(\mu| B\) is a measure on \((E, \mathcal{E})^{d}\)~\cite{Cin11}.
   Now the measures \(\mu|B_{i}\) and \(\nu|B_{i}\) are finite because
   \((\mu|B_{i})(A) = \mu(A\cap B_{i}) \leq \mu(B_{i}) < \infty\) for any
-  \(A\in \bigotimes_{j=1}^{d}\mathcal{E}^{d}\), the same holds for \(\nu|B_{i}\)
-  and
+  \(A\in \bigotimes_{j=1}^{d}\mathcal{E}^{d}\) and the same holds for \(\nu|B_{i}\).
+  Then
   \begin{align*}
     (\mu|B_{i})\left(\bigtimes_{j=1}^{d}A_{j}\right)
     &= \mu\left(\left(\bigtimes_{j=1}^{d}A_{j}\right)
@@ -1480,8 +1481,8 @@ for almost all \(\theta\) and \(\theta'\) and constant
 They also consider a weaker form where for any \(\varepsilon\) there is
 a \(C\) such that
 \(P(c(\theta, \theta') > Cn^{-\alpha}) < \varepsilon\)~\cite[Assumption A4]{YildirimE19}.
-These bounds imply that \(\sigma\)
-does not increase with \(n\), which Yildirim and Ermis see as a necessary
+These bounds imply that \(\sigma\) does not increase with \(n\), or only increases
+with negligible probability, which Yildirim and Ermis see as a necessary
 condition for the DP penalty algorithm to perform well. They also recommend
 having \(\alpha = \frac{1}{2}\), which is used in the experiments in
 Chapter~\ref{experiment_chapter}.
@@ -1490,13 +1491,6 @@ on \(n\). For the experiments
 in Chapter~\ref{experiment_chapter}, the parameters are optimised separately
 for each \(n\) that is used, so setting any clip bound can be seen as
 choosing a value of \(C\) for each \(\varepsilon\).
-
-% However , this condition may not be necessary, as DP penalty adds noise to
-% \(\lambda\), which is a sum of \(n\) values. Unless there is a lot of
-% cancellation between the different terms, the magnitude of \(\lambda\), would
-% increase with \(n\), so the ratio of \(\lambda\) and the noise may not increase,
-% even if the variance of the noise increases. Of course, this is a very informal
-% argument
 
 Theorem~\ref{DP_penalty_theorem_zcdp}
 requires a bound on sensitivity of the log-likelihood ratio. If there is a bound
@@ -1562,7 +1556,8 @@ Section~\ref{accounting_comparison_section}.
         \right)
     \]
     where \(\mu = \frac{1}{2\tau^2 n^{2\alpha}}\). Furthermore, this privacy
-    bound is tight.
+    bound is tight if the values of the log-likelihood ratio \(\lambda\) are
+    released.
 \end{theorem}
 \begin{proof}
     DP penalty is an adaptive composition of Gaussian mechanisms that release 
@@ -1820,28 +1815,28 @@ The acceptance probability with subsampling is
 \]
 where
 \[
-    \lambda^*(\theta, \theta') = \frac{nT}{b}\sum_{j\in B}
-    \ln \frac{p(x_j\mid \theta')}{p(x_j \mid \theta)}
+    \lambda^*(\theta, \theta') = \frac{nT}{b}\sum_{x\in B}
+    \ln \frac{p(x\mid \theta')}{p(x \mid \theta)}
     + \ln \frac{p(\theta')q(\theta \mid \theta')}{p(\theta)q(\theta' \mid \theta)},
 \]
 \(T\) is the tempering multiplier
 and \(\sigma_b^2\) is the sample variance of the log-likelihood ratios in
 batch \(B\). Denote
 \[
-    r_j = \ln \frac{p(x_j\mid \theta')}{p(x_j\mid \theta)},
+    r_x = \ln \frac{p(x\mid \theta')}{p(x\mid \theta)},
 \]
 \[
-    R = \sum_{x\in B}r_j.
+    R = \sum_{x\in B}r_x.
 \]
-Then \(\sigma^2_b\) can be estimated from the sample variance of \(r_j\):
+Then \(\sigma^2_b\) can be estimated from the sample variance of \(r_x\):
 \begin{align*}
     \sigma_b^2 
-    &= \var\left(\frac{nT}{b}\sum_{j\in B}r_j\right)
-    = \frac{nT^2}{b^2}\sum_{j\in B}\var(r_j)
-    = \frac{nT^2}{b}\var(r_j)
+    &= \var\left(\frac{nT}{b}\sum_{x\in B}r_x\right)
+    = \frac{nT^2}{b^2}\sum_{x\in B}\var(r_x)
+    = \frac{nT^2}{b}\var(r_x)
   \\&\approx\frac{(nT)^2}{b^2}
-    \sum_{j\in B}\left(r_j - \frac{R}{b}\right)^2
-    = \frac{(nT)^2}{b^2}\left(\sum_{j\in B}r_j^2 - \frac{R^2}{b}\right).
+    \sum_{x\in B}\left(r_x - \frac{R}{b}\right)^2
+    = \frac{(nT)^2}{b^2}\left(\sum_{x\in B}r_x^2 - \frac{R^2}{b}\right).
 \end{align*}
 
 Because \(\sigma_b^2\) depends on the data, releasing \(\lambda\) privately is 
@@ -1856,9 +1851,12 @@ The sensitivity of \(\lambda - \frac{1}{2}\sigma_b^2\) is
 With the bound \(r_j \leq L||\theta - \theta'||_2\) used in DP penalty, the 
 bound sensitivity of \(\lambda\) is the same as without subsampling.
 The sensitivity of \(\sigma_b^2\) must be bounded separately.
+The bound is first computed over neighboring datasets \(B\) and \(B'\)
+that have the same size as the subsample. The effect of subsampling is then
+taken into account with a separate theorem of Wang et al.~\cite{WangBK19}.
 \begin{lemma}\label{variance_sensitivity_lemma}
-    The sensitivity of \(\frac{1}{2}\sigma_b^2\), 
-    when \(r_j \leq L||\theta - \theta'||_2\), has upper bound
+    The sensitivity of \(\frac{1}{2}\sigma_b^2\) over dataset size \(b\)
+    when \(r_x \leq L||\theta - \theta'||_2\), has upper bound
     \begin{align*}
         \frac{1}{2}\Delta \sigma_b^2
         &\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
@@ -1867,33 +1865,33 @@ The sensitivity of \(\sigma_b^2\) must be bounded separately.
     \end{align*}
 \end{lemma}
 \begin{proof}
-    For substitute neighboring datasets \(X \sim X'\), denote the
-    common part they have by \(X^*\), and the differing element by \(x\in X\) 
-    and \(x'\in X'\). Then
+    For substitute neighboring datasets \(B \sim B'\), denote the
+    common part they have by \(B^*\), and the differing element by \(x\in B\)
+    and \(x'\in B'\). Then, denoting \(r_{x} = r(x)\) and \(R(B) = \sum_{x\in B}r_{x}\),
     \begin{align*}
-        \Delta \sigma^2_b &= \sup_{D\sim D'} |\sigma^2_b(X) - \sigma^2_b(X')|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{X\sim X'}\Big|
-        \sum_{x\in X}r^2(x) - \sum_{x\in X'}r^2(x)
-        + \frac{1}{b}R^2(X') - \frac{1}{b}R^2(X)\Big|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        \Delta \sigma^2_b &= \sup_{D\sim D'} |\sigma^2_b(B) - \sigma^2_b(B')|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{B\sim B'}\Big|
+        \sum_{x\in B}r^2(x) - \sum_{x\in B'}r^2(x)
+        + \frac{1}{b}R^2(B') - \frac{1}{b}R^2(B)\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', B^*}\Big|
         r^2(x) - r^2(x')
-        + \frac{1}{b}(R(X^*) + r(x'))^2 - \frac{1}{b}(R(X^*) + r(x))^2\Big|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        + \frac{1}{b}(R(B^*) + r(x'))^2 - \frac{1}{b}(R(B^*) + r(x))^2\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', B^*}\Big|
         r^2(x) - r^2(x')
-        + \frac{1}{b}(R^2(X^*) + 2R(X^*)r(x') + r^2(x'))
-        \\&- \frac{1}{b}(R^2(X^*) + 2R(X^*)r(x) + r^2(x))\Big|
-        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
+        + \frac{1}{b}(R^2(B^*) + 2R(B^*)r(x') + r^2(x'))
+        \\&- \frac{1}{b}(R^2(B^*) + 2R(B^*)r(x) + r^2(x))\Big|
+        \\&= \left(\frac{nT}{b}\right)^2 \sup_{x, x', B^*}\Big|
         \left(1 - \frac{1}{b}\right)(r^2(x) - r^2(x'))
-        + \frac{2}{b}D(X^*)(r(x') - r(x))\Bigg|
+        + \frac{2}{b}R(B^*)(r(x') - r(x))\Bigg|
         \\&\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
         \sup_{x, x'}\Big|(r^2(x) - r^2(x'))\Big|
-        + \frac{2}{b}\left(\frac{nT}{b}\right)^2 \sup_{x, x', X^*}\Big|
-        R(X^*)(r(x') - r(x))\Bigg|
+        + \frac{2}{b}\left(\frac{nT}{b}\right)^2 \sup_{x, x', B^*}\Big|
+        R(B^*)(r(x') - r(x))\Bigg|
         \\&= \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
         \sup_{x, x'}\Big|(r^2(x) - r^2(x'))\Big|
         + \frac{2}{b}\left(\frac{nT}{b}\right)^2
         \sup_{x, x'}|r(x') - r(x)|
-        \sup_{X^*}|R(X^*)|
+        \sup_{B^*}|R(B^*)|
         \\&\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
         \sup_{x, x'}\Big|(r^2(x) - r^2(x'))\Big|
         + \frac{2}{b}\left(\frac{nT}{b}\right)^2
@@ -2050,7 +2048,7 @@ The sum of potential and kinetic energies, the total
 energy of the system, is called the Hamiltonian \(H\). Hamilton's equations 
 give the equations of motion for a system with a given Hamiltonian:
 \begin{align*}
-    &\frac{d\theta}{dt} = \frac{\partial H}{\partial p},
+    &\frac{d\theta}{dt} = \frac{\partial H}{\partial p},\\
     &\frac{dp}{dt} = -\frac{\partial H}{\partial \theta}.
 \end{align*}
 Given \(H(\theta, p) = U(\theta) + \frac{p^{T}p}{2m}\), Hamilton's equations become
@@ -2085,14 +2083,14 @@ have a physical analogue, but it can be useful for MCMC.
 
 Hamiltonian dynamics have three important properties~\cite{neal2012mcmc} 
 that make them useful as a
-proposal mechanism for MCMC. They are \emph{invertibilityi}\footnote{
+proposal mechanism for MH. They are \emph{invertibilityi}\footnote{
   Invertibility is commonly called reversibility~\cite{neal2012mcmc}, but
   calling it reversibility in this thesis risks conflating it with
   the closely related concept of Markov kernel reversibility from
   Definition~\ref{reversible_definition}.
 },
 \emph{conservation of the Hamiltonian} and
-\emph{conservation of the Lebesgue measure}\footnote{Also
+\emph{conservation of Lebesgue measure}\footnote{Also
   known as conservation of volume.
 }.
 
@@ -2112,7 +2110,7 @@ chain rule of derivatives:
     = 0.
 \]
 
-Conservation of the Lebesgue measure in the \((\theta, p)\)-space follows
+Conservation of Lebesgue measure in the \((\theta, p)\)-space follows
 from the fact that 
 the absolute value of the Jacobian determinant of \(T_t\) is 1 and the 
 injectivity of \(T_t\). A somewhat 
@@ -2122,7 +2120,7 @@ Neal~\cite{neal2012mcmc}.
 To see why 
 having \(|\det J_f| = 1\), where \(J_f\) is the Jacobian matrix of an injective 
 continuously differentiable function \(f\), 
-implies \(f\) preserving the Lebesgue measure, recall that the measure of a set
+implies \(f\) preserving Lebesgue measure, recall that the Lebesgue measure of a set
 \(A\) is given by 
 \[
     m(A) = \int_A m(\dx x)\, 1.
@@ -2133,11 +2131,11 @@ The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
   = \int_{A}m(\dx x)|\det J_f(x)| = \int_A m(\dx x)\,1
   = m(A).
 \]
-where the first equality follows from the change of variables formula.
+where the second equality follows from the change of variables formula.
 
 The leapfrog method does not conserve the Hamiltonian exactly, but it 
 preserves Lebesgue measure and is invertible exactly~\cite{neal2012mcmc}.
-These properties are important for its use as a proposal mechanism for MCMC.
+These properties are important for its use as a proposal mechanism for MH.
 
 The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
 \[
@@ -2172,10 +2170,10 @@ with HMC if there are continuous parameters.
 
 Generating a \((\theta, p)\)-sample is done in two stages~\cite{neal2012mcmc}, 
 which are technically 
-two separate Metropolis-Hastings proposals and acceptance tests. In the first 
+two separate MH proposals and acceptance tests. In the first
 stage, \(p\) is proposed from the Gaussian distribution with mean 0 and 
 covariance \(M\). Because the proposal matches the marginal distribution of 
-\(p\), the Metropolis-Hastings acceptance probability is 1, so the proposal
+\(p\), the MH acceptance probability is 1, so the proposal
 is always accepted.
 
 In the second stage, Hamiltonian dynamics for the particle on a surface are 
@@ -2199,7 +2197,7 @@ distribution of HMC when the acceptance probability is simply
 \]
 
 Because of the deterministic proposal, the ergodicity of HMC cannot be
-proved with strong irreducibility, but it has been shown that HMC is
+proven with strong irreducibility, but it has been shown that HMC is
 ergodic under some conditions on \(U\)~\cite{DMS19}.
 
 If the simulation conserved \(H\) exactly, the acceptance probability would 
@@ -2211,7 +2209,7 @@ but in practice the errors in different steps tend to cancel each
 other~\cite{neal2012mcmc}, meaning 
 that the acceptance probability mainly depends on \(\eta\).
 
-% \newpage
+\newpage
 \section{Differential Privacy with HMC}\label{dp_hmc_section}
 
 HMC only uses the model log-likelihood, and thus the data, through \(U\).
@@ -2245,17 +2243,17 @@ reversible with noisy and potentially clipped gradients, as is shown in the foll
 but it no longer simulates the correct Hamiltonian dynamics~\cite{CFG14}. This does not affect
 asymptotic convergence, but it can potentially lower acceptance rates.
 The dynamics can be corrected by adding a friction term to the equations of
-motion of the simulation~\cite{CFG14}, but this removes volume preservation of the simulation,
-which means that the acceptance probability is no longer valid.
+motion of the simulation~\cite{CFG14}, but this invalidates the acceptance test,
+and the resulting algorithm no longer converges to the correct distribution.
 
 The leapfrog update equations with noisy and clipped gradients become
 \begin{align*}
-  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(g(\theta_{i}) + \xi) \\
+  p_{i+1/2} &= p_{i} - \frac{\eta}{2}(g(\theta_{i}) + \xi_{1}) \\
   \theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2} \\
-  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \xi)),
+  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \xi_{2})),
 \end{align*}
 where
-\(\xi \sim \caln_{d}(0, \sigma_{g}^{2}I)\) and
+\(\xi_{i} \sim \caln_{d}(0, \sigma_{g}^{2}I)\), all \(\xi_{i}\) are independent, and
 \[
   g(\theta) = \sum_{x\in X}\clip_{b}(\nabla \ln p(x\mid \theta)) + \nabla\ln p(\theta)
 \]
@@ -2272,45 +2270,53 @@ twice can be avoided by writing the leapfrog simulation as
 \]
 where
 \[
-  l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p)
+  l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p),
 \]
-and
 \[
-  l_{p_{t}}(\theta, p) = (\theta, p - t(g(\theta) + \xi)).
+  l_{p_{t}}(\theta, p) = (\theta, p - t(g(\theta) + \xi)),
 \]
-where
-\(\xi \sim \caln_{d}(0, \sigma_{g}^2I)\), \(t_{1} = \eta\) and \(t_{2} = \frac{\eta}{2}\).
-Both \(l_{\theta}\) and \(l_{p_{t}}\) preserve measure, as \(l_{\theta}\) in
-unchanged from the non-DP case and the Jacobian of \(l_{p_{t}}\) is
-\[
-  J_{l_{p_{t}}}(\theta, p) =
-  \begin{bmatrix}
-    I_{d\times d} & 0_{d\times d} \\
-    tJ_{g}(\theta) & I_{d\times d}
-  \end{bmatrix},
-\]
-where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
-zero matrices, respectively.
-It is possible that \(J_{g}(\theta)\) does not exist, but this can only happen
-in a null set\footnote{A set of zero Lebesgue measure.}, if \(g\) is
-sufficiently well-behaved. The non-existence of \(J_{g}(\theta)\) in a null set
-does not affect the volume preservation of \(l_{p_{t}}\).
-As \(g\) is a sum of clipped log-likelihood
-gradients and the log prior gradient, it suffices to show that the
-log-likelihood is sufficiently well-behaved, as the prior is already assumed
-to be differentiable and is not clipped. Appendix~\ref{clip_diff_chapter}
-gives very general sufficient conditions for the log-likelihood, and proves
-that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
-the conditions.
+\(\xi \sim \caln_{d}(0, \sigma_{g}^2I)\) is sampled independently each time
+\(l_{p_{t}}\) is applied, \(t_{1} = \eta\) and \(t_{2} = \frac{\eta}{2}\).
 
-Because \(J_{l_{p_{t}}}(\theta, p)\) is triangular and the diagonal consists
-of only ones, \(\det J_{l_{p_{t}}}(\theta, p) = 1\)
-for all \(\theta\) and \(p\), which means that \(l_{p_{t}}\) preserves volume.
-As the step updating \(\theta\) also preserves volume, the entire leapfrog
-simulation preserves Lebesgue measure. Showing that the proposal of
-DP-HMC is reversible
-with respect to the Lebesgue measure requires more thought, as the individual
-leapfrog steps are partially deterministic.
+% Both \(l_{\theta}\) and \(l_{p_{t}}\) preserve measure, as \(l_{\theta}\) in
+% unchanged from the non-DP case and the Jacobian of \(l_{p_{t}}\) is
+% \[
+%   J_{l_{p_{t}}}(\theta, p) =
+%   \begin{bmatrix}
+%     I_{d\times d} & 0_{d\times d} \\
+%     tJ_{g}(\theta) & I_{d\times d}
+%   \end{bmatrix},
+% \]
+% where \(I_{d\times d}\) and \(0_{d\times d}\) are the \(d\)-by-\(d\) identity and
+% zero matrices, respectively.
+% It is possible that \(J_{g}(\theta)\) does not exist, but this can only happen
+% in a null set\footnote{A set of zero Lebesgue measure.}, if \(g\) is
+% sufficiently well-behaved. The non-existence of \(J_{g}(\theta)\) in a null set
+% does not affect the volume preservation of \(l_{p_{t}}\).
+% As \(g\) is a sum of clipped log-likelihood
+% gradients and the log prior gradient, it suffices to show that the
+% log-likelihood is sufficiently well-behaved, as the prior is already assumed
+% to be differentiable and is not clipped. Appendix~\ref{clip_diff_chapter}
+% gives very general sufficient conditions for the log-likelihood, and proves
+% that all of the models considered in Chapter~\ref{experiment_setup_chapter} meet
+% the conditions.
+
+% Because \(J_{l_{p_{t}}}(\theta, p)\) is triangular and the diagonal consists
+% of only ones, \(\det J_{l_{p_{t}}}(\theta, p) = 1\)
+% for all \(\theta\) and \(p\), which means that \(l_{p_{t}}\) preserves volume.
+% As the step updating \(\theta\) also preserves volume, the entire leapfrog
+% simulation preserves Lebesgue measure. Showing that the proposal of
+% DP-HMC is reversible
+% with respect to the Lebesgue measure requires more thought, as the individual
+% leapfrog steps are partially deterministic.
+%
+The invariance of the target distribution was shown through the conservation of
+Lebesgue measure and invertibility of the non-DP leapfrog simulation. The
+DP HMC leapfrog simulation is randomised, so invertibility and conservation
+of measure are not directly applicable. However,
+Lemma~\ref{reversible_proposal_lemma} gives a condition that applies to
+the DP HMC proposal and can be used to show the invariance of the target
+distribution: reversibility with respect to the Lebesgue measure.
 
 With the momentum negation after the leapfrog simulation, the DP-HMC proposal
 can be written as
@@ -2323,7 +2329,7 @@ with respect to the Lebesgue measure can then shown by
 decomposing the sequence into parts that are individually reversible.
 
 \begin{lemma}\label{leapfrog_step_reversible_lemma}
-  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{t}}\) for any \(x\in \R\)
+  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{t}}\) for any \(t\in \R\)
   are reversible with respect to the Lebesgue measure.
 \end{lemma}
 \begin{proof}
@@ -2361,7 +2367,7 @@ decomposing the sequence into parts that are individually reversible.
   for all \(A, B, C, D\in \mathcal{B}(\R^{d})\).
   Denote \(f_{t}(\theta) = t g(\theta)\) and
   \(\sigma^{2} = t^{2}\sigma_{g}^{2}\). Denote the density function
-  of the \(d\)-dimensional normal distribution with mean \(\mu\) and covariance
+  of the \(d\)-dimensional Gaussian distribution with mean \(\mu\) and covariance
   \(\Sigma\) by \(\caln_{d}(\cdot \mid \mu, \Sigma)\).
   Then
   \begin{align}
@@ -2379,11 +2385,11 @@ decomposing the sequence into parts that are individually reversible.
   \end{align}
   for \(C, D\in \mathcal{B}(\R^{d})\). The third equality follows from
   Lemma~\ref{dirac_evaluation_lemma}.
-  The normal distribution has a shift-invariance property: for any \(x, y\in \R^{d}\)
+  The Gaussian distribution has a shift-invariance property: for any \(x, y\in \R^{d}\)
   \[
     \caln(x\mid \mu, \Sigma) = \caln(x + y\mid \mu + y, \Sigma),
   \]
-  which is a consequence of the fact that the density of the normal distribution
+  which is a consequence of the fact that the density of the Gaussian distribution
   only depends on \(x\) and \(\mu\) through \(x - \mu\).
   Then,
   for any \(A, B, C, D\in \mathcal{B}(\R^{d})\),
@@ -2410,7 +2416,7 @@ decomposing the sequence into parts that are individually reversible.
   to change the order of integration,
   the third uses Lemma~\ref{reversible_integration_lemma} on the two leftmost
   integrals,
-  the fourth uses the shift-invariance of the normal distribution,
+  the fourth uses the shift-invariance of the Gaussian distribution,
   the fifth uses Lemma~\ref{dirac_evaluation_lemma},
   the sixth uses Theorem~\ref{lebesgue_integral_theorem} (6) to rearrange the
   term in the integrals and the last equality uses
@@ -2489,22 +2495,23 @@ algorithm strongly irreducible, as shown below.
 	DP-HMC is strongly irreducible and ergodic.
 \end{theorem}
 \begin{proof}
-Consider the last four updates of the proposal,
-\[
-  l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}.
-\]
-Denote the values of \((\theta, p)\) before the last four updates by \((\theta^{*}, p^{*})\) and
-the values after the updates by \((\theta', p')\).
-The first of these updates adds Gaussian noise to \(p\). In the next
-\(l_{\theta}\) step, the previous value of \(p\) is added to \(\theta\)
-after multiplication with a non-singular matrix, and the further updates
-do not change \(\theta\), so it is possible
-to obtain any value for \(\theta'\), no matter the starting value of
-\((\theta^{*}, p^{*})\). In the next \(l_{p_{1/2}}\) update, Gaussian noise is
-added to the value of \(p\) and the \(l_{-}\) update does not change the distribution
-of \(p\), so it is possible to obtain any value
-for \(p'\) from any \((\theta^{*}, p^{*})\). This means that
-DP-HMC is strongly irreducible, and thus ergodic.
+  Consider the last four updates of the proposal, which will be present for any
+  \(L\),
+  \[
+    l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}.
+  \]
+  Denote the values of \((\theta, p)\) before the last four updates by \((\theta^{*}, p^{*})\) and
+  the values after the updates by \((\theta', p')\).
+  The first (rightmost) of these updates adds Gaussian noise to \(p\). In the next
+  \(l_{\theta}\) step, the previous value of \(p\) is added to \(\theta\)
+  after multiplication with a non-singular matrix, and the further updates
+  do not change \(\theta\), so it is possible
+  to obtain any value for \(\theta'\), no matter the starting value of
+  \((\theta^{*}, p^{*})\). In the next \(l_{p_{t_{2}}}\) update, Gaussian noise is
+  added to the value of \(p\) and the distribution of \(p\) remains Gaussian
+  after the \(l_{-}\) update, so it is possible to obtain any value
+  for \(p'\) from any \((\theta^{*}, p^{*})\). This means that
+  DP-HMC is strongly irreducible, and thus ergodic.
 \end{proof}
 
 Together, Theorems~\ref{dp_hmc_invariant_theorem} and \ref{dp_hmc_ergodicity_theorem}
@@ -2522,21 +2529,28 @@ motion become~\cite{CFG14}
 where \(B_{d}\) denotes the \(d\)-dimensional Brownian motion.
 The equation for \(\theta\) is unchanged, but the equation for \(p\) has the
 additional term \(-\frac{1}{2}\sigma_{g}^{2}M^{-1}p\).
-For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p}\) changes
+For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p_{t}}\) changes
 to
 \[
-  l_{p}(\theta, p) = \left(\theta, p - \frac{\eta}{2}(g(\theta)
-  + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \caln(0, \sigma_{g}^{2}))\right).
+  l_{p_{t}}^{fric}(\theta, p) = \left(\theta, p - t(g(\theta)
+  + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \xi\right).
 \]
-\(l_{p}\) no longer preserves volumes, as the Jacobian of \(l_{p}\) is
+where \(\xi \sim \caln(0, \sigma_{g}^{2})\).
+Now the step in the proof of Lemma~\ref{leapfrog_step_reversible_lemma}
+using the shift invariance of the Gaussian distribution no longer works,
+as the distribution of \(p'\) given \(p\) and \(\theta' = \theta\) becomes
 \[
-  J_{l_{p}}(\theta, p) =
-  \begin{bmatrix}
-    I_{d\times d} & 0_{d\times d} \\
-    J_{g}(\theta) & I_{d\times d} - \frac{\eta}{4}\sigma_{g}^{2}M^{-1}
-  \end{bmatrix}
+  \caln_{d}\left(p'\mid - \left(I - \frac{t}{2}\sigma_{g}^{2}M^{-1}\right)p
+    + f_{t}(\theta), \sigma^{2}I\right)
 \]
-which means that generally \(|\det J_{l_{p}}(\theta, p)| \neq 1\).
+and
+\[
+  \caln_{d}\left(p'\mid - \left(I - \frac{t}{2}\sigma_{g}^{2}M^{-1}\right)p
+    + f_{t}(\theta), \sigma^{2}I\right)
+  \neq \caln_{d}\left(p\mid - \left(I - \frac{t}{2}\sigma_{g}^{2}M^{-1}\right)p'
+    + f_{t}(\theta), \sigma^{2}I\right).
+\]
+
 This means that the acceptance test is no longer correct, so
 the friction term in not used in this thesis beyond this brief discussion,
 but finding a way to correct the acceptance test is a potential avenue for
@@ -2544,18 +2558,18 @@ future research.
 
 \begin{algorithm}
     \SetAlgoLined
-    \(G_{1,0} = g_{b_{g}}(\theta_{0}) + \caln(0, \sigma_{g}^{2})\)\\
     \For{\(1 \leq i \leq k\)}{
-        \(p_0 = \caln_d(0, M)\)\\
         \(\theta_{i,0} = \theta_{i-1}\)\\
+        \(G_{i,0} = g_{b_{g}}(\theta_{i,0}) + \caln(0, \sigma_{g}^{2})\)\\
+        \(p_0 = \caln_d(0, M)\)\\
         \For{\(1 \leq j \leq L\)}{
             \(p_{j-\frac{1}{2}} = p_{j-1} + \frac{1}{2}\eta G_{i,j-1} \)\\
             \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-\frac{1}{2}}\)\\
             \(G_{i,j} = g_{b_{g}}(\theta_{i,j}) + \caln(0, \sigma_{g}^{2})\)\\
             \(p_{j} = p_{j-\frac{1}{2}} + \frac{1}{2}\eta G_{i,j} \)\\
         }
-        \(r_l = \ln \frac{p(\theta_{i,L}\mid x_l)}{p(\theta_{i-1}\mid x_l)}\)\\
-        \(R = \sum_{l=1}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_l)\)\\
+        \(r_x = \ln \frac{p(x\mid \theta_{i,L})}{p(x\mid \theta_{i-1})}\)\\
+        \(R = \sum_{x\in X}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_x)\)\\
         % \(s_{var} = (2\sigma_lb_l||\theta_{i-1} - \theta_{i,L}||_2)^2\)\\
         \(\Delta H = R + \frac{1}{2}p_0^TM^{-1}p_0 - \frac{1}{2}p_L^TM^{-1}p_L
         + \ln \frac{p(\theta_{i,L})}{p(\theta_{i-1})}
@@ -2563,13 +2577,16 @@ future research.
         \(u = \mathrm{Unif}(0, 1)\)\\
         \If{\(u < \Delta H - \frac{1}{2}\sigma_{l}^{2}(\theta_{i-1}, \theta_{i,L})\)}{
             \(\theta_{i} = \theta_{i, L}\)\\
-            \(G_{i+1,0} = G_{i,L}\)\\
+            % \(G_{i+1,0} = G_{i,L}\)\\
         }
         \Else{
             \(\theta_i = \theta_{i-1}\)\\
-            \(G_{i+1,0} = G_{i,0}\)\\
+            % \(G_{i+1,0} = G_{i,0}\)\\
         }
     }
+    where \(\sigma_{l}(\theta, \theta') = 2\tau_{l}\sqrt{n}b_{l}||\theta - \theta'||_{2}\)
+    and \(g_{b_{g}}(\theta) = \sum_{x\in X}\clip_{b_{g}}(\nabla \ln p(x\mid \theta))
+    + \nabla \ln p(\theta)\).
     \caption{
       DP HMC: log likelihood clip bound \(b_{l}\), gradient clip bound
       \(b_{g}\), clipped gradient function \(g_{b_{g}}\),
@@ -2577,7 +2594,9 @@ future research.
       leapfrog step size \(\eta\), initial point \(\theta_{0}\),
       gradient noise variance \(\sigma_{g}^{2}\), log likelihood ratio
       noise variance \(\sigma_{l}^{2}\), positive-definite mass matrix \(M\)
-      and dataset \(X\) as input.
+      and dataset \(X\) as input. Each \(\caln(\mu, \Sigma)\) represents
+      sampling independently from the Gaussian distribution with mean
+      \(\mu\) and covariance \(\Sigma\).
     }
     \label{dp_hmc_algo}
 \end{algorithm}
@@ -2611,28 +2630,29 @@ and \ref{gauss-DP-bounds} for zCDP.
   is \((\epsilon, \delta)\)-ADP for the substitute neighborhood relation.
 \end{theorem}
 \begin{proof}
-Each iteration of the outer for-loop computes the gradient \(L\) times and
-the log-likelihood ratio once. The gradient is also computed once before the
-outer for-loop. Releasing a single gradient has zCDP privacy
-cost of 
-\[
+  Each iteration of the outer for-loop in Algorithm~\ref{dp_hmc_algo}
+  computes the gradient \(L + 1\) times and
+  the log-likelihood ratio once. Releasing a single gradient has zCDP privacy
+  cost of
+  \[
     \rho_g = \frac{4b_g^2}{2\sigma_g^2} = \frac{1}{2\tau_g^2n}.
-\]
-Releasing the log-likelihood ratio of \(\theta\) and \(\theta'\) has privacy cost
-\[
+  \]
+  Releasing the log-likelihood ratio of \(\theta\) and \(\theta'\) has privacy cost
+  \[
     \rho_l = \frac{4b_l^2||\theta - \theta'||_2^2}{2\sigma_l(\theta, \theta')^2} = \frac{1}{2\tau_l^2n}.
-\]
+  \]
 
-The total zCDP budget with given \((\epsilon, \delta)\)-bound is 
-\[
+  The total zCDP budget with given \((\epsilon, \delta)\)-bound is
+  \[
     \rho = \left(\sqrt{\epsilon - \ln \delta} - \sqrt{-\ln \delta}\right)^2.
-\]
-This means that the number of iteration that the algorithm is allowed to run for 
-is 
-\[
-    k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
+  \]
+  and the total privacy cost of \(k\) iterations is \(k(\rho_{l} + (L + 1)\rho_{g})\).
+  This means that the number of iterations that the algorithm is allowed to run for
+  is
+  \[
+    k = \left\lfloor\frac{\rho}{\rho_l + (L + 1)\rho_g}\right\rfloor
     \qedhere
-\]
+  \]
 \end{proof}
 
 zCDP based privacy accounting for ADP is loose, so the above bound could be improved
@@ -2699,13 +2719,33 @@ is equivalent to adding noise with variance
 to the normalised log-likelihood ratio and gradient.
 
 DP HMC releases the log-likelihood ratio \(k\) times and the gradient
-\(kL + 1\) times. This means that the PLD of DP HMC is a Gaussian distribution
+\(k(L + 1)\) times. This means that the PLD of DP HMC is a Gaussian distribution
 \(\caln(\mu, 2\mu)\) with
 \[
-  \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{kL + 1}{2\sigma_{g}'^{2}}.
+  \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{k(L + 1)}{2\sigma_{g}'^{2}}
   \qedhere
 \]
 \end{proof}
+
+It is possible to evaluate the gradients in Algorithm~\ref{dp_hmc_algo} fewer
+times, as the gradient evaluation done before the leapfrog simulation computes
+the same gradient as either the last gradient evaluation of the previous iteration
+for accepted proposals, or the gradient evaluation before the leapfrog simulation
+of the previous iteration for rejected proposals. For the first iteration, the
+gradient would have be computed separately, so this would reduce the number of
+gradient evaluations from \(k(L + 1)\) to \(kL + 1\). However, doing so would
+also reuse the noise value from the reused gradient evaluation, which means that
+the resulting algorithm is no longer the algorithm analysed in
+Theorems~\ref{dp_hmc_invariant_theorem} and \ref{dp_hmc_ergodicity_theorem}.
+
+It is possible that the variant computing fewer gradient evaluations no longer
+generates a Markov chain, as the noise value of the previous iteration, which
+the first step of the leapfrog simulation would depend on, is not
+part of the sampled values \((\theta, p)\). As the difference in the privacy
+costs of the two variants is small even for fairly small values of \(L\),
+the variant computing more gradient shown in Algorithm~\ref{dp_hmc_algo}
+is used in the experiment, and investigation of the other variant if left
+for future research.
 
 The maximum number of iterations DP HMC can run for can be computed with
 Algorithm~\ref{max_iterations_algo} by using Theorem~\ref{dp_hmc_theorem_adp}
@@ -2742,7 +2782,7 @@ Even with noisy and clipped gradients,
 the trajectory is able to stay inside the thin, circular area of high probability,
 while moving a substantial distance on the circle.
 
-\begin{figure}[h]
+\begin{figure}
 	\centering
   \includegraphics[width=\textwidth]{figures/hmc_trajectory}
   \caption{
@@ -2757,25 +2797,16 @@ while moving a substantial distance on the circle.
   \label{hmc_trajectory_fig}
 \end{figure}
 
-% The DP Stochastic gradient Langevin dynamics (DP-SGLD) algorithm~\cite{WFS15}
-% is similar to DP HMC, but omits the MH acceptance test. Instead, in DP-SGLD,
-% the step size \(\eta\) must be lowered towards 0 with each iteration to maintain
-% the asymptotic convergence guarantee. In practice, DP-SGLD is run for a finite
-% number of iterations, so \(\eta\) does not decay to 0, and the algorithm
-% does not sample from the correct posterior. With the inclusion of the
-% acceptance test, MCMC algorithms can sample from the correct posterior, even
-% when run for a finite time~\cite{BDA}, though this is not theoretically guaranteed.
-
 \chapter{Experimental Setup}\label{experiment_setup_chapter}
 
 To compare the performance of the DP MH algorithms, they were run on
 several models. This chapter introduces these models in Sections~\ref{gauss_model},
 \ref{banana_section} and \ref{circle_section}. The practicalities, such as
-the hyperparameter values of the model and the initialisation of the
-algorithms, are considered in Section~\ref{practical_section}.
+the hyperparameter values of the models and the initialisation of the
+algorithms, are presented in Section~\ref{practical_section}.
 Finally, the main performance
 metric used in the experiments is introduced in Section~\ref{mmd_section}.
-The results of the experiments are discussed in Chapter~\ref{experiment_chapter}.
+The results of the experiments are presented in Chapter~\ref{experiment_chapter}.
 
 \section{The Gaussian Model}\label{gauss_model}
 
@@ -2784,9 +2815,9 @@ known covariance. The likelihood and prior for \(n\) points of \(d\)-dimensional
 data \(X \in \R^{n\times d}\) and parameters \(\theta\in \R^{d}\) are
 \begin{align*}
   \theta &\sim \caln_{d}(\mu_{0}, \Sigma_{0}), \\
-  x_{i} &\sim \caln_{d}(\theta, \Sigma),
+  x &\sim \caln_{d}(\theta, \Sigma),
 \end{align*}
-where \(x_{i}\) is a row of \(X\), \(\Sigma\) is the known covariance,
+where \(x\) is a row of \(X\), \(\Sigma\) is the known covariance,
 and \(\mu_{0}\) and \(\Sigma_{0}\) are the prior hyperparameters.
 The posterior of this model is another \(d\)-dimensional Gaussian distribution
 with parameters expressible in closed form~\cite[Section 3.5]{BDA},
@@ -2795,8 +2826,8 @@ so it is easy to sample from the posterior.
 \section{The Banana Distribution}\label{banana_section}
 
 The banana distribution~\cite{TPK14} is a banana-shaped probability
-distribution that is a challenging target for MCMC algorithms. For this reason it has
-been used to test MCMC algorithms in the literature~\cite{TPK14}.
+distribution that is a challenging target for MCMC algorithms, and has been
+used as a target for testing MCMC algorithms~\cite{TPK14}.
 
 \begin{definition}
     Let \(x\) have a \(d\)-variate Gaussian distribution with
@@ -2812,11 +2843,11 @@ been used to test MCMC algorithms in the literature~\cite{TPK14}.
 
 In the literature, the banana distribution is simply used as the target to
 sample from, and is not the posterior in a Bayesian inference
-problem~\cite{TPK14}. To test differentially private MCMC algorithms, the
+problem~\cite{TPK14}. To test DP algorithms, the
 target distribution must be the posterior of some inference problem, as
 otherwise there is no data to protect with differential privacy.
 Theorem~\ref{banana_posterior_theorem} gives a suitable inference problem
-for testing DP MCMC algorithms.
+for testing DP MH algorithms.
 
 \begin{theorem}\label{banana_posterior_theorem}
     Let
@@ -2909,8 +2940,8 @@ with MCMC.
 Obtaining samples from the true posterior with the circle model is not
 as easy as with the banana and Gaussian models, so using MMD, the metric
 introduced in Section~\ref{mmd_section} to evaluate
-the performance of an MCMC algorithm on the circle is nontrivial. However,
-as the mean of the circle is in its center, and the samples from an MCMC
+the performance of an MH algorithm on the circle is nontrivial. However,
+as the mean of the circle is in its center, and the samples from an MH
 algorithm are likely to lie on the circle, the distance of the mean of the
 sample from the origin indicates how evenly the samples a distributed throughout
 the circle.
@@ -3007,21 +3038,21 @@ available\footnote{\url{https://github.com/oraisa/masters-thesis}}.
 
 \section{Maximum Mean Discrepancy}\label{mmd_section}
 
-The convergence of non-DP MCMC algorithms is typically assessed using 
+The convergence of non-DP MH algorithms is typically assessed using
 \(\hat{R}\)~\cite{BDA}, which measures how well multiple chains started from 
 different points have mixed together. The utility of a sample produced by an 
-MCMC algorithm can be evaluated using effective sample size (ESS)~\cite{BDA},
+MH algorithm can be evaluated using effective sample size (ESS)~\cite{BDA},
 which is an estimate of the size of an uncorrelated sample of the posterior
-with the same estimation utility as the MCMC sample. 
+with the same estimation utility as the MH sample.
 
-Both \(\hat{R}\) and ESS require that the MCMC algorithm asymptotically targets 
+Both \(\hat{R}\) and ESS require that the MH algorithm asymptotically targets
 the true posterior, as they cannot detect an algorithm that has converged to the 
-wrong distribution. Because some of the DP MCMC algorithms use approximations 
+wrong distribution. Because some of the DP MH algorithms use approximations
 that may cause the algorithms to not converge to the true posterior, 
 such as clipping the log-likelihood ratios, \(\hat{R}\) and ESS are not suitable
 for assessing the performance of the algorithms.
 
-Because the DP MCMC algorithms may not converge to the correct distribution, 
+Because the DP MH algorithms may not converge to the correct distribution,
 their performance should be evaluated with a metric that measures how close 
 to the true distribution they are. A very general such metric is maximum mean
 discrepancy (MMD)~\cite{GrettonBRSS12}. MMD between distributions \(p\) and \(q\) 
@@ -3041,14 +3072,15 @@ The Gaussian radial basis function (RBF) kernel
 is particularly well suited, as it has the property that 
 \(\mathrm{MMD}(p, q) = 0\) if and only if \(p = q\). After choosing a kernel,
 \(\mathrm{MMD}(p, q)\) may be estimated from finite samples of \(p\) and \(q\).
-To evaluate MCMC algorithms, one of the samples is the output of the algorithm 
+To evaluate MH algorithms, one of the samples is the output of the algorithm
 to be evaluated, and the other is a sample from the true posterior.
 
 The choice of the \(\sigma\) parameter of \(k\) affects the way MMD evaluates 
 different kinds of differences in \(p\) and \(q\). For some preliminary experiments
 in this thesis, \(\sigma\) was chosen to be 1, which penalised error in the 
 mean much more than errors in higher moments in the experiments. 
-The \(\sigma\) used for the final experiments is chosen by picking 50 subsamples
+The \(\sigma\) used for the final experiments is chosen by picking a subsample
+of size 50
 from both samples with replacement and setting \(\sigma\) to be the median 
 between distances of points of the subsamples. This is following the procedure of 
 Gretton et al.~\cite{GrettonBRSS12}, with the addition of the subsampling step
@@ -3603,148 +3635,148 @@ fruitful.
 \end{proof}
 \setcounter{lemma}{\value{temp_counter}}
 
-\chapter{Differentiability of the \(\clip\)-function}\label{clip_diff_chapter}
+% \chapter{Differentiability of the \(\clip\)-function}\label{clip_diff_chapter}
 
-This appendix proves that functions of the form \(\clip\circ f\) are
-almost everywhere differentiable for sufficiently well-behaved \(f\),
-as required by the proof of volume preservation
-of DP HMC leapfrog iterations (Section~\ref{dp_hmc_section}).
-Lemma~\ref{clip_is_almost_everywhere_differentiable} gives very general
-sufficient conditions, and Lemma~\ref{model_clip_ok_lemma} proves that the
-models considered in this thesis meet the conditions.
+% This appendix proves that functions of the form \(\clip\circ f\) are
+% almost everywhere differentiable for sufficiently well-behaved \(f\),
+% as required by the proof of volume preservation
+% of DP HMC leapfrog iterations (Section~\ref{dp_hmc_section}).
+% Lemma~\ref{clip_is_almost_everywhere_differentiable} gives very general
+% sufficient conditions, and Lemma~\ref{model_clip_ok_lemma} proves that the
+% models considered in this thesis meet the conditions.
 
-\begin{lemma}\label{level_set_lemma}
-  Let \(d \geq 2\) and \(g\colon U \to \R\), where \(U\) is an open subset of
-  \(\R^{d}\), be continuously differentiable. Let \(S = \{x\in U\mid f(x) = b\}\),
-  \(b\in \R\).
-  If for all \(x\in S\), \(\nabla f(x) \neq 0\), \(S\) is a \((d - 1)\)-dimensional
-  hypersurface.
-\end{lemma}
-\begin{proof}
-	See~\cite[Section 9.2]{Tu11}.
-\end{proof}
+% \begin{lemma}\label{level_set_lemma}
+%   Let \(d \geq 2\) and \(g\colon U \to \R\), where \(U\) is an open subset of
+%   \(\R^{d}\), be continuously differentiable. Let \(S = \{x\in U\mid f(x) = b\}\),
+%   \(b\in \R\).
+%   If for all \(x\in S\), \(\nabla f(x) \neq 0\), \(S\) is a \((d - 1)\)-dimensional
+%   hypersurface.
+% \end{lemma}
+% \begin{proof}
+% 	See~\cite[Section 9.2]{Tu11}.
+% \end{proof}
 
-\begin{lemma}\label{clip_is_almost_everywhere_differentiable}
-  Let \(f\colon \R^{d}\to \R^{d}\) be continuously differentiable.
-  If the set of saddle points \(U\) of \(||f||\) is a null set,
-  the set \(A\subset \R^{d}\)
-  where \(\clip_{b} \circ f\) is not differentiable is a null set.
-\end{lemma}
-\begin{proof}
-  \[
-    \clip_{b}(x) =
-    \begin{cases}
-      \frac{x}{||x||}\min\{||x||, b\} & \text{if } x \neq 0\\
-      0 & \text{if } x = 0
-    \end{cases}
-  \]
-  which means that \(\clip_{b}\) is differentiable for all \(x\in \R^{d}\) with
-  \(||x|| \neq b\). Consider \(\clip_{b}\circ f\) in a neighbourhood \(B\) of
-  point \(x_{0}\in \R^{d}\). If \(||f(x)|| \leq b\) for all \(x\in B\),
-  \(\clip_{b}(f(x)) = f(x)\) in \(B\), which is differentiable. If \(||f(x)|| \geq b\)
-  for all \(x\in B\), \(\clip_{b}(f(x)) = \frac{f(x)b}{||f(x)||}\) in \(B\),
-  which is also differentiable because \(f(x) \neq 0\) when
-  \(||f(x)|| \geq b > 0\). In both cases \(\clip_{b}\circ f\) is differentiable
-  at \(x_{0}\). This means that for all \(x_{0}\in A\), \(||f(x_{0})|| = b\), but
-  every neighborhood
-  of \(x_{0}\) has points \(x'\) and \(x''\) such that \(||f(x')|| < b\) and
-  \(||f(x'')|| > b\). With the differentiability of \(f\), this means that
-  if \(\nabla ||f(x_{0})|| = 0\), \(x_{0}\) is a saddle point of \(||f||\).
+% \begin{lemma}\label{clip_is_almost_everywhere_differentiable}
+%   Let \(f\colon \R^{d}\to \R^{d}\) be continuously differentiable.
+%   If the set of saddle points \(U\) of \(||f||\) is a null set,
+%   the set \(A\subset \R^{d}\)
+%   where \(\clip_{b} \circ f\) is not differentiable is a null set.
+% \end{lemma}
+% \begin{proof}
+%   \[
+%     \clip_{b}(x) =
+%     \begin{cases}
+%       \frac{x}{||x||}\min\{||x||, b\} & \text{if } x \neq 0\\
+%       0 & \text{if } x = 0
+%     \end{cases}
+%   \]
+%   which means that \(\clip_{b}\) is differentiable for all \(x\in \R^{d}\) with
+%   \(||x|| \neq b\). Consider \(\clip_{b}\circ f\) in a neighbourhood \(B\) of
+%   point \(x_{0}\in \R^{d}\). If \(||f(x)|| \leq b\) for all \(x\in B\),
+%   \(\clip_{b}(f(x)) = f(x)\) in \(B\), which is differentiable. If \(||f(x)|| \geq b\)
+%   for all \(x\in B\), \(\clip_{b}(f(x)) = \frac{f(x)b}{||f(x)||}\) in \(B\),
+%   which is also differentiable because \(f(x) \neq 0\) when
+%   \(||f(x)|| \geq b > 0\). In both cases \(\clip_{b}\circ f\) is differentiable
+%   at \(x_{0}\). This means that for all \(x_{0}\in A\), \(||f(x_{0})|| = b\), but
+%   every neighborhood
+%   of \(x_{0}\) has points \(x'\) and \(x''\) such that \(||f(x')|| < b\) and
+%   \(||f(x'')|| > b\). With the differentiability of \(f\), this means that
+%   if \(\nabla ||f(x_{0})|| = 0\), \(x_{0}\) is a saddle point of \(||f||\).
 
-  Let \(S = \{x\in \R^{d}\mid ||f(x)|| = b \text{ and } \nabla ||f(x)|| \neq 0\}\).
-  % With the assumptions on \(f\),
-  % there is a neighborhood \(E\subset U\)
-  % for every \(x_{0}\in S\) where \(f(x) \neq 0\) for all \(x\in E\) and
-  % \(||f||\) is differentiable.
-  % \(\nabla ||f(x)|| = \frac{2f(x)}{||f(x)||}J_{f}(x) \neq 0\) for \(x\in S\).
-  By Lemma~\ref{level_set_lemma},
-  \(S\) is a \((d-1)\)-dimensional hypersurface, which has zero measure
-  in \(d\)-dimensional space. Because \(A\cap U^{C} \subset S\), \(A\cap U^{C}\)
-  is also a null set. Since \(A = (A\cap U^{C}) \cup (A\cap U)\),
-  \(A\) is a null set.
+%   Let \(S = \{x\in \R^{d}\mid ||f(x)|| = b \text{ and } \nabla ||f(x)|| \neq 0\}\).
+%   % With the assumptions on \(f\),
+%   % there is a neighborhood \(E\subset U\)
+%   % for every \(x_{0}\in S\) where \(f(x) \neq 0\) for all \(x\in E\) and
+%   % \(||f||\) is differentiable.
+%   % \(\nabla ||f(x)|| = \frac{2f(x)}{||f(x)||}J_{f}(x) \neq 0\) for \(x\in S\).
+%   By Lemma~\ref{level_set_lemma},
+%   \(S\) is a \((d-1)\)-dimensional hypersurface, which has zero measure
+%   in \(d\)-dimensional space. Because \(A\cap U^{C} \subset S\), \(A\cap U^{C}\)
+%   is also a null set. Since \(A = (A\cap U^{C}) \cup (A\cap U)\),
+%   \(A\) is a null set.
 
-  % Let \(E(x_{1}) = \{(x_{2}, \dotsc, \x_{d})\in \R^{d-1}\mid (x_{1}\dotsc, x_{d})\in A\}\).
-  % \(E(x_{1})\) has measure zero for almost all \(x_{1}\).
+%   % Let \(E(x_{1}) = \{(x_{2}, \dotsc, \x_{d})\in \R^{d-1}\mid (x_{1}\dotsc, x_{d})\in A\}\).
+%   % \(E(x_{1})\) has measure zero for almost all \(x_{1}\).
 
-  % Let \(x_{1}\in \R\) where \(E(x_{1})\) has non-zero measure.
-\end{proof}
+%   % Let \(x_{1}\in \R\) where \(E(x_{1})\) has non-zero measure.
+% \end{proof}
 
-\begin{lemma}\label{model_clip_ok_lemma}
-  The log-likelihoods of the Gaussian, banana and circle models meet the
-  conditions of Lemma~\ref{clip_is_almost_everywhere_differentiable}.
-\end{lemma}
-\begin{proof}
-  For DP HMC, set \(f(\theta) = \nabla \ln p(x\mid \theta)\) for some
-  datapoint \(x\). Denote \(l(\theta) = \ln (x\mid \theta)\).
-  The conditions of
-  Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(l\) are met if
-  \(l\) is twice continuously differentiable and
-  \[
-    \nabla ||\nabla l(\theta)||
-    = \frac{2\nabla l(\theta)}{||\nabla l(\theta)||}J_{\nabla l}(\theta)
-    = \frac{2\nabla l(\theta)}{||\nabla l(\theta)||}H_{l}(\theta) \neq 0
-  \]
-  almost everywhere,
-  where \(H_{l}\) is the Hessian matrix of \(l\). Because \(\nabla l = 0\) and
-  \(||\nabla l|| = 0\) at only one point, having \(\det H_{l}(x) \neq 0\)
-  almost everywhere is sufficient.
+% \begin{lemma}\label{model_clip_ok_lemma}
+%   The log-likelihoods of the Gaussian, banana and circle models meet the
+%   conditions of Lemma~\ref{clip_is_almost_everywhere_differentiable}.
+% \end{lemma}
+% \begin{proof}
+%   For DP HMC, set \(f(\theta) = \nabla \ln p(x\mid \theta)\) for some
+%   datapoint \(x\). Denote \(l(\theta) = \ln (x\mid \theta)\).
+%   The conditions of
+%   Lemma~\ref{clip_is_almost_everywhere_differentiable} for \(l\) are met if
+%   \(l\) is twice continuously differentiable and
+%   \[
+%     \nabla ||\nabla l(\theta)||
+%     = \frac{2\nabla l(\theta)}{||\nabla l(\theta)||}J_{\nabla l}(\theta)
+%     = \frac{2\nabla l(\theta)}{||\nabla l(\theta)||}H_{l}(\theta) \neq 0
+%   \]
+%   almost everywhere,
+%   where \(H_{l}\) is the Hessian matrix of \(l\). Because \(\nabla l = 0\) and
+%   \(||\nabla l|| = 0\) at only one point, having \(\det H_{l}(x) \neq 0\)
+%   almost everywhere is sufficient.
 
-  For the Gaussian log-likelihood
-  \[
-    l(\theta) = \frac{1}{2}(x - \theta)^{T}\Sigma^{-1}(x - \theta),
-  \]
-  so
-  \[
-    \nabla l(\theta) = \Sigma^{-1}(x - \theta)
-  \]
-  and \(H_{l}(\theta) = \Sigma^{-1}\).
+%   For the Gaussian log-likelihood
+%   \[
+%     l(\theta) = \frac{1}{2}(x - \theta)^{T}\Sigma^{-1}(x - \theta),
+%   \]
+%   so
+%   \[
+%     \nabla l(\theta) = \Sigma^{-1}(x - \theta)
+%   \]
+%   and \(H_{l}(\theta) = \Sigma^{-1}\).
 
-  For the banana log-likelihood, using the notation from
-  Appendix~\ref{banana_posterior_theorem_proof},
-  \[
-    l(\theta) = \frac{1}{2}(g^{-1}(x) - \theta)^{T}\Sigma^{-1}(g^{-1}(x) - \theta),
-  \]
-  so
-  \[
-    \nabla l(\theta) = \Sigma^{-1}(g^{-1}(x) - \theta)
-  \]
-  and \(H_{l}(\theta) = \Sigma^{-1}\).
+%   For the banana log-likelihood, using the notation from
+%   Appendix~\ref{banana_posterior_theorem_proof},
+%   \[
+%     l(\theta) = \frac{1}{2}(g^{-1}(x) - \theta)^{T}\Sigma^{-1}(g^{-1}(x) - \theta),
+%   \]
+%   so
+%   \[
+%     \nabla l(\theta) = \Sigma^{-1}(g^{-1}(x) - \theta)
+%   \]
+%   and \(H_{l}(\theta) = \Sigma^{-1}\).
 
-  The circle log-likelihood is
-  \[
-    l(x, y) = -a(x^{2} + y^{2} - r^{2})^{2},
-  \]
-  \[
-    \nabla l(x, y) = -4a(x^{3} + xy^{2} - xr^{2}, x^{2}y + y^{3} - yr^{2}),
-  \]
-  so
-  \[
-    H_{l}(x, y) = -4a
-    \begin{bmatrix}
-      3x^{2} + y^{2} - r^{2} & 2xy \\
-      2xy & 3y^{2} + x^{2} - r^{2} \\
-    \end{bmatrix}
-  \]
-  and
-  \begin{align*}
-    \det H_{l}(x, y) &= -4a((3x^{2} + y^{2} - r^{2})(3y^{2} + x^{2} - r^{2})
-                       - 4x^{2}y^{2})
-    \\&= -4a(9x^{2}y^{2} + 3x^{4} - 3x^{2}r^{2} + 3y^{4} + y^{2}x^{2} -y^{2}r^{2}
-    - 3y^{2}r^{2} - x^{2}r^{2} + r^{4} - 4x^{2}y^{2})
-    \\&= -4a(6x^{2}y^{2} + 3x^{4} - 4x^{2}r^{2} + 3y^{4} - 4y^{2}r^{2} + r^{4})
-    \\&= -4a(6x^{2}y^{2} + 3(x^{4} + y^{4}) - 4r^{2}(x^{2} + y^{2}) + r^{4}).
-  \end{align*}
-  \[
-    \nabla \det H_{l}(x, y) = -4a(12xy^{2} + 12x^{3} - 8r^{2}x,
-    12yx^{2} + 12y^{3} - 8r^{2}y),
-  \]
-  which is zero in the origin and on the circle
-  \[
-    x^{2} + y^{2} = \frac{2}{3}r^{2}.
-  \]
-  Elsewhere, Lemma~\ref{level_set_lemma} can be applied to \(\det H_{l}\), which
-  means that the set where \(\det H_{l}(x, y) = 0\) is a 1-dimensional curve.
-\end{proof}
+%   The circle log-likelihood is
+%   \[
+%     l(x, y) = -a(x^{2} + y^{2} - r^{2})^{2},
+%   \]
+%   \[
+%     \nabla l(x, y) = -4a(x^{3} + xy^{2} - xr^{2}, x^{2}y + y^{3} - yr^{2}),
+%   \]
+%   so
+%   \[
+%     H_{l}(x, y) = -4a
+%     \begin{bmatrix}
+%       3x^{2} + y^{2} - r^{2} & 2xy \\
+%       2xy & 3y^{2} + x^{2} - r^{2} \\
+%     \end{bmatrix}
+%   \]
+%   and
+%   \begin{align*}
+%     \det H_{l}(x, y) &= -4a((3x^{2} + y^{2} - r^{2})(3y^{2} + x^{2} - r^{2})
+%                        - 4x^{2}y^{2})
+%     \\&= -4a(9x^{2}y^{2} + 3x^{4} - 3x^{2}r^{2} + 3y^{4} + y^{2}x^{2} -y^{2}r^{2}
+%     - 3y^{2}r^{2} - x^{2}r^{2} + r^{4} - 4x^{2}y^{2})
+%     \\&= -4a(6x^{2}y^{2} + 3x^{4} - 4x^{2}r^{2} + 3y^{4} - 4y^{2}r^{2} + r^{4})
+%     \\&= -4a(6x^{2}y^{2} + 3(x^{4} + y^{4}) - 4r^{2}(x^{2} + y^{2}) + r^{4}).
+%   \end{align*}
+%   \[
+%     \nabla \det H_{l}(x, y) = -4a(12xy^{2} + 12x^{3} - 8r^{2}x,
+%     12yx^{2} + 12y^{3} - 8r^{2}y),
+%   \]
+%   which is zero in the origin and on the circle
+%   \[
+%     x^{2} + y^{2} = \frac{2}{3}r^{2}.
+%   \]
+%   Elsewhere, Lemma~\ref{level_set_lemma} can be applied to \(\det H_{l}\), which
+%   means that the set where \(\det H_{l}(x, y) = 0\) is a 1-dimensional curve.
+% \end{proof}
 \end{appendices}
 
 \end{document}
