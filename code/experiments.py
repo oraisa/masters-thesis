@@ -75,7 +75,7 @@ if __name__ == "__main__":
     with open("../Thesis/model_params_table.tex", "w") as f:
         df.to_latex(
             f, index=False, label="model_params_table", escape=False, na_rep="",
-            float_format="%.4g",
+            float_format="%.4g", position="h",
             caption=r"""
             Model hyperparameters. $n_0$ determines tempering by \(T=\frac{n_0}{n}\).
             For missing $n_0$, \(T = 1\).
