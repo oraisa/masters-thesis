@@ -33,7 +33,7 @@
 % STEP 2:
 % Set up all the information for the title page and the abstract form.
 % Replace parameters with your information.
-\title{Differentially Private Metropolis-Hastings Algorithms}
+\title{Differentially Private Metropolis--Hastings Algorithms}
 \author{Ossi Räisä}
 \date{\today}
 \prof{Associate Professor Antti Honkela}
@@ -326,10 +326,10 @@ pure DP.
 
 \begin{definition}\label{ADP-definition}
     A mechanism \(\calm\colon \calx \to \calu\) is \((\epsilon, \delta)\)-ADP if
-    for all neighbouring inputs \(x\in \calx\) and \(x'\in \calx\) and 
+    for all neighbouring inputs \(X\in \calx\) and \(X'\in \calx\) and
     all measurable sets \(S \subset \calu\)
     \[
-        P(\calm(x)\in S) \leq e^\epsilon P(\calm(x')\in S) + \delta.
+        P(\calm(X)\in S) \leq e^\epsilon P(\calm(X')\in S) + \delta.
     \]
 \end{definition}
 
@@ -361,13 +361,13 @@ measuring the distance\footnote{
     \(P\) and \(Q\), the Rényi divergence of order
     \(1 < \alpha < \infty\) is
     \[
-        D_\alpha(P\dmid Q) = \frac{1}{\alpha - 1}\ln E_{x\sim Q}
-        \left(\frac{P(x)^\alpha}{Q(x)^\alpha}\right).
+        D_\alpha(P\dmid Q) = \frac{1}{\alpha - 1}\ln E_{t\sim Q}
+        \left(\frac{P(t)^\alpha}{Q(t)^\alpha}\right).
     \]
     Orders \(\alpha = 1\) and \(\alpha = \infty\) are defined 
     by continuity:
     \[
-        D_1(P\dmid Q) = \lim_{\alpha \to 1-} D_\alpha(P\dmid Q),
+        D_1(P\dmid Q) = \lim_{\alpha \to 1+} D_\alpha(P\dmid Q),
     \]
     \[
         D_\infty(P \dmid Q) = \lim_{\alpha\to \infty}D_\alpha(P\dmid Q).
@@ -380,14 +380,14 @@ neighbouring inputs:
 
 \begin{definition}
     A mechanism \(\calm\) is \((\alpha, \epsilon)\)-RDP
-    if for all \(x \sim x'\)
+    if for all \(X \sim X'\)
     \[
-        D_\alpha(\calm(x)\dmid \calm(x')) \leq \epsilon.
+        D_\alpha(\calm(X)\dmid \calm(X')) \leq \epsilon.
     \]
     \(\calm\) is \(\rho\)-zCDP if for all \(\alpha > 1\)
-    and all \(x \sim x'\)
+    and all \(X \sim X'\)
     \[
-        D_\alpha(\calm(x)\dmid \calm(x')) \leq \rho \alpha.
+        D_\alpha(\calm(X)\dmid \calm(X')) \leq \rho \alpha.
     \]
 
 \end{definition}
@@ -410,7 +410,7 @@ More precisely:
     Let \(\calm\colon \calx \to \calu\) and 
     \(\calm'\colon \calx\times \calu \to \calu'\) be mechanisms.
     Their composition is the mechanism outputting
-    \((\calm(x), \calm'(x, \calm(x)))\) for input \(x\).
+    \((\calm(X), \calm'(X, \calm(X)))\) for input \(X\).
 \end{definition}
 
 \begin{theorem}\label{composition-theorem}
@@ -456,9 +456,9 @@ There are many different DP mechanisms that are commonly used~\cite{DwR14}.
 This thesis only requires one of the most commonly 
 used ones: the Gaussian mechanism~\cite{DKM06}.
 \begin{definition}
-  The Gaussian mechanism with parameter \(\sigma^2\) is a randomised algorithm that,
-  with input data \(x\) and query \(f\colon \calx\to \R^{d}\), outputs a sample from
-  \(\caln(f(x), \sigma^2)\), where \(\caln\) denotes the normal distribution.
+  The Gaussian mechanism with variance \(\sigma^2\) is a randomised algorithm that,
+  with input data \(X\) and query \(f\colon \calx\to \R^{d}\), outputs a sample from
+  \(\caln(f(X), \sigma^2)\), where \(\caln\) denotes the normal distribution.
 \end{definition}
 
 The privacy bounds of the Gaussian mechanism require that the values of the
@@ -469,7 +469,7 @@ is formalised as a bound on the \emph{sensitivity} of \(f\).
     of a function \(f\colon \calx \to \R^d\)
     is
     \[
-        \Delta_p f = \sup_{x\sim x'}||f(x) - f(x')||_p.
+        \Delta_p f = \sup_{x\sim x'}||f(X) - f(X')||_p.
     \]
 \end{definition}
 
@@ -478,7 +478,7 @@ mechanism are quite simple. The ADP bound is more complicated:
 
 \begin{theorem}\label{gauss-DP-bounds}
   If \(\Delta_{2}f \leq \Delta\), the Gaussian mechanism for query \(f\) with
-  noise variance \(\sigma\) is
+  noise variance \(\sigma^{2}\) is
     \begin{enumerate}
         \item 
             \((\alpha, \frac{\alpha \Delta^2}{2\sigma^2})\)-RDP~\cite{Mironov17},
@@ -525,17 +525,19 @@ result in a tight bound. The difference of the two methods of computing ADP boun
 on the MH algorithms considered in this thesis is shown in
 Section~\ref{accounting_comparison_section}.
 
-When the dataset is a table, the query \(f\) of the Gaussian mechanism is
+When the dataset is a table of real numbers, so \(\calx = \R^{n\times d}\) for
+\(n\) points of \(d\)-dimensional data,
+the query \(f\) of the Gaussian mechanism is
 typically a sum the values of a function \(g\) for each row of the table,
 specifically
 \[
   f(X) = \sum_{x\in X} g(x),
 \]
-where \(x\in X\) denotes that \(x\) a a row of the dataset \(X\).
+where \(x\in X\) denotes that \(x\) a a row of the dataset \(X\in \R^{n\times d}\).
 For the substitute neighborhood relation \(f\),
 \[
   \Delta_{p}f = \sup_{X\sim X'}||f(X) - f(X')||_{p}
-  = \sup_{x, x'}||g(x) - g(x')||_{p}
+  = \sup_{x, x'\in \R^{d}}||g(x) - g(x')||_{p}
   = \Delta^{*}_{p}g,
 \]
 where \(x\) and \(x'\) are the values of the differing row in \(X\) and \(X'\),
@@ -548,11 +550,7 @@ values of \(g\) to a maximum \(l_{p}\)-norm. Specifically, clipping
 \(g\) with the bound \(b\in \R\) applies
 the function \(\clip_{b}^{p}\colon \R^{d}\to \R^{d}\) where
 \[
-  \clip_{b}^{p}(y) =
-  \begin{cases}
-    \frac{y}{||y||_{p}}\min\{||y||_{p}, b\} & \text{if } y \neq 0\\
-    0 & \text{if } y = 0
-  \end{cases}
+  \clip_{b}^{p}(y) = y\cdot\min\left\{1, \frac{b}{||y||_{p}}\right\}
 \]
 to the values of \(g\). Then \(\Delta^{*}_{p}(\clip_{b}^{p} \circ g) \leq 2b\) by the
 triangle inequality, as \(||\clip_{b}^{p}(g(x))||_{p} \leq b\) for
@@ -565,7 +563,7 @@ thus only needs to clip the \(l_{2}\)-norm, the superscript \(p\) is always
 In Bayesian inference, the parameters \(\theta\) of a statistical model are
 inferred from 
 observed data using Bayes' theorem~\cite{BDA}. The result is not just a point estimate 
-of \(\theta\), but a probability distribution describing the likelihood
+of \(\theta\), but a probability distribution describing the posterior probability
 of different values of \(\theta\).
 
 Bayes' theorem relates the \emph{posterior} belief of \(\theta\),
@@ -580,7 +578,7 @@ likelihood, prior and data, but the integral in the denominator is in many
 cases difficult to compute~\cite{BDA}. In such cases the posterior cannot be feasibly 
 computed. However, many of the commonly used summary statistics of the posterior, 
 such as the mean, variance and credible intervals, can be approximated from 
-a sample of the posterior. \emph{Markov chain Monte Carlo}
+a set of samples drawn from the posterior. \emph{Markov chain Monte Carlo}
 (MCMC) is a widely used method to obtain such samples.
 
 MCMC algorithms sequentially sample values of \(\theta\)
@@ -623,6 +621,15 @@ strong irreducibility implies ergodicity~\cite{Robert04}. The Gaussian
 distribution centered
 at the current value is a commonly used proposal, which is clearly
 strongly irreducible.
+
+When MCMC algorithms are implemented on computers under floating point
+arithmetic, issues with numerical inaccuracy in floating point computations
+makes the convergence of MCMC algorithms tricky to analyse. For example,
+floating point implementations of sampling from the Gaussian distribution cannot give
+arbitrarily large numbers, which is required for the strong irreducibility
+of an MH algorithm using the Gaussian as the proposal distribution.
+While dealing with these issues is important in practice, this thesis only
+considers MCMC algorithms under real arithmetic.
 
 When MCMC is used in Bayesian inference, the distribution to approximate is 
 \[
@@ -722,7 +729,7 @@ differentiate them from subsets of \(E\).
 The indicator function of a set \(A\) is denoted by \(1_{A}\).
 The Cartesian product \(E_{1}\times E_{2}\dotsb \times E_{d}\)
 is denoted by \(\bigtimes_{i=1}^{d}E_{i}\) and when \(E_{i} = E\) for
-all \(i\in \N_{1}\), \(\bigtimes_{i=1}^{d}E = E^{d}\).
+all \(i\in 1,\dotsc,d\), \(\bigtimes_{i=1}^{d}E = E^{d}\).
 
 \begin{definition}
   Let \(E\) be a set and let \(\mathcal{E}\subset \mathcal{P}(E)\).
@@ -796,7 +803,7 @@ on \(E\times F\) that is the \(\sigma\)-algebra generated
 by the collection of sets of the form \(A\times B\) for \(A\in \mathcal{E}\) and
 \(B\in\mathcal{F}\). The product extends to products of more than one
 \(\sigma\)-algebra, denoted by \(\bigotimes_{i}^{d}\mathcal{E}_{i}\) for
-\(\sigma\)-algebrals \(\mathcal{E}_{i}\) for \(1\leq i \leq d\).
+\(\sigma\)-algebras \(\mathcal{E}_{i}\) for \(1\leq i \leq d\).
 The measurable space \((E\times F, \mathcal{E}\otimes \mathcal{F})\) is called
 the \emph{product measurable space} of \((E, \mathcal{E})\) and \((F, \mathcal{F})\).
 This extends to products of multiple measurable spaces:
@@ -807,12 +814,13 @@ The measurable space \((\bigtimes_{i=1}^{d}E, \bigotimes_{i=1}^{d}\mathcal{E})\)
 is denoted by \((E, \mathcal{E})^{d}\).
 
 If \(\mu\) is a measure on
-\((E, \mathcal{E})\) and \(\nu\) is a measure on \((F, \mathcal{F})\) and both
-are \(\sigma\)-finite, the
-\emph{product measure} of \(\mu\) and \(\nu\) is the unique measure \(\mu\times\nu\)
-on \((E\times F, \mathcal{E}\otimes \mathcal{F})\) that
-has \((\mu\times\nu)(A\times B) = \mu(A)\nu(B)\) for \(A\in \mathcal{E}\) and
-\(B\in \mathcal{F}\)~\cite{Cin11}. The product
+\((E, \mathcal{E})\), \(\nu\) is a measure on \((F, \mathcal{F})\) and both
+are \(\sigma\)-finite, there is a unique measure \(\pi\) on
+\((E\times F, \mathcal{E}\otimes \mathcal{F})\) such that
+\(\pi(A\times B) = \mu(A)\nu(B)\) holds for all \(A\in \mathcal{E}\) and
+\(B\in \mathcal{F}\)\cite{Cin11}. \(\pi\) is called the
+\emph{product measure} of \(\mu\) and \(\nu\), and is denoted by \(\mu\times \nu\).
+The product
 \(\mu\times \mu\times \dotsb \times \mu\) with \(d - 1\) products is denoted by
 \(\mu^{d}\). Both product measurable spaces and product measures act on
 \(\R^{d}\) and the Lebesgue measure as expected:
@@ -828,14 +836,15 @@ Lemma~\ref{product_measurable_space_equality_lemma}, but the main machinery
 used in its proof is presented first:
 
 \begin{definition}
-	Let \(E\) be a set. A set \(\mathcal{C}\subset \mathcal{P}(E)\) is
+	Let \(E\) be a set. A collection \(\mathcal{C}\subset \mathcal{P}(E)\) is
   called a p-system if \(A\cap B\in \mathcal{C}\) for all
   \(A, B\in \mathcal{C}\).
 \end{definition}
 \begin{lemma}\label{p_system_measure_equality_lemma}
-	Let \((E, \mathcal{E})\) be a measurable space and let
+  Let \(E\) be a set and let \(\mathcal{C}\subset \mathcal{P}(E)\) be a
+  p-system. Let \(\mathcal{E}\) be the \(\sigma\)-algebra generated by
+  \(\mathcal{C}\). Let
   \(\mu\) and \(\nu\) be finite measures on \((E, \mathcal{E})\).
-  Let \(\mathcal{C}\) be a p-system generating \(\mathcal{E}\).
   If \(\mu(A) = \nu(A)\) for all \(A\in \mathcal{C}\), \(\mu = \nu\).
 \end{lemma}
 \begin{proof}
@@ -1054,7 +1063,7 @@ Lemma~\ref{reversible_proposal_lemma}.
 \end{definition}
 
 Because of Theorem~\ref{product_measure_theorem}, the equations for
-\(\nu_{1}\) and \(\nu_{2}\) in definition \ref{reversible_definition} define
+\(\nu_{1}\) and \(\nu_{2}\) in Definition \ref{reversible_definition} define
 unique measures on \((E, \mathcal{E})^{2}\). Theorem~\ref{product_measure_theorem}
 also allows checking that \(\nu_{1} = \nu_{2}\) through an equality of
 integrals:
@@ -1110,14 +1119,14 @@ the integrals in Lemma~\ref{reversible_check_lemma} further:
   \]
 \end{lemma}
 \begin{proof}
-  Let
+  Let \(S, T\in \mathcal{E}^{2}\) and let
   \[
     \nu_{1}(S\times T) = \int_{S}\mu^{2}(\dx s)\int_{T}q(s, \dx t),
   \]
   \[
-    \nu_{2}(S\times T) = \int_{T}\mu^{2}(\dx t)\int_{S}q(t, \dx s),
+    \nu_{2}(S\times T) = \int_{T}\mu^{2}(\dx t)\int_{S}q(t, \dx s).
   \]
-  where \(\mu^{2}\) is the unique measure defined by
+  Recall that \(\mu^{2}\) is the unique measure defined by
   \[
     \mu^{2}(A\times B) = \mu(A)\mu(B) = \int_{A}\mu(\dx a)\int_{B}\mu(\dx b)
   \]
@@ -1134,7 +1143,7 @@ the integrals in Lemma~\ref{reversible_check_lemma} further:
   \]
   so \(\nu_{2}(A\times B\times C\times D) = \nu_{1}(C\times D\times A\times B)\).
 
-	If \(q\) is reversible with respect to \(\mu\), \(\nu_{1} = \nu_{2}\), so
+	If \(q\) is reversible with respect to \(\mu^{2}\), \(\nu_{1} = \nu_{2}\), so
   \begin{align*}
     \int_{A}\mu(\dx a)\int_{B}\mu(\dx b)\int_{C\times D}q((a, b), \dx(c, d))
     &= \nu_{1}(A\times B\times C\times D)
@@ -1235,13 +1244,13 @@ but an equality similar to Lemma~\ref{reversible_check_lemma} still holds:
          \int_{A}(q_{1}\circ \dotsb \circ q_{k-1})(b, \dx a)
     \\=&\int_{C}\mu(\dx c)\int_{A}(q_{1}\circ\dotsb \circ q_{k})(c, \dx a),
   \end{align*}
-  where the first equality uses Equation~\ref{markov_kernel_composition_equation},
+  where the first equality uses Equation~(\ref{markov_kernel_composition_equation}),
   the second equality uses the induction hypothesis for \(k - 1\),
   the third equality uses uses Theorem~\ref{lebesgue_integral_theorem} (6)
   to change the order of integration, the fourth uses
   Lemma~\ref{reversible_integration_lemma}
   to swap the integration variables for two leftmost integrals
-  and the last uses Equation~\ref{markov_kernel_composition_equation} again.
+  and the last uses Equation~(\ref{markov_kernel_composition_equation}) again.
   Thus the claim holds for all \(k\in N_{1}\) by induction.
 \end{proof}
 
@@ -1297,8 +1306,8 @@ shown below.
     of measures, which, by Lemma~\ref{product_measurable_space_equality_lemma}, can be
     expressed as an equality of integrals.
   }.
-  For continuous \(\pi\) and \(q\) reversible with respect to the Lebesque measure,
-  for all \(A, B\in \mathcal{B}(\R^{d})\),
+  As \(\pi\) is continuous and \(q\) is reversible with respect to the Lebesque
+  measure \(m\), for all \(A, B\in \mathcal{B}(\R^{d})\)
   \begin{align*}
     \int_{A}\pi(\dx \theta)\int_{B}q(\theta, \dx \theta')\alpha(\theta, \theta')
     &= \int_{A}m(\dx \theta)\int_{B}q(\theta, \dx \theta')\pi(\theta)\alpha(\theta, \theta')
@@ -1341,8 +1350,8 @@ Lemma~\ref{reversible_proposal_lemma} in Chapter~\ref{hmc_chapter}.
   Lebesgue measure.
 \end{lemma}
 \begin{proof}
-  Denote the Lebesgue measure by \(m\). Because \(f\) and \(f^{-1}\) preserve
-  Lebesgue measure
+  Recall that the Lebesgue measure is denoted by \(m\). Because \(f\) and
+  \(f^{-1}\) preserve \(m\),
 	\begin{align*}
     \int_{A}m(\dx x)\delta_{f(x)}(B)
     &= \int_{A}m(\dx x)1_{B}(f(x))
@@ -1392,13 +1401,13 @@ This property has a simple generalisation when integrating over a set \(A\):
 \chapter{Differentially Private MH}\label{dp_mcmc_chapter}
 
 As seen in Section~\ref{DP_background}, an algorithm can be made differentially 
-private by adding Gaussian noise its output. The noise could also be added
-to any intermediate value calculated by the algorithm, and post processing immunity 
+private by adding Gaussian noise to its output. The noise could also be added
+to any intermediate value calculated by the algorithm, and post-processing immunity
 will guarantee that the same DP bounds that hold for releasing the intermediate 
 value also hold for releasing the final result of the algorithm.
 
 In 2019, Yildirim and Ermis~\cite{YildirimE19} realised that if Gaussian noise
-is added to the exact value of \(\lambda\) from Equation~\ref{lambda_equation},
+is added to the exact value of \(\lambda\) from Equation~(\ref{lambda_equation}),
 the noise can be corrected for,
 yielding a DP MH algorithm, called DP penalty,
 which converges to 
@@ -1421,11 +1430,10 @@ algorithm.
 
 In 1999, Ceperley and Dewing~\cite{CeD99} developed a variant of 
 the MH algorithm called the penalty
-algorithm, where only a noisy approximation of \(\lambda\) is known. The
-original algorithm was
-developed for simulations in physics where computing \(\lambda\)
-requires computing energies of complex systems, which can only be approximated.
-The penalty algorithm modifies the acceptance probability to account for the 
+algorithm for cases where only a noisy approximation of \(\lambda\)
+is known. The original use case was simulations in physics where computing
+\(\lambda\) requires computing intractable energies, so they must be approximated.
+The penalty algorithm modifies the acceptance probability to account for the
 noise added to \(\lambda\) and still converges to the correct distribution if 
 the noise is Gaussian with known variance.
 
@@ -1478,19 +1486,21 @@ form
 \]
 for almost all \(\theta\) and \(\theta'\) and constant
 \(C > 0\)~\cite[Assumption A1]{YildirimE19}.
-They also consider a weaker form where for any \(\varepsilon\) there is
-a \(C\) such that
-\(P(c(\theta, \theta') > Cn^{-\alpha}) < \varepsilon\)~\cite[Assumption A4]{YildirimE19}.
-These bounds imply that \(\sigma\) does not increase with \(n\), or only increases
-with negligible probability, which Yildirim and Ermis see as a necessary
+They also consider a weaker form where for any \(t > 0\) there is
+a \(C > 0\) such that
+\(P(c(\theta, \theta') > Cn^{-\alpha}) < t\)~\cite[Assumption A4]{YildirimE19}.
+The first stronger form implies that there is an upper bound on
+\(\sigma(\theta, \theta')\) that does not depend on \(n\), and the
+weaker bound implies that \(\sigma(\theta, \theta')\) can only exceed the
+upper bound with small probability. Yildirim and Ermis these as a necessary
 condition for the DP penalty algorithm to perform well. They also recommend
 having \(\alpha = \frac{1}{2}\), which is used in the experiments in
 Chapter~\ref{experiment_chapter}.
-With clipping, the weaker bound can be achieved by setting the clip bound based
-on \(n\). For the experiments
+With clipping and when using a Gaussian proposal distribution, the weaker bound
+can be achieved by setting the clip bound based on \(n\). For the experiments
 in Chapter~\ref{experiment_chapter}, the parameters are optimised separately
 for each \(n\) that is used, so setting any clip bound can be seen as
-choosing a value of \(C\) for each \(\varepsilon\).
+choosing a value of \(C\) for each \(t\).
 
 Theorem~\ref{DP_penalty_theorem_zcdp}
 requires a bound on sensitivity of the log-likelihood ratio. If there is a bound
@@ -1654,10 +1664,10 @@ algorithm only converges to an approximately correct distribution, but the
 approximation error can be made very small.
 
 By computing the sum in \(\lambda\) only over a subset of the data, the
-running time of the algorithm is reduced, and the algorithm becomes less
-sensitive to changes in the input data.
-The latter property is called \emph{subsampling amplification}
-of differential privacy~\cite{WangBK19}. Using the \(\lambda\) computed 
+running time of the algorithm is reduced, privacy bounds of the algorithm
+are improved as the output distribution becomes less sensitive to changes in
+the input data. The latter property is called \emph{subsampling amplification}
+of DP~\cite{WangBK19}. Using the \(\lambda\) computed
 with subsampling instead of the full data \(\lambda\) introduces an additional 
 error that must be corrected for to have the algorithm converge to the correct 
 distribution. 
@@ -1783,7 +1793,7 @@ significantly less clipping than a nontempered likelihood.
     }
     \Return \((\theta_1, \dotsc, \theta_k)\)
     \caption{
-      DP Barker: number of iterations, initial value \(\theta_{0}\),
+      DP Barker: number of iterations \(k\), initial value \(\theta_{0}\),
       proposal distribution \(q\), noise variance \(\sigma^{2}\),
       data \(X\) as input.
     }
@@ -1832,8 +1842,8 @@ Then \(\sigma^2_b\) can be estimated from the sample variance of \(r_x\):
 \begin{align*}
     \sigma_b^2 
     &= \var\left(\frac{nT}{b}\sum_{x\in B}r_x\right)
-    = \frac{nT^2}{b^2}\sum_{x\in B}\var(r_x)
-    = \frac{nT^2}{b}\var(r_x)
+    = \frac{n^{2}T^2}{b^2}\sum_{x\in B}\var(r_x)
+    = \frac{n^{2}T^2}{b}\var(r_x)
   \\&\approx\frac{(nT)^2}{b^2}
     \sum_{x\in B}\left(r_x - \frac{R}{b}\right)^2
     = \frac{(nT)^2}{b^2}\left(\sum_{x\in B}r_x^2 - \frac{R^2}{b}\right).
@@ -1858,10 +1868,11 @@ taken into account with a separate theorem of Wang et al.~\cite{WangBK19}.
     The sensitivity of \(\frac{1}{2}\sigma_b^2\) over dataset size \(b\)
     when \(r_x \leq L||\theta - \theta'||_2\), has upper bound
     \begin{align*}
-        \frac{1}{2}\Delta \sigma_b^2
-        &\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
-        L^2||\theta - \theta'||_2^2
-        + \frac{2(b - 1)}{b}\left(\frac{nT}{b}\right)^2 L^2||\theta - \theta'||^2_2.
+      \frac{1}{2}\Delta \sigma_b^2
+      \leq \frac{3(b - 1)n^{2}T^{2}L^{2}}{b^{3}} ||\theta - \theta'||_{2}^{2}
+        % &\leq \left(\frac{nT}{b}\right)^2 \left|1 - \frac{1}{b}\right|
+        % L^2||\theta - \theta'||_2^2
+        % + \frac{2(b - 1)}{b}\left(\frac{nT}{b}\right)^2 L^2||\theta - \theta'||^2_2.
     \end{align*}
 \end{lemma}
 \begin{proof}
@@ -2061,7 +2072,7 @@ These equations define a function \(T_t\) taking an initial state
 \((\theta, p)\) of the particle to the state \(T(\theta, p)\) after time \(t\).
 Solving \(T_t\) analytically is usually not possible, but \(T_t\) can be 
 approximately simulated by the \emph{leapfrog method}. The leapfrog method sequentially
-updates an estimate \((\theta_i, p_i)\) of the state in steps \(L\) of \(\eta\) 
+updates an estimate \((\theta_i, p_i)\) of the state in \(L\) steps of \(\eta\)
 as follows:
 \begin{align*}
     p_{i+1/2} &= p_i - \frac{\eta}{2}\nabla U(\theta_i), \\
@@ -2083,7 +2094,7 @@ have a physical analogue, but it can be useful for MCMC.
 
 Hamiltonian dynamics have three important properties~\cite{neal2012mcmc} 
 that make them useful as a
-proposal mechanism for MH. They are \emph{invertibilityi}\footnote{
+proposal mechanism for MH. They are \emph{invertibility}\footnote{
   Invertibility is commonly called reversibility~\cite{neal2012mcmc}, but
   calling it reversibility in this thesis risks conflating it with
   the closely related concept of Markov kernel reversibility from
@@ -2094,9 +2105,9 @@ proposal mechanism for MH. They are \emph{invertibilityi}\footnote{
   known as conservation of volume.
 }.
 
-Invertibility means that the function \(T_t\) is injective, meaning that
-it has an inverse \(T_{-t}\) where \(T_t(\theta_1, p_1) = (\theta_2, p_2)\)
-implies that \(T_{-t}(\theta_2, p_2) = (\theta_1, p_1)\)~\cite{neal2012mcmc}.
+Invertibility means that the function \(T_t\) has an inverse \(T_{-t}\) where
+\(T_t(\theta_1, p_1) = (\theta_2, p_2)\) implies that
+\(T_{-t}(\theta_2, p_2) = (\theta_1, p_1)\)~\cite{neal2012mcmc}.
 For the Hamiltonian of the particle moving on a surface, the inverse 
 is obtained by \(T_t(\theta_2, -p_2) = (\theta_1, -p_1)\).
 
@@ -2113,18 +2124,19 @@ chain rule of derivatives:
 Conservation of Lebesgue measure in the \((\theta, p)\)-space follows
 from the fact that 
 the absolute value of the Jacobian determinant of \(T_t\) is 1 and the 
-injectivity of \(T_t\). A somewhat 
+invertibility of \(T_t\). A somewhat
 lengthy proof for the Jacobian determinant of \(T_t\) is given by
 Neal~\cite{neal2012mcmc}. 
 
 To see why 
-having \(|\det J_f| = 1\), where \(J_f\) is the Jacobian matrix of an injective 
+having \(|\det J_f| = 1\), where \(J_f\) is the Jacobian matrix of an invertible
 continuously differentiable function \(f\), 
-implies \(f\) preserving Lebesgue measure, recall that the Lebesgue measure of a set
-\(A\) is given by 
+implies \(f\) preserving Lebesgue measure, recall that the Lebesgue measure
+\(m\) of a set \(A\) is given by
 \[
-    m(A) = \int_A m(\dx x)\, 1.
+    m(A) = \int_A m(\dx x)\, 1
 \]
+where 1 is simply a constant.
 The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
 \[
   m(f(A)) = \int_{f(A)}m(\dx x)\,1
@@ -2134,7 +2146,7 @@ The volume of the image of \(A\) under \(f\), \(f(A)\), is given by
 where the second equality follows from the change of variables formula.
 
 The leapfrog method does not conserve the Hamiltonian exactly, but it 
-preserves Lebesgue measure and is invertible exactly~\cite{neal2012mcmc}.
+preserves Lebesgue measure and is invertible~\cite{neal2012mcmc}.
 These properties are important for its use as a proposal mechanism for MH.
 
 The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
@@ -2143,7 +2155,7 @@ The HMC algorithm samples from the distribution of~\cite{neal2012mcmc}
 \]
 With \(H(\theta, p) = U(\theta) + \frac{1}{2}p^{T}M^{-1}p\),
 \[
-    \pi(\theta, p) \propto \exp(-U(\theta))\exp\left(\frac{1}{2}p^{T}M^{-1}p\right).
+    \pi(\theta, p) \propto \exp(-U(\theta))\exp\left(-\frac{1}{2}p^{T}M^{-1}p\right).
 \]
 This means that the marginal distributions of \(\theta\) and \(p\) are 
 independent, the marginal distribution of \(p\) is a \(d\)-dimensional
@@ -2180,25 +2192,36 @@ In the second stage, Hamiltonian dynamics for the particle on a surface are
 simulated with the leapfrog method, starting from the current value 
 of \(\theta\) and value of \(p\) from the previous stage. After the simulation,
 \(p\) is negated, and the resulting \((\theta, p)\) pair is used as the
-proposed value.
-
-Because the proposal is deterministic, the Markov kernel for the
-proposal is \(\delta_{f(\theta, p)}\), where \(f(\theta, p)\) denotes the proposal
-of running the leapfrog simulation starting with \((\theta, p)\) and negating
-\(p\) after the simulation. The invertibility of the leapfrog simulation means
-that \(f = f^{-1}\). Together with the measure preservation of the leapfrog
-simulation, this means that \(f\) meets the conditions of
-Lemma~\ref{dirac_measure_reversible_lemma}. Combining this with
-Lemma~\ref{reversible_proposal_lemma} means that \(\pi\) is the invariant
-distribution of HMC when the acceptance probability is simply
-\[
-  \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
-  = \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
-\]
+proposed value. The acceptance probability for this stage has a simple
+form:
+\begin{theorem}
+	The MH acceptance probability for a HMC proposal \((\theta', p')\) generated
+  from the leapfrog simulation and negating \(p\) is
+  \[
+    \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
+  \]
+\end{theorem}
+\begin{proof}
+  Because the proposal is deterministic, the Markov kernel for the
+  proposal is \(\delta_{f(\theta, p)}\), where \(f(\theta, p)\) denotes the proposal
+  of running the leapfrog simulation starting with \((\theta, p)\) and negating
+  \(p\) after the simulation. The fact that the leapfrog simulation is invertible
+  by negating time means
+  that \(f = f^{-1}\). Together with the measure preservation of the leapfrog
+  simulation, this means that \(f\) meets the conditions of
+  Lemma~\ref{dirac_measure_reversible_lemma}. Combining this with
+  Lemma~\ref{reversible_proposal_lemma} means that \(\pi\) is the invariant
+  distribution of HMC when the acceptance probability is simply
+  \[
+    \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
+    = \min\{1, \exp(H(\theta, p) - H(\theta', p'))\}.
+    \qedhere
+  \]
+\end{proof}
 
 Because of the deterministic proposal, the ergodicity of HMC cannot be
 proven with strong irreducibility, but it has been shown that HMC is
-ergodic under some conditions on \(U\)~\cite{DMS19}.
+ergodic under some conditions on \(U\)~\cite{DMS20}.
 
 If the simulation conserved \(H\) exactly, the acceptance probability would 
 always be 1. Because this is usually not possible, there is always some probability 
@@ -2209,8 +2232,7 @@ but in practice the errors in different steps tend to cancel each
 other~\cite{neal2012mcmc}, meaning 
 that the acceptance probability mainly depends on \(\eta\).
 
-\newpage
-\section{Differential Privacy with HMC}\label{dp_hmc_section}
+\section{Differentially Private HMC}\label{dp_hmc_section}
 
 HMC only uses the model log-likelihood, and thus the data, through \(U\).
 \(U\) is used in two ways. Firstly, its value is used in the acceptance test,
@@ -2221,7 +2243,7 @@ noise may break some of the properties required for the algorithm's correctness.
 The addition of noise to the log-likelihood ratios can be corrected using the penalty
 acceptance test, i.e. changing the acceptance probability to
 \[
-    \min\left\{\exp\left(H(\theta, p) - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\},
+    \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\},
 \]
 where \(\sigma_{l}^{2}\) is the variance of the noise added to the log-likelihood
 ratios. This is because with
@@ -2250,7 +2272,7 @@ The leapfrog update equations with noisy and clipped gradients become
 \begin{align*}
   p_{i+1/2} &= p_{i} - \frac{\eta}{2}(g(\theta_{i}) + \xi_{1}), \\
   \theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2}, \\
-  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \xi_{2})),
+  p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}(g(\theta_{i+1}) + \xi_{2}),
 \end{align*}
 where
 \(\xi_{i} \sim \caln_{d}(0, \sigma_{g}^{2}I)\), all \(\xi_{i}\) are independent, and
@@ -2310,8 +2332,9 @@ where
 % with respect to the Lebesgue measure requires more thought, as the individual
 % leapfrog steps are partially deterministic.
 %
-The invariance of the target distribution was shown through the conservation of
-Lebesgue measure and invertibility of the non-DP leapfrog simulation. The
+The invariance of the target distribution in the non-DP case
+was shown through the conservation of Lebesgue measure and invertibility of
+the non-DP leapfrog simulation. The
 DP HMC leapfrog simulation is randomised, so invertibility and conservation
 of measure are not directly applicable. However,
 Lemma~\ref{reversible_proposal_lemma} gives a condition that applies to
@@ -2333,7 +2356,7 @@ decomposing the sequence into parts that are individually reversible.
   are reversible with respect to the Lebesgue measure.
 \end{lemma}
 \begin{proof}
-  Starting with \(l_{\theta}\circ l_{l}\), denote
+  Starting with \(l_{\theta}\circ l_{-}\), denote
   \(f(\theta, p) = (l_{\theta}\circ l_{-})(\theta, p)
   = (\theta - \eta M^{-1}p, -p)\). Then
   \[
@@ -2411,7 +2434,7 @@ decomposing the sequence into parts that are individually reversible.
     \\=& \int_{C}m_{d}(\dx\theta')\int_{D}m_{d}(\dx p')
          \int_{A\times B}(l_{-}\circ l_{p_{t}})(\theta', p', \dx(\theta, p)),
   \end{align*}
-  where the first equality uses Equation~\ref{leapfrog_p_update_equality_1},
+  where the first equality uses Equation~(\ref{leapfrog_p_update_equality_1}),
   the second equality uses Theorem~\ref{lebesgue_integral_theorem} (6)
   to change the order of integration,
   the third uses Lemma~\ref{reversible_integration_lemma} on the two leftmost
@@ -2420,7 +2443,7 @@ decomposing the sequence into parts that are individually reversible.
   the fifth uses Lemma~\ref{dirac_evaluation_lemma},
   the sixth uses Theorem~\ref{lebesgue_integral_theorem} (6) to rearrange the
   term in the integrals and the last equality uses
-  Equation~\ref{leapfrog_p_update_equality_2}.
+  Equation~(\ref{leapfrog_p_update_equality_2}).
 \end{proof}
 
 \begin{lemma}\label{leapfrog_reversibility_lemma}
@@ -2430,62 +2453,70 @@ decomposing the sequence into parts that are individually reversible.
 \begin{proof}
   The DP-HMC proposal
   \[
-    l_{-}\circ l_{p_{1/2}}\circ l_{\theta}\circ l_{p_{1}}\circ l_{\theta}
-    \dotsb \circ l_{\theta}\circ l_{p_{1/2}}
+    l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}
+    \dotsb \circ l_{\theta}\circ l_{p_{t_{2}}}
   \]
   can be written as
   \[
-    (l_{-}\circ l_{p_{1/2}})\circ (l_{\theta} \circ l_{-})\circ (l_{-}\circ l_{p_{1}})
-    \circ (l_{\theta} \circ l_{-}) \circ (l_{-} \circ l_{p_{1}})\circ
-    \dotsb \circ (l_{\theta}\circ l_{-})\circ (l_{-}\circ l_{p_{1/2}}),
+    (l_{-}\circ l_{p_{t_{2}}})\circ (l_{\theta} \circ l_{-})\circ (l_{-}\circ l_{p_{t_{1}}})
+    \circ (l_{\theta} \circ l_{-}) \circ (l_{-} \circ l_{p_{t_{1}}})\circ
+    \dotsb \circ (l_{\theta}\circ l_{-})\circ (l_{-}\circ l_{p_{t_{2}}}),
   \]
-  which is a composition of \(l_{-}\circ l_{p_{1/2}}\), \(l_{-}\circ l_{p_{1}}\)
-  and \(l_{\theta}\circ l_{-}\), which are all reversible with respect to the
+  which is a composition of \(l_{1} = l_{-}\circ l_{p_{t_{2}}}\),
+  \(l_{2} = l_{-}\circ l_{p_{t_{1}}}\)
+  and \(l_{3} = l_{\theta}\circ l_{-}\), which are all reversible with respect to the
   Lebesgue measure by Lemma~\ref{leapfrog_step_reversible_lemma}.
-  As the composition is symmetric,
+  The composition can be written as
+  \[
+    l_{1}\circ l_{3}\circ l_{2}\circ l_{3}\circ l_{2}\circ\dotsb \circ l_{3}\circ l_{1},
+  \]
+  which is symmetric. Now
   Lemma~\ref{composition_reversible_symmetric_lemma} extends the reversibility
   with respect to the Lebesgue measure to the entire composition.
 \end{proof}
 
-Reversibility of proposal with respect to the Lebesgue measure can now be
-used to show that DP-HMC has the correct invariant distribution using
-Lemma~\ref{reversible_proposal_lemma}:
+The reversibility of the proposal with respect to the Lebesgue measure can now be
+used to show that DP-HMC has the correct invariant
+distribution using Lemma~\ref{reversible_proposal_lemma}:
 \begin{theorem}\label{dp_hmc_invariant_theorem}
   If
   \[
-    \min\left\{1, \exp\left(H(\theta, p)
-        - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
+    \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')
+        + \xi - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
   \]
-  is used as the acceptance probability for DP-HMC, the invariant distribution
-  is \(\pi\).
+  where \(\xi\sim \caln(0, \sigma_{l}^{2})\)
+  is used as the acceptance probability for DP-HMC (Algorithm~\ref{dp_hmc_algo}),
+  the invariant distribution is \(\pi\).
 \end{theorem}
 \begin{proof}
 Lemmas~\ref{reversible_proposal_lemma} and \ref{leapfrog_reversibility_lemma}
 together show that when using
 \[
-  \alpha(\theta, p, \theta', p')
+  \alpha^{*}(\theta, p, \theta', p')
   = \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
 \]
 as the acceptance probability, where \(\pi\) is any continuous
-probability distirbution on \(\R^{2d}\), the invariant distribution
-of DP-HMC is \(\pi\).
+probability distribution on \(\R^{2d}\), the invariant distribution
+of DP-HMC without adding noise the log-likelihood ratios is \(\pi\).
 Recall that in HMC
 \[
   \pi(\theta, p) \propto \exp(-H(\theta, p)),
 \]
 so
 \[
-  \alpha(\theta, p, \theta', p')
+  \alpha^{*}(\theta, p, \theta', p')
   = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')\right)\right\}.
 \]
 When Gaussian noise with variance \(\sigma_{l}^{2}\) is added to the
 log-likelihood ratios and the penalty correction is applied,
   \[
     \alpha(\theta, p, \theta', p')
-    = \min\left\{1, \exp\left(H(\theta, p)
-        - H(\theta', p') - \frac{1}{2}\sigma_{l}^{2}\right)\right\}.
-    \qedhere
+    = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')
+        + \xi - \frac{1}{2}\sigma_{l}^{2}\right)\right\}.
   \]
+  where \(\xi\sim \caln(0, \sigma_{l}^{2})\). Thus the invariant distribution
+  of DP-HMC, when \(\alpha(\theta, p, \theta', p')\) is the acceptance
+  probability, is \(\pi\).
 \end{proof}
 
 Proving the ergodicity of DP-HMC turns out to be easier than in the
@@ -2533,7 +2564,7 @@ For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p_{t}}\) chan
 to
 \[
   l_{p_{t}}^{fric}(\theta, p) = \left(\theta, p - t(g(\theta)
-  + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \xi\right).
+  + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \xi)\right).
 \]
 where \(\xi \sim \caln(0, \sigma_{g}^{2})\).
 Now the step in the proof of Lemma~\ref{leapfrog_step_reversible_lemma}
@@ -2552,7 +2583,7 @@ and
 \]
 
 This means that the acceptance test is no longer correct, so
-the friction term in not used in this thesis beyond this brief discussion,
+the friction term is not used in this thesis beyond this brief discussion,
 but finding a way to correct the acceptance test is a potential avenue for
 future research.
 
@@ -2604,7 +2635,8 @@ future research.
 DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
 Like the DP penalty algorithm, DP HMC is a composition of Gaussian mechanisms,
 and its privacy bounds can be computed through Theorems~\ref{composition-theorem}
-and \ref{gauss-DP-bounds} for zCDP.
+and \ref{gauss-DP-bounds} (2) for zCDP, or through Theorem~\ref{gauss-DP-bounds} (3)
+for ADP.
 
 \begin{theorem}\label{dp_hmc_theorem_zcdp}
   Let \(\epsilon \geq 0\), \(0 \leq \delta < 1\), \(\tau_{g} > 0\), \(\tau_{l} > 0\),
@@ -2622,7 +2654,7 @@ and \ref{gauss-DP-bounds} for zCDP.
   \]
   Then runnning DP HMC for
   \[
-    k = \left\lfloor\frac{\rho - \rho_{g}}{\rho_l + L\rho_g}\right\rfloor
+    k = \left\lfloor\frac{\rho}{\rho_l + (L + 1)\rho_g}\right\rfloor
   \]
   iterations using \(\sigma_{l}^{2}\) as log-likelihood ratio noise variance,
   \(\sigma_{g}^{2}\) as gradient noise variance, clipping log-likelihood ratios
@@ -2683,7 +2715,7 @@ variances between composition.
   \]
   and
   \[
-    \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{kL + 1}{2\sigma_{g}'^{2}}.
+    \mu = \frac{k}{2\sigma_{l}'^{2}} + \frac{k(L + 1)}{2\sigma_{g}'^{2}}.
   \]
 \end{theorem}
 \begin{proof}
@@ -2726,7 +2758,7 @@ DP HMC releases the log-likelihood ratio \(k\) times and the gradient
 \end{proof}
 
 It is possible to reduce the number of gradient evaluations in
-Algorithm~\ref{dp_hmc_algo} by reusing the gradient computed during the last
+Algorithm~\ref{dp_hmc_algo} by reusing the gradient computed during the previous
 iteration for the current value of \(\theta\) instead of computing the gradient
 again before the leapfrog simulation. As it is not possible to reuse the gradient
 during the first iteration, this would reduce the number of gradient evaluations
@@ -2766,12 +2798,10 @@ as 4 new parameters are introduced.
 The \(\alpha\) value from Theorem~\ref{DP_penalty_theorem_zcdp} for
 DP penalty could be included in Theorem~\ref{dp_hmc_theorem_zcdp},
 which would make Theorem~\ref{dp_hmc_theorem_zcdp} the special case where
-\(\alpha = \frac{1}{2}\). Because, as argued for DP penalty in
-Section~\ref{dp_penalty_section}, having \(\alpha = \frac{1}{2}\) can be
-guaranteed by setting the clip bound appropriately, and the clip bound can
-be chosen to be anything if the parameters are only used with a single value
-of \(n\),
-Theorem~\ref{dp_hmc_theorem_zcdp} was simplified to not include \(\alpha\).
+\(\alpha = \frac{1}{2}\). As argued in Section~\ref{dp_penalty_section},
+when only a single value of \(n\) is considered, \(\alpha\) can be
+any positive real number, so it was not included in
+Theorem~\ref{dp_hmc_theorem_zcdp}.
 
 Figure~\ref{hmc_trajectory_fig} shows an example of a leapfrog trajectory
 of DP HMC on a circular posterior (Section~\ref{circle_section}).
@@ -2903,11 +2933,11 @@ where \(r\in \R\) is an observed data point, \(a > 0\) is a hyperparameter,
 and \((x, y)\in \R^{2}\) are the parameters.
 The likelihood is circular in the \((x, y)\)-plane, as it only depends on the
 squared distance of the point \((x, y)\) from the origin. By choosing a flat
-prior, \(p(x, y) = 1\) for all \((x, y)\in \R^{2}\), the posterior will be
+improper prior, \(p(x, y) = 1\) for all \((x, y)\in \R^{2}\), the posterior will be
 proportional to the likelihood, meaning that the posterior will also be circular.
 
-As the prior does not integrate to 1, it is not a proper probability density,
-so Bayes' theorem does not guarantee that the posterior integrates to a finite
+As the prior is improper, Bayes' theorem does not guarantee that the
+unnormalised posterior integrates to a finite
 value. In this case, for a single data point \(r\) and any \(a > 0\),
 \begin{align*}
   \int_{\R^{2}}p(r\mid x, y)\dx x\dx y
@@ -2931,8 +2961,7 @@ where the first inequality is Hölder's inequality applied \(n - 1\) times,
 and the second follows from the single data point case, as
 \(p(r\mid x,y)^{n} = e^{-an(x^{2} + y^{2} - r^{2})^{2}}\).
 As the likelihood integrates to a
-finite value, it can be considered an unnormalised density and sampled from
-with MCMC.
+finite value, it can be considered an unnormalised density and sampled with MCMC.
 
 Obtaining samples from the true posterior with the circle model is not
 as easy as with the banana and Gaussian models, so using MMD, the metric
@@ -2985,7 +3014,7 @@ was
   0.999 & 1
 \end{bmatrix}.
 \]
-The true values of \(\theta\) in all experiment except the circle are
+The true values of \(\theta\) in all experiments except the circle were
 \(\theta_{2} = 3\) and \(\theta_{i} = 0\) for \(i \neq 2\).
 
 All experiments ran 20 chains for each value
@@ -3135,7 +3164,7 @@ improve the performance of DP Barker.
 
 \section{The Effects of Clipping}\label{clipping_experiments}
 
-The this section looks at the effect of clipping log-likelihood ratios,
+This section looks at the effect of clipping log-likelihood ratios,
 which is necessary for DP MH algorithms, but may affect their convergence
 to the correct posterior.
 Both HMC and random walk MH (RWMH)\footnote{MH using the Gaussian
@@ -3270,7 +3299,8 @@ some clip fractions are getting closer to 20\%.
   \centering
   \includegraphics[width=\textwidth]{figures/banana_clipping.pdf}
   \caption{
-    Clipping for the easy and tempered banana experiments.
+    The fraction of clipped log-likelihood ratios for each value of \(\epsilon\) in
+    the easy and tempered banana experiments.
   }
   \label{banana_clipping_fig}
 \end{figure}
@@ -3283,8 +3313,9 @@ some runs with on the narrow banana, especially with \(\epsilon = 1\).
   \centering
   \includegraphics[width=\textwidth]{figures/banana_extra_clipping}
   \caption{
-    Clipping for 30-dimensional Gaussian, hard banana and highly correlated
-    2-dimensional Gaussian.
+    The fraction of clipped log-likelihood ratios for each value of \(\epsilon\) in
+    the 30-dimensional Gaussian, hard banana and highly correlated
+    2-dimensional Gaussian experiments.
   }
   \label{banana_extra_clipping_fig}
 \end{figure}
@@ -3301,7 +3332,8 @@ different runs.
   \centering
   \includegraphics[width=\textwidth]{figures/circle}
   \caption{
-    Circle mean error on the left and clipping on the right.
+    Circle mean error on the left and the fraction of clipped log-likelihood
+    ratios on the right.
   }
   \label{circle_fig}
 \end{figure}
@@ -3320,7 +3352,7 @@ there is very large variance in clipping.
   \centering
   \includegraphics[width=\textwidth]{figures/grad_clipping}
   \caption{
-    Gradient clipping for DP HMC.
+    Fraction of clipped gradients for DP HMC.
   }
   \label{grad_clipping_fig}
 \end{figure}
@@ -3346,7 +3378,9 @@ When comparing the different DP MH algorithms, the results of
 Section~\ref{dp_mcmc_comparison} show that neither DP HMC or DP penalty is
 clearly better than the other, as both algorithms beat the other on some models.
 The usefulness of OCU+GWHM for DP penalty is also debatable, as DP penalty
-OCU+GWMH only clearly beat DP penalty on the 30-dimensional Gaussian. The only
+OCU+GWMH only clearly beat DP penalty on the 30-dimensional Gaussian, which
+is an ideal case for OCU as the components were independent, which is unrealistic in
+practice. The only
 clear conclusion from the comparisons is that the minibatch algorithms are
 only useful with tempered posteriors, and even there they are not better
 than the algorithms using the full data, so subsampling the log-likelihood ratios
@@ -3515,119 +3549,122 @@ fruitful.
     \]
 \end{theorem}
 \begin{proof}
-    Because
-    \[
+  Recall that the banana distribution \(\ban(\mu, \Sigma, a, b, m)\) is the distribution of
+  \(g(x)\) where \(g(x) = (x_{1}, x_{2} - a(x_{1} - m)^{2} - b, x_{3},\dotsc,x_{d})\)
+  and \(x\sim \caln_{d}(\mu, \Sigma)\).
+  Because
+  \[
     g^{-1}(y) = (y_1, y_2 + a(y_1 - m)^2 + b, y_3\dotsc, y_d)
-    \]
-    and the Jacobian determinant of \(g^{-1}\) is \(1\),
-    for a positive-definite \(\Sigma\) the banana distribution has
-    density proportional to
-    \[
+  \]
+  and the Jacobian determinant of \(g^{-1}\) is \(1\),
+  for a positive-definite \(\Sigma\) the banana distribution has
+  density proportional to
+  \[
     \exp\left(-\frac{1}{2}(g^{-1}(x) - \mu)^T\Sigma^{-1}(g^{-1}(x) - \mu)\right).
-    \]
-    With \(\Sigma = \diag(\sigma_1^2, \sigma_2^2)\) the density is proportional
-    to
-    \[
+  \]
+  With \(\Sigma = \diag(\sigma_1^2, \sigma_2^2, \dotsc,\sigma_{d}^{2})\) the
+  density is proportional to
+  \[
     \exp
     \left(-\frac{1}{2}\left(\left(\frac{x_1 - \mu_1}{\sigma_1}\right)^2
-    + \left(\frac{x_2 + a(x_1 - m)^2 + b - \mu_2}{\sigma_2}\right)^2
-    + \sum_{i=3}^d\left(\frac{x_i - \mu_i}{\sigma_i}\right)^2\right)\right).
-    \]
-    Denote \(u = \theta_2 + a(\theta_1 - m)^2 + b\).
-    The tempered posterior of \(\theta\) is
-    \begin{align*}
-        p(\theta\mid X) &\propto p(X\mid \theta)^Tp(\theta)
-        \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
-        \prod_{i=3}^d p(x_i\mid \theta_i)^T p(\theta)
-        \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
-        \prod_{i=3}^d p(x_i\mid \theta_i)^T
-        \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2
-        \sum_{i=3}^d \tau_0\theta_i^2\right)\right)
-        \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
-        \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&\cdot \prod_{i=3}^d p(x_i\mid \theta_i)^T
-        \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right).
-    \end{align*}
+        + \left(\frac{x_2 + a(x_1 - m)^2 + b - \mu_2}{\sigma_2}\right)^2
+        + \sum_{i=3}^d\left(\frac{x_i - \mu_i}{\sigma_i}\right)^2\right)\right).
+  \]
+  Denote \(u = \theta_2 + a(\theta_1 - m)^2 + b\).
+  The tempered posterior of \(\theta\) is
+  \begin{align*}
+    p(\theta\mid X) &\propto p(X\mid \theta)^Tp(\theta)
+    \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
+    \prod_{i=3}^d p(x_i\mid \theta_i)^T p(\theta)
+    \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
+    \prod_{i=3}^d p(x_i\mid \theta_i)^T
+    \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+    + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2
+    \sum_{i=3}^d \tau_0\theta_i^2\right)\right)
+    \\&= p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
+    \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+    + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
+    \\&\cdot \prod_{i=3}^d p(x_i\mid \theta_i)^T
+    \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right).
+  \end{align*}
 
-    Considering the upper and lower part of the last expression separately
-    \begin{align*}
-        &p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
-        \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&\propto \left(\prod_{i=1}^n \exp
-        \left(-\frac{(x_{i1} - \theta_1)^2\tau_1}{2}\right)\right)^T
-        \cdot\left(\prod_{i=1}^n \exp\left(-\frac{(x_{i2} - \theta_2
-        - a(\theta_1 - m)^2 - b)^2\tau_2}{2}\right)\right)^T
-        \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
-        + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
-        (x_{i1} - \theta_1)^2
-        + T\tau_2\sum_{i=1}^n(x_{i2} - u)^2
-        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
-        (x_{i1} - \bar{x}_1)^2 + T\tau_1n(\bar{x}_1 - \theta_1)^2
-        \\&+ T\tau_2\sum_{i=1}^n (x_{i2}  - \bar{x}_2)^2 + T\tau_2n(\bar{x}_2 - u)^2
-        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
-        \\&\propto\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n(\bar{x}_1 - \theta_1)^2
-        + T\tau_2n(\bar{x}_2 - u)^2
-        + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n\bar{x}_1^2
-        - 2T\tau_1n\bar{x}_1\theta_1 + nT\tau_1\theta_1^2 + \tau_0\theta_1^2
-        + T\tau_2n\bar{x}_2^2 - 2T\tau_2n\bar{x}_2u + nT\tau_2u^2
-        + \tau_0 u^2\Big)\Bigg)
-        \\&\propto\exp\Bigg(-\frac{1}{2}\Big((Tn\tau_1 + \tau_0)\theta_1^2
-        - 2T\tau_1n\bar{x}_1\theta_1
-        + (Tn\tau_2 + \tau_0)u^2 - 2T\tau_2n\bar{x}_2u \Big)\Bigg)
-        \\&=\exp\Bigg(-\frac{1}{2}\Big((Tn\tau_1 + \tau_0)\left(\theta_1^2
-        - \frac{2T\tau_1n\bar{x}_1\theta_1}{Tn\tau_1 + \tau_0} \right)
-        + (Tn\tau_2 + \tau_0)\left(u^2 - \frac{2T\tau_2n\bar{x}_2u}
-        {Tn\tau_2 + \tau_0}\right) \Big)\Bigg)
-        \\&\propto\exp\Bigg(-\frac{1}{2}\Big(
-        (Tn\tau_1 + \tau_0)\left(\theta_1
-        - \frac{T\tau_1n\bar{x}_1}{Tn\tau_1 + \tau_0} \right)^2
-        + (Tn\tau_2 + \tau_0)\left(u - \frac{T\tau_2n\bar{x}_2}
-        {Tn\tau_2 + \tau_0}\right)^2 \Big)\Bigg).
-    \end{align*}
-    and
-    \begin{align*}
-        &\prod_{i=3}^d p(x_i\mid \theta_i)^T
-        \cdot \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
-      \\&\propto \exp\left(-\frac{1}{2}T\sum_{j=3}^d\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
-      - \frac{1}{2}\sum_{j=3}^d\tau_0\theta_j^2\right)
-      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
-      + \tau_0\theta_j^2\right)\right)
-      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \bar{x}_j)^2
-      + T\tau_j n(\bar{x}_j - \theta_j)^2 + \tau_0\theta_j^2\right)\right)
-      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j n(\bar{x}_j - \theta_j)^2
-      + \tau_0\theta_j^2\right)\right)
-      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
-      -2T\tau_j n\bar{x}_j\theta_j + T\tau_jn\theta_j^2
-      + \tau_0\theta_j^2\right)\right)
-      \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
-      (Tn\tau_j + \tau_0)\theta_j^2
-      - 2Tn\tau_j\bar{x}_j\theta_j + \frac{(Tn\tau_j\bar{x}_j)^2}{Tn\tau_j + \tau_0}\right)\right)
-      \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d (Tn\tau_j + \tau_0)\left(\theta_j
-      - \frac{Tn\tau_1\bar{x}_i}{Tn\tau_j + \tau_0}\right)^2\right).
-    \end{align*}
-    Multiplying the resulting expression above gives a density proportional
-    to the banana distribution.
-    As \(p(\theta\mid X)\) is proportional to the density of a
-    banana distribution, the posterior is the banana distribution
-    \(\ban(\mu, \Sigma, a, b, m)\)
-    with
-    \[
-        \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
-        \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
-    \]
-    \[
-        \Sigma = \diag\left(
-            \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
-            \frac{1}{Tn\tau_d + \tau_0}
-        \right).
-        \qedhere
-    \]
+  Considering the upper and lower part of the last expression separately
+  \begin{align*}
+    &p(x_1\mid \theta_1)^Tp(x_2\mid \theta_1, \theta_2)^T
+      \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+      + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
+    \\&\propto \left(\prod_{i=1}^n \exp
+    \left(-\frac{(x_{i1} - \theta_1)^2\tau_1}{2}\right)\right)^T
+    \cdot\left(\prod_{i=1}^n \exp\left(-\frac{(x_{i2} - \theta_2
+    - a(\theta_1 - m)^2 - b)^2\tau_2}{2}\right)\right)^T
+    \\&\cdot \exp\left(-\frac{1}{2}\left(\tau_0\theta_1^2
+    + \tau_0(\theta_2 + a(\theta_1 - m)^2 + b)^2\right)\right)
+    \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
+    (x_{i1} - \theta_1)^2
+    + T\tau_2\sum_{i=1}^n(x_{i2} - u)^2
+    + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
+    \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1\sum_{i=1}^n
+    (x_{i1} - \bar{x}_1)^2 + T\tau_1n(\bar{x}_1 - \theta_1)^2
+    \\&+ T\tau_2\sum_{i=1}^n (x_{i2}  - \bar{x}_2)^2 + T\tau_2n(\bar{x}_2 - u)^2
+    + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
+    \\&\propto\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n(\bar{x}_1 - \theta_1)^2
+    + T\tau_2n(\bar{x}_2 - u)^2
+    + \tau_0\theta_1^2 + \tau_0 u^2\Big)\Bigg)
+    \\&=\exp\Bigg(-\frac{1}{2}\Big(T\tau_1n\bar{x}_1^2
+    - 2T\tau_1n\bar{x}_1\theta_1 + nT\tau_1\theta_1^2 + \tau_0\theta_1^2
+    + T\tau_2n\bar{x}_2^2 - 2T\tau_2n\bar{x}_2u + nT\tau_2u^2
+    + \tau_0 u^2\Big)\Bigg)
+    \\&\propto\exp\Bigg(-\frac{1}{2}\Big((Tn\tau_1 + \tau_0)\theta_1^2
+    - 2T\tau_1n\bar{x}_1\theta_1
+    + (Tn\tau_2 + \tau_0)u^2 - 2T\tau_2n\bar{x}_2u \Big)\Bigg)
+    \\&=\exp\Bigg(-\frac{1}{2}\Big((Tn\tau_1 + \tau_0)\left(\theta_1^2
+    - \frac{2T\tau_1n\bar{x}_1\theta_1}{Tn\tau_1 + \tau_0} \right)
+    + (Tn\tau_2 + \tau_0)\left(u^2 - \frac{2T\tau_2n\bar{x}_2u}
+    {Tn\tau_2 + \tau_0}\right) \Big)\Bigg)
+    \\&\propto\exp\Bigg(-\frac{1}{2}\Big(
+    (Tn\tau_1 + \tau_0)\left(\theta_1
+    - \frac{T\tau_1n\bar{x}_1}{Tn\tau_1 + \tau_0} \right)^2
+    + (Tn\tau_2 + \tau_0)\left(u - \frac{T\tau_2n\bar{x}_2}
+    {Tn\tau_2 + \tau_0}\right)^2 \Big)\Bigg).
+  \end{align*}
+  and
+  \begin{align*}
+    &\prod_{i=3}^d p(x_i\mid \theta_i)^T
+      \cdot \exp\left(-\frac{1}{2}\sum_{i=3}^d \tau_0\theta_i^2\right)
+    \\&\propto \exp\left(-\frac{1}{2}T\sum_{j=3}^d\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
+    - \frac{1}{2}\sum_{j=3}^d\tau_0\theta_j^2\right)
+    \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \theta_j)^2
+    + \tau_0\theta_j^2\right)\right)
+    \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j\sum_{i=1}^n (x_{ij} - \bar{x}_j)^2
+    + T\tau_j n(\bar{x}_j - \theta_j)^2 + \tau_0\theta_j^2\right)\right)
+    \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(T\tau_j n(\bar{x}_j - \theta_j)^2
+    + \tau_0\theta_j^2\right)\right)
+    \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
+    -2T\tau_j n\bar{x}_j\theta_j + T\tau_jn\theta_j^2
+    + \tau_0\theta_j^2\right)\right)
+    \\&\propto \exp\left(-\frac{1}{2}\sum_{j=3}^d\left(
+    (Tn\tau_j + \tau_0)\theta_j^2
+    - 2Tn\tau_j\bar{x}_j\theta_j + \frac{(Tn\tau_j\bar{x}_j)^2}{Tn\tau_j + \tau_0}\right)\right)
+    \\&= \exp\left(-\frac{1}{2}\sum_{j=3}^d (Tn\tau_j + \tau_0)\left(\theta_j
+    - \frac{Tn\tau_1\bar{x}_i}{Tn\tau_j + \tau_0}\right)^2\right).
+  \end{align*}
+  Multiplying the resulting expression above gives a density proportional
+  to the banana distribution.
+  As \(p(\theta\mid X)\) is proportional to the density of a
+  banana distribution, the posterior is the banana distribution
+  \(\ban(\mu, \Sigma, a, b, m)\)
+  with
+  \[
+    \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
+      \frac{Tn\tau_d\bar{x}_d}{Tn\tau_d + \tau_0}\right),
+  \]
+  \[
+    \Sigma = \diag\left(
+      \frac{1}{Tn\tau_1 + \tau_0},\dotsc,
+      \frac{1}{Tn\tau_d + \tau_0}
+    \right).
+    \qedhere
+  \]
 \end{proof}
 \setcounter{lemma}{\value{temp_counter}}
 \setcounter{chapter}{\value{temp_counter_chap}}
