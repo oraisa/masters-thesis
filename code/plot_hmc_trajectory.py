@@ -56,12 +56,16 @@ def plot_anim_frame(ind, ax):
 
 
 def plot_frames(start_i):
-    fig, ax = plt.subplots(4, 3, figsize=(1.5 * 3, 1.5 * 4))
+    fig, ax = plt.subplots(4, 3, figsize=(2.5 * 3, 2.5 * 4))
     for i in range(4):
         for j in range(3):
             ind = start_i + (3 * i + j) * 4
             plot_anim_frame(ind, ax[i, j])
-    # plt.show()
+            ax[i, j].set_title(
+                "j = {}".format(ind % (props_per_sample + 1) + 1),
+                # fontdict={"fontsize": "small"}
+            )
 
-plot_frames(308 + 48 * 10)
+plot_frames(304 + 48 * 10)
+# plt.show()
 plt.savefig("../Thesis/figures/hmc_trajectory.pdf")

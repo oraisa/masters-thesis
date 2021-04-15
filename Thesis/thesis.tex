@@ -133,6 +133,15 @@
   computational costs.
 \end{abstract}
 
+\section*{Acknowledgements}
+I would like to thank my supervisor, Associate Professor Antti Honkela, and my
+other colleagues at the PROBIC group at the University of Helsinki,
+especially Doctor Antti Koskela, for their feedback and advice during this
+project. I would like to thank Professor Eero Saksman for his valuable feedback,
+which inspired the measure-theoretic proof of convergence for DP HMC.
+This work has been supported by the Academy of Finland under decision number
+325573.
+
 % Place ToC
 \mytableofcontents
 
@@ -292,7 +301,8 @@ Section~\ref{dp_penalty_adp_section}
 and the minibatch DP penalty algorithm is developed in
 Section~\ref{dp_minibatch_penalty_section}. Chapter~\ref{hmc_chapter} first
 introduces HMC in Section~\ref{hmc_basics_section} and develops differentially
-private HMC in Section~\ref{dp_hmc_section}. The performance of the algorithms
+private HMC in Sections~\ref{dp_hmc_section} and~\ref{dp_hmc_convergence_section}.
+The performance of the algorithms
 is compared on a wide variety of models. The models, and technical details
 concerning the comparison, are discussed in Chapter~\ref{experiment_setup_chapter}.
 The results of the experiments are presented in Chapter~\ref{experiment_chapter}.
@@ -661,33 +671,32 @@ which means that the log-likelihood ratio term of \(\lambda\) is
 Algorithm~\ref{MH_algo} puts all of this together to summarise the MH 
 algorithm used for Bayesian inference.
 
-\begin{algorithm}[H]\label{MH_algo}
-    \SetAlgoLined
-    \For{\(1 \leq i \leq k\)}{
-        denote \(\theta = \theta_{i-1}\)\\
-        sample \(\theta' \sim q(\cdot \mid \theta)\)\\
-        \(\ln \frac{p(X\mid \theta')}{p(X\mid \theta)} =
-            \sum_{x\in X} (\ln p(x \mid \theta') - \ln p(x\mid \theta))
-        \)\\
-        \(\lambda = \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
-        + \ln p(\theta') - \ln p(\theta)
-        + \ln q(\theta\mid \theta') - \ln q(\theta'\mid \theta)\)
-        \\
-        \(\theta_i = \begin{cases}
-            \theta' & \text{ with probability } \min\{1, e^\lambda\} \\
-            \theta & \text{ otherwise}
-        \end{cases}
-        \)\\
-    }
-    \Return \((\theta_1, \dotsc, \theta_k)\)
-    \caption{
-        Metropolis-Hastings: number of iterations \(k\), proposal 
-        distribution \(q\), initial value \(\theta_0\) and
-        dataset \(X\) as input.
-    }
+\begin{algorithm}[h]
+  \KwIn{Number of iterations \(k\), target distribution \(p\),
+    proposal distribution \(q\), initial value \(\theta_{0}\), dataset \(X\)
+  }
+  \For{\(1 \leq i \leq k\)}{
+    denote \(\theta = \theta_{i-1}\)\\
+    sample \(\theta' \sim q(\cdot \mid \theta)\)\\
+    \(\ln \frac{p(X\mid \theta')}{p(X\mid \theta)} =
+    \sum_{x\in X} (\ln p(x \mid \theta') - \ln p(x\mid \theta))
+    \)\\
+    \(\lambda = \ln \frac{p(X\mid \theta')}{p(X\mid \theta)}
+    + \ln p(\theta') - \ln p(\theta)
+    + \ln q(\theta\mid \theta') - \ln q(\theta'\mid \theta)\)
+    \\
+    \(\theta_i = \begin{cases}
+      \theta' & \text{ with probability } \min\{1, e^\lambda\} \\
+      \theta & \text{ otherwise}
+    \end{cases}
+    \)\\
+  }
+  \Return \((\theta_1, \dotsc, \theta_k)\)
+  \caption{Metropolis-Hastings}
+  \label{MH_algo}
 \end{algorithm}
 
-\section{Measure Theory}
+\section{Measure Theory}\label{measure_theory_section}
 
 The study of Hamiltonian Monte Carlo (HMC) in Chapter~\ref{hmc_chapter}
 requires a framework for studying MH algorithms
@@ -1598,40 +1607,41 @@ procedure that solves the maximum number of iterations using the bisection
 method.
 
 \begin{algorithm}[H]\label{max_iterations_algo}
-  \SetAlgoLined
-	\(low\) = \(\mathrm{zcdp}(\epsilon, \delta, \tau, n)\) \\
-  \(high\) = \(\max \{low, 1\}\) \\
+  \SetKwFunction{zcdp}{zcdp}
+  \SetKwFunction{adp}{adp}
+  \SetKwData{low}{low}
+  \SetKwData{high}{high}
+  \SetKwData{new}{new}
+  \KwIn{\(\epsilon, \delta, \tau\) and \(n\)}
+  \zcdp : compute the number of iterations from Theorem~\ref{DP_penalty_theorem_zcdp}\\
+  \adp : compute \(\delta(\epsilon)\) from Theorem~\ref{DP_penalty_theorem_adp}\\
 
-  \While{\(\mathrm{adp}(\epsilon, high, \tau, n) < \delta\)}{
-    \(high = high \cdot 2\) \\
+	\(\low\) = \(\zcdp(\epsilon, \delta, \tau, n)\) \\
+  \(\high\) = \(\max \{low, 1\}\) \\
+
+  \While{\(\adp(\epsilon, \high, \tau, n) < \delta\)}{
+    \(\high = \high \cdot 2\) \\
   }
-  \While{\(\lfloor high \rfloor - \lfloor low \rfloor > 1\)}{
-    \(new = \frac{high + low}{2}\)\\
-    \If{\(\mathrm{adp}(\epsilon, new, \tau, n) > \delta\)}{
-      \(high = new\)\\
+  \While{\(\lfloor \high \rfloor - \lfloor \low \rfloor > 1\)}{
+    \tcp{\new does not need to be an integer as \adp can handle a non-integer
+    number of iterations}
+    \(\new = \frac{\high + \low}{2}\)\\
+    \eIf{\(\adp(\epsilon, \new, \tau, n) > \delta\)}{
+      \(\high = \new\)\\
     }
-    \Else{
-      \(low = new\)\\
+    {
+      \(\low = \new\)\\
     }
   }
-  \If{\(\mathrm{adp}(\epsilon, \lfloor high \rfloor, \tau, n) < \delta\)}{
-    \Return \(\lfloor high \rfloor\)\\
+  \eIf{\(\adp(\epsilon, \lfloor \high \rfloor, \tau, n) < \delta\)}{
+    \Return \(\lfloor \high \rfloor\)\\
   }
-  \Else{
-    \Return \(\lfloor low \rfloor\)\\
+  {
+    \Return \(\lfloor \low \rfloor\)\\
   }
 
   \caption{
-    Maximise the number of iterations given \(\epsilon\), \(\delta\),
-    \(\tau\) and \(n\). The
-    \(\mathrm{zcdp}\)-function computes the number of iterations
-    Theorem~\ref{DP_penalty_theorem_zcdp} allows, and the
-    \(\mathrm{adp}\)-function computes \(\delta(\epsilon)\) from
-    Theorem~\ref{DP_penalty_theorem_adp}. \(\lfloor \cdot \rfloor\) is the
-    floor function that rounds real numbers down. Note that the variables
-    \(low\), \(high\) and \(new\) are not necessarily integers, as
-    Theorem~\ref{DP_penalty_theorem_adp} can handle a non-integer number of
-    iterations.
+    Maximise the number of iterations.
   }
 \end{algorithm}
 
@@ -1767,36 +1777,34 @@ which is equivalent to
 Typically \(n_0 \ll n\) for large datasets, so using a tempered likelihood requires 
 significantly less clipping than a nontempered likelihood.
 
-\begin{algorithm}[H]\label{DP_barker_algo}
-    \SetAlgoLined
-    \For{\(1 \leq i \leq k\)}{
-        denote \(\theta = \theta_{i-1}\)\\
-        sample \(\theta' \sim q(\cdot \mid \theta)\)\\
-        sample \(B \subset \{1, \dotsc, n\}\)\\
-        \For{\(j \in B\)}{
-          \(r_j = \clip_{\frac{\sqrt{b}}{n_{0}}}(
-          \ln p(x_j \mid \theta') - \ln p(x_{j}\mid \theta))\)\\
-        }
-        \(\sigma^2_b = \mathrm{Var}\{r_j\mid j\in B\}\)\\
-        \(\lambda = 
-        \frac{n}{b}\sum_{j\in B} r_j
-        + \ln \frac{p(\theta')}{p(\theta)}
-        + \ln \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}\)
-        \\
-        sample \(s \sim \caln(0, \sigma^2 - \sigma^2_b)\)\\
-        sample \(c \sim V_{corr}^{\sigma^2}\)\\
-        \(\theta_i = \begin{cases}
-            \theta' & \text{ if } \lambda + s + c > 0 \\
-            \theta & \text{ otherwise}
-        \end{cases}
-        \)\\
+\begin{algorithm}[h]
+  \KwIn{Number of iterations \(k\), initial value \(\theta_{0}\), target distribution
+  \(p\), proposal distribution \(q\), noise variance \(\sigma^{2}\), data \(X\)}
+
+  \For{\(1 \leq i \leq k\)}{
+    denote \(\theta = \theta_{i-1}\)\\
+    sample \(\theta' \sim q(\cdot \mid \theta)\)\\
+    sample \(B \subset \{1, \dotsc, n\}\)\\
+    \For{\(j \in B\)}{
+      \(r_j = \clip_{\frac{\sqrt{b}}{n_{0}}}(
+      \ln p(x_j \mid \theta') - \ln p(x_{j}\mid \theta))\)\\
     }
-    \Return \((\theta_1, \dotsc, \theta_k)\)
-    \caption{
-      DP Barker: number of iterations \(k\), initial value \(\theta_{0}\),
-      proposal distribution \(q\), noise variance \(\sigma^{2}\),
-      data \(X\) as input.
-    }
+    \(\sigma^2_b = \mathrm{Var}\{r_j\mid j\in B\}\)\\
+    \(\lambda =
+    \frac{n}{b}\sum_{j\in B} r_j
+    + \ln \frac{p(\theta')}{p(\theta)}
+    + \ln \frac{q(\theta\mid \theta')}{q(\theta'\mid \theta)}\)
+    \\
+    sample \(s \sim \caln(0, \sigma^2 - \sigma^2_b)\)\\
+    sample \(c \sim V_{corr}^{\sigma^2}\)\\
+    \(\theta_i = \begin{cases}
+      \theta' & \text{ if } \lambda + s + c > 0 \\
+      \theta & \text{ otherwise}
+    \end{cases}
+    \)\\
+  }
+  \Return \((\theta_1, \dotsc, \theta_k)\)
+  \caption{DP Barker}\label{DP_barker_algo}
 \end{algorithm}
 
 Tuning the parameters of DP Barker is more restrictive than DP penalty, as
@@ -2043,7 +2051,9 @@ cost of higher computational requirements.
 This chapter first introduces HMC in the non-DP setting in Section~\ref{hmc_basics_section}.
 In Section~\ref{dp_hmc_section} HMC is made differentially private using the
 acceptance test of the penalty algorithm and adding noise to the proposal phase 
-appropriately.
+appropriately. The convergence of DP HMC is proven in
+Section~\ref{dp_hmc_convergence_section} using the measure-theoretic tools of
+Section~\ref{measure_theory_section}.
 
 \section{MCMC with Hamiltonian Dynamics}\label{hmc_basics_section}
 
@@ -2077,7 +2087,7 @@ as follows:
 \begin{align*}
     p_{i+1/2} &= p_i - \frac{\eta}{2}\nabla U(\theta_i), \\
     \theta_{i+1} &= \theta_i + \frac{\eta p_{i+1/2}}{m}, \\
-    p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}\nabla U(\theta_{i+1}). \\
+    p_{i+1} &= p_{i+1/2} - \frac{\eta}{2}\nabla U(\theta_{i+1}).
 \end{align*}
 The simulation starts with \(\theta_0 = \theta\) and \(p_0 = p\) and the 
 result is given by \(T_{L\eta}(\theta, p) \approx (\theta_L, p_L)\).
@@ -2328,308 +2338,48 @@ where
 % for all \(\theta\) and \(p\), which means that \(l_{p_{t}}\) preserves volume.
 % As the step updating \(\theta\) also preserves volume, the entire leapfrog
 % simulation preserves Lebesgue measure. Showing that the proposal of
-% DP-HMC is reversible
+% DP HMC is reversible
 % with respect to the Lebesgue measure requires more thought, as the individual
 % leapfrog steps are partially deterministic.
 %
-The invariance of the target distribution in the non-DP case
-was shown through the conservation of Lebesgue measure and invertibility of
-the non-DP leapfrog simulation. The
-DP HMC leapfrog simulation is randomised, so invertibility and conservation
-of measure are not directly applicable. However,
-Lemma~\ref{reversible_proposal_lemma} gives a condition that applies to
-the DP HMC proposal and can be used to show the invariance of the target
-distribution: reversibility with respect to the Lebesgue measure.
-
-With the momentum negation after the leapfrog simulation, the DP-HMC proposal
-can be written as
-\[
-  l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\dotsb
-  l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\circ l_{p_{t_{2}}}.
-\]
-where \(l_{-}(\theta, p) = (\theta, -p)\). Reversibility of the proposal
-with respect to the Lebesgue measure can then shown by
-decomposing the sequence into parts that are individually reversible.
-
-\begin{lemma}\label{leapfrog_step_reversible_lemma}
-  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{t}}\) for any \(t\in \R\)
-  are reversible with respect to the Lebesgue measure.
-\end{lemma}
-\begin{proof}
-  Starting with \(l_{\theta}\circ l_{-}\), denote
-  \(f(\theta, p) = (l_{\theta}\circ l_{-})(\theta, p)
-  = (\theta - \eta M^{-1}p, -p)\). Then
-  \[
-    f(f(\theta, p)) = f(\theta - \eta M^{-1}p, -p) = (\theta, p),
-  \]
-  which means that \(f^{-1} = f\). Because \(l_{\theta}\) and \(l_{-}\) preserve
-  Lebesgue measure, \(f\) also preserves Lebesgue measure.
-  The Markov kernel for \(l_{\theta}\circ l_{-}\) is \(\delta_{f(\theta, p)}\),
-  so Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
-  \(l_{\theta}\circ l_{l}\).
-
-  For \(l_{-}\circ l_{p_{t}}\), recall that
-  \[
-    (l_{-}\circ l_{p_{t}})(\theta, p) = (\theta, -p + t(g(\theta) + \xi)),
-  \]
-  where \(\xi \sim \caln(0, \sigma_{g}^{2})\).
-  \(l_{-}\circ l_{p_{t}}\) is a Markov kernel on \(\R^{2d}\),
-  so the measures \(\nu_{1}\) and \(\nu_{2}\) in
-  Definition~\ref{reversible_definition} are measures on \(\R^{4d}\), and
-  the Lebesgue measure in the claim is specifically \(m_{2d}\).
-
-  Because \((\R^{2d}, \mathcal{B}(\R^{2d})) = (\R^{d}, \mathcal{B}(\R^{d}))^{2}\)
-  and \(m_{2d} = m_{d}^{2}\), by
-  Lemma~\ref{reversible_check_product_lemma} it is sufficient to show that
-  \begin{align*}
-    &\int_{A}m_{d}(\dx \theta)\int_{B}m_{d}(\dx p)
-    \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx (\theta', p'))
-    \\= &\int_{C}m_{d}(\dx \theta')\int_{D}m_{d}(\dx p')
-    \int_{A\times B}(l_{-}\circ l_{p_{x}})(\theta', p', \dx (\theta, p))
-  \end{align*}
-  for all \(A, B, C, D\in \mathcal{B}(\R^{d})\).
-  Denote \(f_{t}(\theta) = t g(\theta)\) and
-  \(\sigma^{2} = t^{2}\sigma_{g}^{2}\). Denote the density function
-  of the \(d\)-dimensional Gaussian distribution with mean \(\mu\) and covariance
-  \(\Sigma\) by \(\caln_{d}(\cdot \mid \mu, \Sigma)\).
-  Then
-  \begin{align}
-    \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
-    &= \begin{cases}
-         0 &\text{if } \theta \notin C \\
-         \int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
-         & \text{if } \theta \in C
-    \end{cases}
-    \\&= 1_{C}(\theta)\int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
-      \label{leapfrog_p_update_equality_2}
-    \\&= \int_{C}\delta_{\theta}(\dx \theta')
-      \int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
-      \label{leapfrog_p_update_equality_1}
-  \end{align}
-  for \(C, D\in \mathcal{B}(\R^{d})\). The third equality follows from
-  Lemma~\ref{dirac_evaluation_lemma}.
-  The Gaussian distribution has a shift-invariance property: for any \(x, y\in \R^{d}\)
-  \[
-    \caln(x\mid \mu, \Sigma) = \caln(x + y\mid \mu + y, \Sigma),
-  \]
-  which is a consequence of the fact that the density of the Gaussian distribution
-  only depends on \(x\) and \(\mu\) through \(x - \mu\).
-  Then,
-  for any \(A, B, C, D\in \mathcal{B}(\R^{d})\),
-	\begin{align*}
-    &\int_{A}m_{d}(\dx\theta)\int_{B}m_{d}(\dx p)\int_{C\times D}
-      (l_{-}\circ l_{p_{t}})(\theta, p, \dx(\theta', p'))
-    \\=& \int_{A}m_{d}(\dx \theta)\int_{B}m_{d}(\dx p)\int_{C}\delta_{\theta}(\dx \theta')
-         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
-    \\=& \int_{A}m_{d}(\dx \theta)\int_{C}\delta_{\theta}(\dx \theta')\int_{B}m_{d}(\dx p)
-         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
-    \\=& \int_{C}m_{d}(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m_{d}(\dx p)
-         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
-    \\=& \int_{C}m_{d}(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m_{d}(\dx p)
-         \int_{D}m_{d}(\dx p') \caln_{d}(p\mid -p' + f_{t}(\theta), \sigma^{2}I)
-    \\=& \int_{C}m_{d}(\dx \theta')1_{A}(\theta')\int_{B}m_{d}(\dx p)
-         \int_{D}m_{d}(\dx p') \caln_{d}(p\mid -p' + f_{t}(\theta'), \sigma^{2}I)
-    \\=& \int_{C}m_{d}(\dx \theta')\int_{D}m_{d}(\dx p')1_{A}(\theta')
-         \int_{B}m_{d}(\dx p)\caln_{d}(p\mid -p' + f_{t}(\theta'), \sigma^{2}I)
-    \\=& \int_{C}m_{d}(\dx\theta')\int_{D}m_{d}(\dx p')
-         \int_{A\times B}(l_{-}\circ l_{p_{t}})(\theta', p', \dx(\theta, p)),
-  \end{align*}
-  where the first equality uses Equation~(\ref{leapfrog_p_update_equality_1}),
-  the second equality uses Theorem~\ref{lebesgue_integral_theorem} (6)
-  to change the order of integration,
-  the third uses Lemma~\ref{reversible_integration_lemma} on the two leftmost
-  integrals,
-  the fourth uses the shift-invariance of the Gaussian distribution,
-  the fifth uses Lemma~\ref{dirac_evaluation_lemma},
-  the sixth uses Theorem~\ref{lebesgue_integral_theorem} (6) to rearrange the
-  term in the integrals and the last equality uses
-  Equation~(\ref{leapfrog_p_update_equality_2}).
-\end{proof}
-
-\begin{lemma}\label{leapfrog_reversibility_lemma}
-	The DP-HMC proposal \(l_{-} \circ l\) is reversible with respect
-  to the Lebesque measure.
-\end{lemma}
-\begin{proof}
-  The DP-HMC proposal
-  \[
-    l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}
-    \dotsb \circ l_{\theta}\circ l_{p_{t_{2}}}
-  \]
-  can be written as
-  \[
-    (l_{-}\circ l_{p_{t_{2}}})\circ (l_{\theta} \circ l_{-})\circ (l_{-}\circ l_{p_{t_{1}}})
-    \circ (l_{\theta} \circ l_{-}) \circ (l_{-} \circ l_{p_{t_{1}}})\circ
-    \dotsb \circ (l_{\theta}\circ l_{-})\circ (l_{-}\circ l_{p_{t_{2}}}),
-  \]
-  which is a composition of \(l_{1} = l_{-}\circ l_{p_{t_{2}}}\),
-  \(l_{2} = l_{-}\circ l_{p_{t_{1}}}\)
-  and \(l_{3} = l_{\theta}\circ l_{-}\), which are all reversible with respect to the
-  Lebesgue measure by Lemma~\ref{leapfrog_step_reversible_lemma}.
-  The composition can be written as
-  \[
-    l_{1}\circ l_{3}\circ l_{2}\circ l_{3}\circ l_{2}\circ\dotsb \circ l_{3}\circ l_{1},
-  \]
-  which is symmetric. Now
-  Lemma~\ref{composition_reversible_symmetric_lemma} extends the reversibility
-  with respect to the Lebesgue measure to the entire composition.
-\end{proof}
-
-The reversibility of the proposal with respect to the Lebesgue measure can now be
-used to show that DP-HMC has the correct invariant
-distribution using Lemma~\ref{reversible_proposal_lemma}:
-\begin{theorem}\label{dp_hmc_invariant_theorem}
-  If
-  \[
-    \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')
-        + \xi - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
-  \]
-  where \(\xi\sim \caln(0, \sigma_{l}^{2})\)
-  is used as the acceptance probability for DP-HMC (Algorithm~\ref{dp_hmc_algo}),
-  the invariant distribution is \(\pi\).
-\end{theorem}
-\begin{proof}
-Lemmas~\ref{reversible_proposal_lemma} and \ref{leapfrog_reversibility_lemma}
-together show that when using
-\[
-  \alpha^{*}(\theta, p, \theta', p')
-  = \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
-\]
-as the acceptance probability, where \(\pi\) is any continuous
-probability distribution on \(\R^{2d}\), the invariant distribution
-of DP-HMC without adding noise the log-likelihood ratios is \(\pi\).
-Recall that in HMC
-\[
-  \pi(\theta, p) \propto \exp(-H(\theta, p)),
-\]
-so
-\[
-  \alpha^{*}(\theta, p, \theta', p')
-  = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')\right)\right\}.
-\]
-When Gaussian noise with variance \(\sigma_{l}^{2}\) is added to the
-log-likelihood ratios and the penalty correction is applied,
-  \[
-    \alpha(\theta, p, \theta', p')
-    = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')
-        + \xi - \frac{1}{2}\sigma_{l}^{2}\right)\right\}.
-  \]
-  where \(\xi\sim \caln(0, \sigma_{l}^{2})\). Thus the invariant distribution
-  of DP-HMC, when \(\alpha(\theta, p, \theta', p')\) is the acceptance
-  probability, is \(\pi\).
-\end{proof}
-
-Proving the ergodicity of DP-HMC turns out to be easier than in the
-non-DP case as a result of adding noise to the proposal, which makes the
-algorithm strongly irreducible, as shown below.
-\begin{theorem}\label{dp_hmc_ergodicity_theorem}
-	DP-HMC is strongly irreducible and ergodic.
-\end{theorem}
-\begin{proof}
-  Consider the last four updates of the proposal, which will be present for any
-  \(L\),
-  \[
-    l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}.
-  \]
-  Denote the values of \((\theta, p)\) before the last four updates by \((\theta^{*}, p^{*})\) and
-  the values after the updates by \((\theta', p')\).
-  The first (rightmost) of these updates adds Gaussian noise to \(p\). In the next
-  \(l_{\theta}\) step, the previous value of \(p\) is added to \(\theta\)
-  after multiplication with a non-singular matrix, and the further updates
-  do not change \(\theta\), so it is possible
-  to obtain any value for \(\theta'\), no matter the starting value of
-  \((\theta^{*}, p^{*})\). In the next \(l_{p_{t_{2}}}\) update, Gaussian noise is
-  added to the value of \(p\) and the distribution of \(p\) remains Gaussian
-  after the \(l_{-}\) update, so it is possible to obtain any value
-  for \(p'\) from any \((\theta^{*}, p^{*})\). This means that
-  DP-HMC is strongly irreducible, and thus ergodic.
-\end{proof}
-
-Together, Theorems~\ref{dp_hmc_invariant_theorem} and \ref{dp_hmc_ergodicity_theorem}
-show that DP-HMC converges to the same target distribution as HMC, though
-the convergence is slower than in HMC, as clipping and adding noise to
-gradients gradient, and adding noise to the log-likelihoods all lower the
-acceptance rate of DP-HMC.
-
-If the friction term that corrects the dynamics is used, the equations of
-motion become~\cite{CFG14}
-\begin{align*}
-  \frac{d\theta}{dt} &= M^{-1}p, \\
-  \frac{dp}{dt} &= -\nabla U(\theta) - \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \sigma_{g}B_{d},
-\end{align*}
-where \(B_{d}\) denotes the \(d\)-dimensional Brownian motion.
-The equation for \(\theta\) is unchanged, but the equation for \(p\) has the
-additional term \(-\frac{1}{2}\sigma_{g}^{2}M^{-1}p\).
-For the leapfrog updates, \(l_{\theta}\) does not change, and \(l_{p_{t}}\) changes
-to
-\[
-  l_{p_{t}}^{fric}(\theta, p) = \left(\theta, p - t(g(\theta)
-  + \frac{1}{2}\sigma_{g}^{2}M^{-1}p + \xi)\right).
-\]
-where \(\xi \sim \caln(0, \sigma_{g}^{2})\).
-Now the step in the proof of Lemma~\ref{leapfrog_step_reversible_lemma}
-using the shift invariance of the Gaussian distribution no longer works,
-as the distribution of \(p'\) given \(p\) and \(\theta' = \theta\) becomes
-\[
-  \caln_{d}\left(p'\mid - \left(I - \frac{t}{2}\sigma_{g}^{2}M^{-1}\right)p
-    + f_{t}(\theta), \sigma^{2}I\right)
-\]
-and
-\[
-  \caln_{d}\left(p'\mid - \left(I - \frac{t}{2}\sigma_{g}^{2}M^{-1}\right)p
-    + f_{t}(\theta), \sigma^{2}I\right)
-  \neq \caln_{d}\left(p\mid - \left(I - \frac{t}{2}\sigma_{g}^{2}M^{-1}\right)p'
-    + f_{t}(\theta), \sigma^{2}I\right).
-\]
-
-This means that the acceptance test is no longer correct, so
-the friction term is not used in this thesis beyond this brief discussion,
-but finding a way to correct the acceptance test is a potential avenue for
-future research.
+%
 
 \begin{algorithm}
-    \SetAlgoLined
-    \For{\(1 \leq i \leq k\)}{
-        \(\theta_{i,0} = \theta_{i-1}\)\\
-        \(G_{i,0} = g_{b_{g}}(\theta_{i,0}) + \caln(0, \sigma_{g}^{2})\)\\
-        \(p_0 = \caln_d(0, M)\)\\
-        \For{\(1 \leq j \leq L\)}{
-            \(p_{j-\frac{1}{2}} = p_{j-1} + \frac{1}{2}\eta G_{i,j-1} \)\\
-            \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-\frac{1}{2}}\)\\
-            \(G_{i,j} = g_{b_{g}}(\theta_{i,j}) + \caln(0, \sigma_{g}^{2})\)\\
-            \(p_{j} = p_{j-\frac{1}{2}} + \frac{1}{2}\eta G_{i,j} \)\\
-        }
-        \(r_x = \ln \frac{p(x\mid \theta_{i,L})}{p(x\mid \theta_{i-1})}\)\\
-        \(R = \sum_{x\in X}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_x)\)\\
-        % \(s_{var} = (2\sigma_lb_l||\theta_{i-1} - \theta_{i,L}||_2)^2\)\\
-        \(\Delta H = R + \frac{1}{2}p_0^TM^{-1}p_0 - \frac{1}{2}p_L^TM^{-1}p_L
-        + \ln \frac{p(\theta_{i,L})}{p(\theta_{i-1})}
-        + \caln(0, \sigma_{l}^{2}(\theta_{i-1}, \theta_{i,L}))\)\\
-        \(u = \mathrm{Unif}(0, 1)\)\\
-        \If{\(u < \Delta H - \frac{1}{2}\sigma_{l}^{2}(\theta_{i-1}, \theta_{i,L})\)}{
-            \(\theta_{i} = \theta_{i, L}\)\\
-            % \(G_{i+1,0} = G_{i,L}\)\\
-        }
-        \Else{
-            \(\theta_i = \theta_{i-1}\)\\
-            % \(G_{i+1,0} = G_{i,0}\)\\
-        }
+  \KwIn{target distribution \(p\), clip bounds \(b_{l}\) and \(b_{g}\),
+    number of iterations \(k\), number of leapfrog steps \(L\), leapfrog step
+    size \(\eta\), initial value \(\theta_{0}\), gradient noise variance \(\sigma_{g}^{2}\),
+    log-likelihood noise parameter \(\tau_{l}\) ,
+    positive-definite mass matrix \(M\) and data \(X\)
+  }
+  \(\sigma_{l}(\theta, \theta') = 2\tau_{l}\sqrt{n}b_{l}||\theta - \theta'||_{2}\)\\
+  \(g_{b_{g}}(\theta) = \sum_{x\in X}\clip_{b_{g}}(\nabla \ln p(x\mid \theta))
+  + \nabla \ln p(\theta)\)\\
+  \For{\(1 \leq i \leq k\)}{
+    \(\theta_{i,0} = \theta_{i-1}\)\\
+    sample \(G_{i,0} \sim \caln(g_{b_{g}}(\theta_{i,0}), \sigma_{g}^{2})\)\\
+    sample \(p_0 \sim \caln_d(0, M)\)\\
+    \For{\(1 \leq j \leq L\)}{
+      \(p_{j-\frac{1}{2}} = p_{j-1} + \frac{1}{2}\eta G_{i,j-1} \)\\
+      \(\theta_{i,j} = \theta_{i,j-1} + M^{-1}p_{j-\frac{1}{2}}\)\\
+      sample \(G_{i,j} \sim \caln(g_{b_{g}}(\theta_{i,j}), \sigma_{g}^{2})\)\\
+      \(p_{j} = p_{j-\frac{1}{2}} + \frac{1}{2}\eta G_{i,j} \)\\
     }
-    where \(\sigma_{l}(\theta, \theta') = 2\tau_{l}\sqrt{n}b_{l}||\theta - \theta'||_{2}\)
-    and \(g_{b_{g}}(\theta) = \sum_{x\in X}\clip_{b_{g}}(\nabla \ln p(x\mid \theta))
-    + \nabla \ln p(\theta)\).
-    \caption{
-      DP HMC: log likelihood clip bound \(b_{l}\), gradient clip bound
-      \(b_{g}\), clipped gradient function \(g_{b_{g}}\),
-      number of iterations \(k\), number of leapfrog steps \(L\),
-      leapfrog step size \(\eta\), initial point \(\theta_{0}\),
-      gradient noise variance \(\sigma_{g}^{2}\), log likelihood ratio
-      noise variance \(\sigma_{l}^{2}\), positive-definite mass matrix \(M\)
-      and dataset \(X\) as input. Each \(\caln(\mu, \Sigma)\) represents
-      sampling independently from the Gaussian distribution with mean
-      \(\mu\) and covariance \(\Sigma\).
+    \(r_x = \ln \frac{p(x\mid \theta_{i,L})}{p(x\mid \theta_{i-1})}\)\\
+    \(R = \sum_{x\in X}^n \mathrm{clip}_{b_l||\theta_{i-1} - \theta_{i,L}||_2}(r_x)\)\\
+    sample \(\xi \sim \caln(0, \sigma_{l}^{2}(\theta_{i-1}, \theta_{i, L}))\)\\
+    \(\Delta H = R + \frac{1}{2}p_0^TM^{-1}p_0 - \frac{1}{2}p_L^TM^{-1}p_L
+    + \ln \frac{p(\theta_{i,L})}{p(\theta_{i-1})}
+    + \xi\)\\
+    sample \(u \sim \mathrm{Unif}(0, 1)\)\\
+    \eIf{\(u < \Delta H - \frac{1}{2}\sigma_{l}^{2}(\theta_{i-1}, \theta_{i,L})\)}{
+      \(\theta_{i} = \theta_{i, L}\)\\
     }
-    \label{dp_hmc_algo}
+    {
+      \(\theta_i = \theta_{i-1}\)\\
+    }
+  }
+  \caption{DP HMC}
+  \label{dp_hmc_algo}
 \end{algorithm}
 
 DP HMC is shown in Algorithm~\ref{dp_hmc_algo}.
@@ -2815,27 +2565,307 @@ while moving a substantial distance on the circle.
   \caption{
     DP HMC proposal trajectory on a circular posterior
     (Section~\ref{circle_section}). The leapfrog simulation progress is shown
-    in successive images from left to right and top to bottom.
+    in successive images from left to right and top to bottom with \(j\) denoting
+    the current leapfrog step as in Algorithm~\ref{dp_hmc_algo}.
     The orange point is the starting
     point of the leapfrog simulation and the blue line shows the progress
-    of the leapfrog steps. The background is a contour plot of the circular
-    posterior density.
+    of the leapfrog steps taken before step \(j\).
+    The background is a contour plot of the circular posterior density.
   }
   \label{hmc_trajectory_fig}
 \end{figure}
 
+\section{Convergence of DP HMC}\label{dp_hmc_convergence_section}
+
+The invariance of the target distribution in the non-DP case
+was shown through the conservation of Lebesgue measure and invertibility of
+the non-DP leapfrog simulation. The
+DP HMC leapfrog simulation is randomised, so invertibility and conservation
+of measure are not directly applicable. However,
+Lemma~\ref{reversible_proposal_lemma} gives a condition that applies to
+the DP HMC proposal and can be used to show the invariance of the target
+distribution: reversibility with respect to the Lebesgue measure.
+
+With the momentum negation after the leapfrog simulation, the DP HMC proposal
+can be written as
+\[
+  l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\dotsb
+  l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}\circ l_{p_{t_{2}}}.
+\]
+where \(l_{-}(\theta, p) = (\theta, -p)\). Reversibility of the proposal
+with respect to the Lebesgue measure can then shown by
+decomposing the sequence into parts that are individually reversible.
+
+\begin{lemma}\label{leapfrog_step_reversible_lemma}
+  \(l_{\theta}\circ l_{-}\) and \(l_{-}\circ l_{p_{t}}\) for any \(t\in \R\)
+  are reversible with respect to the Lebesgue measure.
+\end{lemma}
+\begin{proof}
+  Starting with \(l_{\theta}\circ l_{-}\), denote
+  \(f(\theta, p) = (l_{\theta}\circ l_{-})(\theta, p)
+  = (\theta - \eta M^{-1}p, -p)\). Then
+  \[
+    f(f(\theta, p)) = f(\theta - \eta M^{-1}p, -p) = (\theta, p),
+  \]
+  which means that \(f^{-1} = f\). Because \(l_{\theta}\) and \(l_{-}\) preserve
+  Lebesgue measure, \(f\) also preserves Lebesgue measure.
+  The Markov kernel for \(l_{\theta}\circ l_{-}\) is \(\delta_{f(\theta, p)}\),
+  so Lemma~\ref{dirac_measure_reversible_lemma} proves the claim for
+  \(l_{\theta}\circ l_{l}\).
+
+  For \(l_{-}\circ l_{p_{t}}\), recall that
+  \[
+    (l_{-}\circ l_{p_{t}})(\theta, p) = (\theta, -p + t(g(\theta) + \xi)),
+  \]
+  where \(\xi \sim \caln(0, \sigma_{g}^{2})\).
+  \(l_{-}\circ l_{p_{t}}\) is a Markov kernel on \(\R^{2d}\),
+  so the measures \(\nu_{1}\) and \(\nu_{2}\) in
+  Definition~\ref{reversible_definition} are measures on \(\R^{4d}\), and
+  the Lebesgue measure in the claim is specifically \(m_{2d}\).
+
+  Because \((\R^{2d}, \mathcal{B}(\R^{2d})) = (\R^{d}, \mathcal{B}(\R^{d}))^{2}\)
+  and \(m_{2d} = m_{d}^{2}\), by
+  Lemma~\ref{reversible_check_product_lemma} it is sufficient to show that
+  \begin{align*}
+    &\int_{A}m_{d}(\dx \theta)\int_{B}m_{d}(\dx p)
+    \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx (\theta', p'))
+    \\= &\int_{C}m_{d}(\dx \theta')\int_{D}m_{d}(\dx p')
+    \int_{A\times B}(l_{-}\circ l_{p_{x}})(\theta', p', \dx (\theta, p))
+  \end{align*}
+  for all \(A, B, C, D\in \mathcal{B}(\R^{d})\).
+  Denote \(f_{t}(\theta) = t g(\theta)\) and
+  \(\sigma^{2} = t^{2}\sigma_{g}^{2}\). Denote the density function
+  of the \(d\)-dimensional Gaussian distribution with mean \(\mu\) and covariance
+  \(\Sigma\) by \(\caln_{d}(\cdot \mid \mu, \Sigma)\).
+  Then
+  \begin{align}
+    \int_{C\times D}(l_{-}\circ l_{p_{x}})(\theta, p, \dx(\theta', p'))
+    &= \begin{cases}
+         0 &\text{if } \theta \notin C \\
+         \int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+         & \text{if } \theta \in C
+    \end{cases}
+    \\&= 1_{C}(\theta)\int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+      \label{leapfrog_p_update_equality_2}
+    \\&= \int_{C}\delta_{\theta}(\dx \theta')
+      \int_{D}m_{d}(\dx p')\caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+      \label{leapfrog_p_update_equality_1}
+  \end{align}
+  for \(C, D\in \mathcal{B}(\R^{d})\). The third equality follows from
+  Lemma~\ref{dirac_evaluation_lemma}.
+  The Gaussian distribution has a shift-invariance property: for any \(x, y\in \R^{d}\)
+  \[
+    \caln(x\mid \mu, \Sigma) = \caln(x + y\mid \mu + y, \Sigma),
+  \]
+  which is a consequence of the fact that the density of the Gaussian distribution
+  only depends on \(x\) and \(\mu\) through \(x - \mu\).
+  Then,
+  for any \(A, B, C, D\in \mathcal{B}(\R^{d})\),
+	\begin{align*}
+    &\int_{A}m_{d}(\dx\theta)\int_{B}m_{d}(\dx p)\int_{C\times D}
+      (l_{-}\circ l_{p_{t}})(\theta, p, \dx(\theta', p'))
+    \\=& \int_{A}m_{d}(\dx \theta)\int_{B}m_{d}(\dx p)\int_{C}\delta_{\theta}(\dx \theta')
+         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{A}m_{d}(\dx \theta)\int_{C}\delta_{\theta}(\dx \theta')\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p'\mid -p + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')\int_{A}\delta_{\theta'}(\dx \theta)\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p\mid -p' + f_{t}(\theta), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')1_{A}(\theta')\int_{B}m_{d}(\dx p)
+         \int_{D}m_{d}(\dx p') \caln_{d}(p\mid -p' + f_{t}(\theta'), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx \theta')\int_{D}m_{d}(\dx p')1_{A}(\theta')
+         \int_{B}m_{d}(\dx p)\caln_{d}(p\mid -p' + f_{t}(\theta'), \sigma^{2}I)
+    \\=& \int_{C}m_{d}(\dx\theta')\int_{D}m_{d}(\dx p')
+         \int_{A\times B}(l_{-}\circ l_{p_{t}})(\theta', p', \dx(\theta, p)),
+  \end{align*}
+  where the first equality uses Equation~(\ref{leapfrog_p_update_equality_1}),
+  the second equality uses Theorem~\ref{lebesgue_integral_theorem} (6)
+  to change the order of integration,
+  the third uses Lemma~\ref{reversible_integration_lemma} on the two leftmost
+  integrals,
+  the fourth uses the shift-invariance of the Gaussian distribution,
+  the fifth uses Lemma~\ref{dirac_evaluation_lemma},
+  the sixth uses Theorem~\ref{lebesgue_integral_theorem} (6) to rearrange the
+  term in the integrals and the last equality uses
+  Equation~(\ref{leapfrog_p_update_equality_2}).
+\end{proof}
+
+\begin{lemma}\label{leapfrog_reversibility_lemma}
+	The DP HMC proposal \(l_{-} \circ l\) is reversible with respect
+  to the Lebesque measure.
+\end{lemma}
+\begin{proof}
+  The DP HMC proposal
+  \[
+    l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}\circ l_{\theta}
+    \dotsb \circ l_{\theta}\circ l_{p_{t_{2}}}
+  \]
+  can be written as
+  \[
+    (l_{-}\circ l_{p_{t_{2}}})\circ (l_{\theta} \circ l_{-})\circ (l_{-}\circ l_{p_{t_{1}}})
+    \circ (l_{\theta} \circ l_{-}) \circ (l_{-} \circ l_{p_{t_{1}}})\circ
+    \dotsb \circ (l_{\theta}\circ l_{-})\circ (l_{-}\circ l_{p_{t_{2}}}),
+  \]
+  which is a composition of \(l_{1} = l_{-}\circ l_{p_{t_{2}}}\),
+  \(l_{2} = l_{-}\circ l_{p_{t_{1}}}\)
+  and \(l_{3} = l_{\theta}\circ l_{-}\), which are all reversible with respect to the
+  Lebesgue measure by Lemma~\ref{leapfrog_step_reversible_lemma}.
+  The composition can be written as
+  \[
+    l_{1}\circ l_{3}\circ l_{2}\circ l_{3}\circ l_{2}\circ\dotsb \circ l_{3}\circ l_{1},
+  \]
+  which is symmetric. Now
+  Lemma~\ref{composition_reversible_symmetric_lemma} extends the reversibility
+  with respect to the Lebesgue measure to the entire composition.
+\end{proof}
+
+The reversibility of the proposal with respect to the Lebesgue measure can now be
+used to show that DP HMC has the correct invariant
+distribution using Lemma~\ref{reversible_proposal_lemma}:
+\begin{theorem}\label{dp_hmc_invariant_theorem}
+  If
+  \[
+    \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')
+        + \xi - \frac{1}{2}\sigma_{l}^{2}\right)\right\}
+  \]
+  where \(\xi\sim \caln(0, \sigma_{l}^{2})\)
+  is used as the acceptance probability for DP HMC (Algorithm~\ref{dp_hmc_algo}),
+  the invariant distribution is \(\pi\).
+\end{theorem}
+\begin{proof}
+Lemmas~\ref{reversible_proposal_lemma} and \ref{leapfrog_reversibility_lemma}
+together show that when using
+\[
+  \alpha^{*}(\theta, p, \theta', p')
+  = \min\left\{1, \frac{\pi(\theta', p')}{\pi(\theta, p)}\right\}
+\]
+as the acceptance probability, where \(\pi\) is any continuous
+probability distribution on \(\R^{2d}\), the invariant distribution
+of DP HMC without adding noise the log-likelihood ratios is \(\pi\).
+Recall that in HMC
+\[
+  \pi(\theta, p) \propto \exp(-H(\theta, p)),
+\]
+so
+\[
+  \alpha^{*}(\theta, p, \theta', p')
+  = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')\right)\right\}.
+\]
+When Gaussian noise with variance \(\sigma_{l}^{2}\) is added to the
+log-likelihood ratios and the penalty correction is applied,
+  \[
+    \alpha(\theta, p, \theta', p')
+    = \min\left\{1, \exp\left(H(\theta, p) - H(\theta', p')
+        + \xi - \frac{1}{2}\sigma_{l}^{2}\right)\right\}.
+  \]
+  where \(\xi\sim \caln(0, \sigma_{l}^{2})\). Thus the invariant distribution
+  of DP HMC, when \(\alpha(\theta, p, \theta', p')\) is the acceptance
+  probability, is \(\pi\).
+\end{proof}
+
+Proving the ergodicity of DP HMC turns out to be easier than in the
+non-DP case as a result of adding noise to the proposal, which makes the
+algorithm strongly irreducible, as shown below.
+\begin{theorem}\label{dp_hmc_ergodicity_theorem}
+	DP HMC is strongly irreducible and ergodic.
+\end{theorem}
+\begin{proof}
+  Consider the last four updates of the proposal, which will be present for any
+  \(L\),
+  \[
+    l_{-}\circ l_{p_{t_{2}}}\circ l_{\theta}\circ l_{p_{t_{1}}}.
+  \]
+  Recall that \(t_{1} = \frac{\eta}{2}\), \(t_{2} = \eta\) and
+  \[
+    l_{\theta}(\theta, p) = (\theta + \eta M^{-1}p, p),
+  \]
+  \[
+    l_{p_{t}}(\theta, p) = (\theta, p - t(g(\theta) + \xi)),
+  \]
+  where \(\xi \sim \caln_{d}(0, \sigma_{g}^2I)\). Denote
+  \begin{align*}
+    (\theta_{1}, p_{1}) &= l_{p_{t_{1}}}(\theta_{0}, p_{0})\\
+    (\theta_{2}, p_{2}) &= l_{p_{\theta}}(\theta_{1}, p_{1})\\
+    (\theta_{3}, p_{3}) &= l_{p_{t_{2}}}(\theta_{2}, p_{2})\\
+    (\theta_{4}, p_{4}) &= l_{-}(\theta_{0}, p_{0}).
+  \end{align*}
+  Now \(\theta_{1} = \theta_{0}\), \(\theta_{2} = \theta_{1} + \eta M^{-1}p_{1}\)
+  and \(p_{1}\sim \caln(p_{0} - t_{2}g(\theta_{0}), t_{2}^{2}\sigma_{g}^{2})\).
+  As \(\theta_{4} = \theta_{3} = \theta_{2}\) and \(\theta_{1} = \theta_{0}\),
+  \[
+    \theta_{4}\sim \theta_{0} + \eta M^{-1}
+    \caln(p_{0} - t_{2}g(\theta_{0}), t_{2}^{2}\sigma_{g}^{2}),
+  \]
+  which is a Gaussian distribution with non-singular covariance due to the
+  non-singularity of \(M^{-1}\). Thus \(\theta_{4}\) can have any value
+  regardless of \((\theta_{0}, p_{0})\). Additionally,
+  \[
+    p_{4} = -p_{3} \sim -\caln(p_{2} - t_{1}g(\theta_{2}), t_{1}^{2}\sigma_{g}^{2})
+  \]
+  so \(p_{4}\) has a Gaussian distribution with non-singular covariance
+  regardless of \((\theta_{2}, p_{2})\) and \((\theta_{0, }p_{0})\). This means
+  that it is possible to
+  obtain any value for \((\theta_{4}, p_{4})\) when starting with any
+  \((\theta_{0}, p_{0})\), so DP-HMC is strongly irreducible, and thus
+  ergodic.
+\end{proof}
+
+Together, Theorems~\ref{dp_hmc_invariant_theorem} and \ref{dp_hmc_ergodicity_theorem}
+show that DP HMC converges to the same target distribution as HMC if the
+log-likelihood ratios are not clipped. Intuitively, if few log-likelihood ratios
+are clipped, few accept-reject decisions are affected and the chain converges
+very close to the target distribution, which is the case in the empirical
+evaluations on clipping in Section~\ref{clipping_experiments}. Clipping gradients
+does not affect the asymptotic convergence of DP HMC, but is likely to reduce
+acceptance rates.
+
+With the clipped and noisy gradients, the DP HMC proposal no longer simulates
+the correct Hamiltonian dynamics, which leads to lower acceptance rates
+compared to the non-DP case. Chen et al.~\cite{CFG14} use a friction term
+to correct the dynamics with noisy gradients, which leads to the following
+update equations:
+\begin{align*}
+	\theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i} \\
+  p_{i+1} &= p_{i} - \eta (g(\theta_{i}) + \xi)
+            - \frac{\eta^{2}}{2} \sigma_{g}^{2} M^{-1}p_{i},
+\end{align*}
+where \(\xi\sim \caln_{d}(0, \sigma_{g}^{2}I)\). These update equations do not
+lead to a proposal that is reversible with respect to the Lebesgue measure,
+as the update sequence is not even symmetric,
+and Chen et al.~\cite{CFG14} omit the MH acceptance test. Changing the
+update equations to
+\begin{align*}
+  p_{i+1/2} &= p_{i} - \frac{\eta}{2} (g(\theta_{i}) + \xi_{1})
+            - \frac{\eta^{2}}{8} \sigma_{g}^{2} M^{-1}p_{i} \\
+	\theta_{i+1} &= \theta_{i} + \eta M^{-1}p_{i+1/2} \\
+  p_{i+1} &= p_{i} - \frac{\eta}{2} (g(\theta_{i+1}) + \xi_{2})
+            - \frac{\eta^{2}}{8} \sigma_{g}^{2} M^{-1}p_{i+1/2},
+\end{align*}
+where \(\xi_{i}\sim \caln_{d}(0, \sigma_{g}^{2}I)\), makes the sequence of
+updates symmetric. However, using the shift-invariance of the Gaussian
+distribution in Lemma~\ref{leapfrog_step_reversible_lemma} requires that
+both \(p_{i+1/2}\) and \(p_{i}\) on the first update have the same multiplier
+in the equation, which is not true with the friction term.
+This means that the acceptance test is no longer correct, so
+the friction term is not used in this thesis beyond this brief discussion,
+but finding a way to correct the acceptance test is a potential avenue for
+future research.
+
 \chapter{Experimental Setup}\label{experiment_setup_chapter}
 
 To compare the performance of the DP MH algorithms, they were run on
-several models. This chapter introduces these models in Sections~\ref{gauss_model},
-\ref{banana_section} and \ref{circle_section}. The practicalities, such as
+several models. This chapter introduces these models in
+Section~\ref{model_section}. The practicalities, such as
 the hyperparameter values of the models and the initialisation of the
 algorithms, are presented in Section~\ref{practical_section}.
 Finally, the main performance
 metric used in the experiments is introduced in Section~\ref{mmd_section}.
 The results of the experiments are presented in Chapter~\ref{experiment_chapter}.
 
-\section{The Gaussian Model}\label{gauss_model}
+\section{Evaluated Models}\label{model_section}
+
+\subsection*{The Gaussian Model}\label{gauss_model}
 
 The simplest model used for the experiments is the Gaussian model with
 known covariance. The likelihood and prior for \(n\) points of \(d\)-dimensional
@@ -2850,7 +2880,7 @@ The posterior of this model is another \(d\)-dimensional Gaussian distribution
 with parameters expressible in closed form~\cite[Section 3.5]{BDA},
 so it is easy to sample from the posterior.
 
-\section{The Banana Distribution}\label{banana_section}
+\subsection*{The Banana Model}\label{banana_section}
 
 The banana distribution~\cite{TPK14} is a banana-shaped probability
 distribution that is a challenging target for MCMC algorithms, and has been
@@ -2887,13 +2917,13 @@ for testing DP MH algorithms.
             &\vdots \\
         x_d &\sim \caln(\theta_d, \sigma_d^2). \\
     \end{align*}
-    Given data \(x_1,\dotsc, x_n\in \R^d\) and
+    Given data \(X\in \R^{n\times d}\) and
     denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
     the posterior of \(\theta\) tempered with \(T\) is the banana distribution
     \(\ban(\mu, \Sigma, a, b, m)\)
     with
     \[
-        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\},
+        \bar{x}_i = \frac{1}{n}\sum_{x\in X} x_{i} \quad i\in \{1, \dotsc, d\},
     \]
     \[
         \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
@@ -2916,7 +2946,7 @@ The Gaussian distribution is a special case of the banana distribution,
 as setting \(a = 0\) makes \(g\) the identity function. Similarly, setting
 \(a = 0\) turns the Bayesian banana model into a Gaussian model.
 
-\section{Circle Model}\label{circle_section}
+\subsection*{Circle Model}\label{circle_section}
 
 Random walk MH algorithms may struggle with posteriors which are concentrated
 on long, but thin regions. Having a large proposal variance causes the algorithm
@@ -3395,8 +3425,12 @@ in the DP setting is a potential direction for future research. However,
 naive gradient subsampling in HMC has been shown to fail in high
 dimensions~\cite{Bet15}, so additional methods to control the error from subsampling
 are likely needed, such as the friction term~\cite{CFG14} briefly discussed in
-Section~\ref{dp_hmc_section}, or the Nosé-Hoover thermostat~\cite{DFB14} that
-dynamically adjusts the friction.
+Section~\ref{dp_hmc_convergence_section}, or the Nosé-Hoover thermostat~\cite{DFB14} that
+dynamically adjusts the friction. It is also not clear how gradient subsampling
+might affect the reversibility of the DP HMC proposal, as gradient subsampling
+adds an additional source of randomness, and the analysis of
+Section~\ref{dp_hmc_convergence_section} assumed that the gradient computation
+is deterministic.
 
 The large number of parameters DP MH algorithms have compared to non-DP
 MH makes tuning them particularly difficult. DP HMC is the clearest example
@@ -3529,13 +3563,13 @@ fruitful.
             &\vdots \\
         x_d &\sim \caln(\theta_d, \sigma_d^2). \\
     \end{align*}
-    Given data \(x_1,\dotsc, x_n\in \R^d\) and
+    Given data \(X\in \R^{n\times d}\) and
     denoting \(\tau_i = \frac{1}{\sigma_i^2}\),
     the posterior of \(\theta\) tempered with \(T\) is the banana distribution
     \(\ban(\mu, \Sigma, a, b, m)\)
     with
     \[
-        \bar{x}_i = \frac{1}{n}\sum_{j=1}^n x_{ji} \quad i\in \{1, 2\},
+        \bar{x}_i = \frac{1}{n}\sum_{x\in X} x_{i} \quad i\in \{1, \dotsc, d\},
     \]
     \[
         \mu = \left(\frac{Tn\tau_1\bar{x}_1}{Tn\tau_1 + \tau_0},\dotsc,
