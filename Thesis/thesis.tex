@@ -225,7 +225,7 @@ A closely related algorithm is the DP Barker algorithm of
 Heikkilä et al.~\cite{HeikkilaJDH19}, which uses the Barker
 acceptance~\cite{Barker65} test instead of the MH acceptance test
 that MH algorithms use. Although DP Barker is not technically an MH algorithm,
-it is much close to DP penalty than other DP MCMC algorithms due to the
+it is much closer to DP penalty than other DP MCMC algorithms due to the
 acceptance test it performs, and is included in the discussion on DP MH
 algorithms in this thesis.
 
@@ -2515,7 +2515,7 @@ during the first iteration, this would reduce the number of gradient evaluations
 from \(k(L + 1)\) to \(kL + 1\). However, doing so would
 also reuse the noise value from the reused gradient evaluation, which means that
 the resulting algorithm is no longer the algorithm analysed in
-Theorems~\ref{dp_hmc_invariant_theorem} and \ref{dp_hmc_ergodicity_theorem}.
+Section~\ref{dp_hmc_convergence_section}.
 
 It is possible that the variant reusing gradients no longer
 generates a Markov chain, as the noise value of the previous iteration, which
