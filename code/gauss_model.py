@@ -95,12 +95,10 @@ if __name__ == "__main__":
     posterior = model.generate_true_posterior(1000, data)
     fig, ax = plt.subplots()
     model.plot_posterior(ax, data)
-    plt.show()
-
     plt.scatter(posterior[:, 0], posterior[:, 1])
     plt.show()
     for i in range(dim):
-        print(np.quantile(posterior[:, i], (0.01, 0.99)))
+        print(np.quantile(posterior[:, i], np.array([0.01, 0.99])))
 
     # x = np.repeat(1, dim)
     # theta = np.repeat(2, dim)
